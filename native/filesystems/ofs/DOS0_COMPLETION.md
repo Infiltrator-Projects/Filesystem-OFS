@@ -5,7 +5,7 @@
 **Current implementation evidence and outstanding tests:** [DOS0 completion evidence matrix](../../../docs/OFS_DOS0_COMPLETION_MATRIX.md); this file remains the authoritative A–I acceptance contract. Combined regression PR includes signed-address fixes, populated-volume verification, ELF remount and namespace tests.
   
 **Canonical on-disk reference:** [OFS_SPECIFICATION.md](OFS_SPECIFICATION.md).  
-**Scope:** original AmigaDOS Old File System DOSType `0x444F5300` / `DOS\0` only. Do not let international DOS2, directory-cache DOS4, long-name DOS6 or FFS semantics delay, contaminate or mask DOS0 qualification.
+**Scope:** original AmigaDOS Original File System DOSType `0x444F5300` / `DOS\0` only. Do not let international DOS2, directory-cache DOS4, long-name DOS6 or FFS semantics delay, contaminate or mask DOS0 qualification.
 
 This document records **what must work** and the proof required before anyone describes DOS0 as feature-complete. It is not permission to assume the corresponding code works. Every checklist item needs a versioned independent fixture or on-device regression and linked passing CI evidence; a successful build or formatter self-verification is insufficient.
 
