@@ -1,4 +1,4 @@
-# AmigaDOS Old File System (OFS) — Canonical Format Specification
+# AmigaDOS Original File System (OFS) — Canonical Format Specification
 
 **Revision:** 1.0 (24 October 2026)  
 **Location and ownership:** `native/filesystems/ofs/OFS_SPECIFICATION.md`  
