@@ -5,7 +5,7 @@ object used by applications and Boot. Filesystem implementation lives here;
 Boot supplies its generic ELF loader, byte I/O and UEFI filesystem bridge.
 
 `OFS.so` exports the preserved V1/V2 interfaces, a full read/write **V3** API,
-and the generic **Boot V1** interface. It handles OFS `DOS0`, international
+the generic **Boot V1** interface and process-hosted **Defrag V2**. It handles OFS `DOS0`, international
 `DOS2`, directory-cache `DOS4`, and long-name `DOS6`. OFS data always retains
 its 24-byte data header and checksum. Amiga FFS is a separate filesystem.
 
@@ -19,6 +19,7 @@ its 24-byte data header and checksum. Amiga FFS is a separate filesystem.
 | DOS6 | Long names, inline/overflow comments and allocated-block counter maintenance; 106-byte writer/107-byte reader name limits |
 | Volume management | Explicit unmounted format, whole-volume ownership/bitmap verification and explicit bitmap recovery after a structurally valid scan |
 | Boot | Read-only streaming, directories, seeks, filenames and labels; exact generic ABI/manifest; no runtime library imports or constructors |
+| Defragmenter | Analyse/map, metadata and data relocation, exact 10% Growth reserve, verified staging, durable journals, Stop and bound-target Recover; filesystem semantics stay in OFS.so |
 
 V3 is serialized and owns one mount per loaded image. The host provides
 bounded partition-relative I/O, allocation, flush and optional native Amiga
@@ -42,8 +43,9 @@ make native
 make release
 ```
 
-The release contains a portable `OFS.so`, its DEB, and a source-first native
-RUN installer. The DEB owns `/System/Filesystems/OFS.so`. The native profile
+The release contains portable `OFS.so`, its DEB, a source-first native RUN
+installer, and separately qualified `ofs-linux-6.12.107.ko`. The DEB owns
+`/System/Filesystems/OFS.so`. The native profile
 uses `-O3 -march=native -mtune=native -flto=auto` with measured two-pass PGO;
 AVX/AMX instructions are disabled for firmware compatibility. Build records
 include flags, profile and the installed module's SHA256. The RUN can build a
@@ -52,6 +54,23 @@ package without installing it:
 ```sh
 bash filesystem-ofs-0.1.1-native-installer.run --build-only --output ./native-package
 ```
+
+Defragmenter loads `/System/Filesystems/OFS.so` for analysis, Defrag, Growth
+Defrag and Recover. The same file supplies V3 formatting and creation for its
+Test Media utility. A missing or incompatible module stops those operations.
+The SO owns the placement and journal formats; the process host supplies generic
+target safety, byte I/O, durable files, hashing and Stop.
+
+Build the native kernel adapter separately, without installation:
+
+```sh
+make kernel KERNEL_BUILD=/path/to/prepared/kernel/build
+```
+
+The shipped reference KO is specific to Linux 6.12.107. Its tested DOS0/2
+read/write block sizes stop at 4096 bytes; the SO's wider DOS4/6 and 32 KiB
+support does not imply that this transitional native adapter has that coverage.
+Kernel SO loading is a later generic mechanism.
 
 For Boot **v0.1.38**, stage the same portable SO bytes as `OFS.so` in
 `filesystems_x64/` beside Boot's EFI executable. A manual entry can require

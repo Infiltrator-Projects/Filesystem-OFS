@@ -75,7 +75,8 @@ def source_files():
         q = p.as_posix()
         selected = (
             q.startswith("native/filesystems/ofs/") or
-            q == "native/include/infiltratr/fs/boot_module.h" or
+            q.startswith("native/include/infiltratr/fs/") or
+            q == "native/platform/linux_kernel/vfs_compat.h" or
             q.startswith("standalone/") or q.startswith("docs/") or
             q.startswith("tests/") or q.startswith("scripts/") or q.startswith(".github/") or
             q in ("README.md", "VERSION", "MIGRATION-PROVENANCE.md", "LICENSE", "Makefile",

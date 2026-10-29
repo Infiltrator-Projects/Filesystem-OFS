@@ -1,6 +1,8 @@
 # OFS shared-module implementation and qualification
 
-This release implements the **shared module and Boot consumer** scope.
+This release implements the shared module, generic Boot consumer, mandatory
+Defragmenter integration and a separately built native Linux KO. Kernel SO
+loading remains a later generic bridge.
 The authoritative disk format remains `native/filesystems/ofs/OFS_SPECIFICATION.md`.
 The original DOS0 A–I acceptance contract and historical Linux/physical/Amiga
 qualification gates are not redefined by a successful SO test.
@@ -27,6 +29,8 @@ remain unchanged at released commit
 | Memory/arithmetic | `tests/check-sanitizers.sh` instruments the actual engine with AddressSanitizer and UBSan. Release SO inspection separately requires zero runtime imports. |
 | Boot interface | The actual released generic ELF loader and unchanged UEFI bridge tests consume OFS.so across all 28 variant/size combinations, including UTF-8 names, seek/EOF, whole-disk rejection, read-only operations, trust/memory protection and 26 malformed ELF cases. Portable/native objects follow the same path. |
 | Actual firmware handoff | `tests/test_boot_linux.py` independently creates an OFS volume containing a real Linux kernel/initramfs. Released Boot has only OFS.so staged; Linux prints the success marker. CI requires portable/native DOS0 and a 32768-byte DOS6 handoff plus a broken-module/no-fallback rejection. Image hashes must remain unchanged. |
+| Defragmenter | `tests/ofs_defrag_test.py` compiles the exact production generic host, compares both public ABI headers, then drives the packaged SO through analysis, Defrag, Growth Defrag and Recover. All 28 profiles preserve contents, file/directory/cyclic aliases, soft links, ownership, timestamps, comments, cache records and counters. Canonical layouts are idempotent; free Growth gaps are independently read from disk. Tests cross reversed-pointer lists and bitmap extensions, reject insufficient space without source writes, interrupt every journal phase and real source writes, honour Stop and refuse wrong targets, altered precommit sources and corrupt stages. The diagnostic SO and generic host also run under ASan/UBSan. |
+| Native Linux KO | `scripts/build-ofs-kernel.sh` builds `ofs.ko` against an explicitly prepared kernel tree. `tests/test_kernel_runtime.py` boots the real KO in Linux 6.12.107, checks read/write, multiple data blocks, mkdir, hard links, rename, deletion and persistent remount for DOS0/2 at 512/1024/2048/4096 bytes, then checks each image through the SO. No host module is installed or loaded. |
 | Packaging/publication | Portable DEB/direct SO and source-embedded native RUN; native build uses measured PGO/LTO. Extracted package payload/BUILD-INFO/hash/API behavior are verified. Main publication depends on filesystem, Boot and preserved transitional EFI-build jobs and creates an immutable version tag with checksums. |
 
 ## API and limits
@@ -58,18 +62,29 @@ error even if the in-memory image happens to contain complete final bytes.
 
 ## Platform gates still open
 
-The existing Linux VFS adapter still has its historical page-size/address and
-execution qualification work. It is not converted to the shared engine by
-this release. The standalone GNU-EFI adapter is preserved/build-tested, but
+The native Linux VFS adapter is not converted to the SO engine by this release.
+Its demonstrated read/write envelope is DOS0/2 through 4096-byte blocks. DOS4
+remains read-only there; DOS6 and larger filesystem blocks require subsequent
+kernel work. The separate KO is kernel-ABI-specific and must be rebuilt for
+another host kernel. The standalone GNU-EFI adapter is preserved/build-tested, but
 Boot uses its generic SO bridge. Windows is outside this SO/Boot release.
 Original Amiga hardware/handler interoperability, arbitrary RDB/physical-media
-and cross-OS original-handler qualification remain open. The existing
-Defragmenter OFS native engine is not migrated to consume this SO here.
+and cross-OS original-handler qualification remain open. Defragmenter operations
+and Test Media OFS formatting/population now consume this SO. FFS and previously
+issued AFFS journals retain their compatibility implementation; missing OFS.so
+never selects it for new OFS work.
 
 These are explicit scope boundaries, not evidence that the requested shared
 module or its real Boot handoff is absent. Do not turn this release into an
 unqualified claim that every platform row of the original DOS0 contract has
 closed. No physical disk, ESP or NVRAM changes are part of these tests.
+
+Defrag transactions are separate from ordinary V3 mutations: the SO creates a
+complete verified stage before touching the source, persists a strictly parsed
+identity/capacity/geometry/SHA-256-bound journal, commits allocated blocks with
+the root last, verifies readback, and only then removes recovery state. A Stop
+or failure after writes begin retains the journal and complete stage. Phase-1
+Recover also checks the original used-block hash because no writes have begun.
 
 ## 0.1.1 directory-link completion
 

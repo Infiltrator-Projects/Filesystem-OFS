@@ -8,6 +8,15 @@ adapts those OFS algorithms and the canonical OFS specification, rather than
 using FFS raw-data semantics. The SO exports the original unchanged V1/V2
 layouts and additive V3 and generic Boot V1 interfaces.
 
+Defrag V2 is an additive process-hosted interface in the same freestanding SO.
+Its OFS relocation uses the canonical engine's verified namespace, data cursors
+and allocation maps. Defragmenter supplies filesystem-neutral services only.
+Its Test Media producer calls this SO's V3 methods; retained AFFS parsing there
+is an independent disposable-image verifier and legacy-journal compatibility.
+The generic Linux VFS compatibility header is preserved from Filesystem-FAT16
+commit `4ce1c01130845f9e065ed0faad5766c4d9a99ee2`; it contains only kernel API
+version adaptation, and each native KO compiles its own copy.
+
 The normative reference remains `native/filesystems/ofs/OFS_SPECIFICATION.md`.
 The external format references include the ADFlib author's
 [Amiga disk FAQ](https://adflib.github.io/FAQ/adf_info.html) and Olaf Barthel's

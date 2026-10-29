@@ -15,15 +15,28 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - name: Check out the exact production Defragmenter consumer
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: Infiltrator-Projects/Defragmenter
+          ref: 1f715452d018caf670b3c51000c06358545c4092
+          path: .qualification/Defragmenter
+          submodules: true
       - name: Install build prerequisites
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential binutils python3 dpkg-dev
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential binutils python3 dpkg-dev cmake libssl-dev
       - name: Fetch hash-pinned independent Amiga oracle
         run: python3 tests/fetch-oracle.py --output .qualification/oracle
       - name: Preserve original interfaces and qualify all OFS variants and geometries
         run: |
           make check
           make interop AMITOOLS_SOURCE=.qualification/oracle/amitools-0.8.1
+          python3 tests/ofs_defrag_test.py --module build/OFS.so \
+            --defragmenter-source .qualification/Defragmenter \
+            --oracle .qualification/oracle/amitools-0.8.1 --output build/defrag-evidence
       - name: Check actual engine memory and arithmetic safety
+        env:
+          OFS_DEFRAG_SOURCE: .qualification/Defragmenter
+          OFS_ORACLE_SOURCE: .qualification/oracle/amitools-0.8.1
         run: bash tests/check-sanitizers.sh
       - name: Build portable package and source-first native installer
         run: make release
@@ -36,6 +49,10 @@ jobs:
           bash dist/*.run --help
           bash dist/*.run --profile aggressive --system-package-mode --build-only --output build/native-package
           python3 tests/check-package.py build/native-package/*.deb --profile aggressive
+          dpkg-deb -x build/native-package/*.deb build/native-payload
+          python3 tests/ofs_defrag_test.py --module build/native-payload/System/Filesystems/OFS.so \
+            --defragmenter-source .qualification/Defragmenter \
+            --oracle .qualification/oracle/amitools-0.8.1 --output build/native-defrag-evidence
       - uses: actions/upload-artifact@v4
         with:
           name: ofs-qualified-${{ github.sha }}
@@ -109,6 +126,55 @@ jobs:
             build/boot-build-native/*.log
             build/boot-lnfs-32k/*.log
             build/boot-reject/*.log
+  ofs-kernel:
+    needs: ofs-so
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - name: Install isolated kernel qualification tools
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential bc bison flex libelf-dev libssl-dev qemu-system-x86 busybox-static cpio kmod python3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ofs-qualified-${{ github.sha }}
+          path: dist
+      - name: Build pinned Linux and the actual native KO
+        shell: bash
+        run: |
+          set -euo pipefail
+          commit=f717995cb7dcd8998ab15516b8006aea09cfde0d
+          curl --fail --location --retry 5 "https://codeload.github.com/gregkh/linux/tar.gz/$commit" -o "$RUNNER_TEMP/linux.tar.gz"
+          mkdir -p "$RUNNER_TEMP/linux" build/kernel
+          tar -xzf "$RUNNER_TEMP/linux.tar.gz" -C "$RUNNER_TEMP/linux" --strip-components=1
+          kernel="$RUNNER_TEMP/linux"
+          make -C "$kernel" tinyconfig
+          "$kernel/scripts/config" --file "$kernel/.config" \
+            --enable 64BIT --enable MULTIUSER --enable MODULES --enable BLOCK --enable BLK_DEV \
+            --enable BLK_DEV_INITRD --enable RD_GZIP --enable BINFMT_ELF --enable BINFMT_SCRIPT \
+            --enable PCI --enable VIRTIO_MENU --enable VIRTIO --enable VIRTIO_PCI --enable VIRTIO_BLK \
+            --enable DEVTMPFS --enable DEVTMPFS_MOUNT --enable TTY --enable SERIAL_8250 \
+            --enable SERIAL_8250_CONSOLE --enable PROC_FS --enable SYSFS --enable SHMEM --enable TMPFS \
+            --enable FAT_FS --enable MSDOS_FS --disable VFAT_FS --enable NLS --enable NLS_CODEPAGE_437 \
+            --enable NLS_ISO8859_1 --disable WERROR --disable DEBUG_INFO --disable STACK_VALIDATION
+          make -C "$kernel" olddefconfig
+          make -C "$kernel" -j2 bzImage modules
+          bash scripts/build-ofs-kernel.sh build/kernel "$kernel"
+          test "$(modinfo -F name build/kernel/ofs.ko)" = ofs
+          dpkg-deb -x dist/*.deb build/kernel/portable
+          python3 tests/fetch-oracle.py --output .qualification/oracle
+          python3 tests/test_kernel_runtime.py --kernel "$kernel/arch/x86/boot/bzImage" \
+            --module build/kernel/ofs.ko --so build/kernel/portable/System/Filesystems/OFS.so \
+            --oracle .qualification/oracle/amitools-0.8.1 --output build/kernel-runtime
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ofs-kernel-${{ github.sha }}
+          path: build/kernel/ofs.ko
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ofs-kernel-evidence-${{ github.sha }}
+          path: build/kernel-runtime/serial.log
   ofs-efi:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -124,7 +190,7 @@ jobs:
           file build/uefi/OFS_x64.efi
           sha256sum build/uefi/OFS_x64.efi
   publish:
-    needs: [ofs-so, boot-consumer, ofs-efi]
+    needs: [ofs-so, boot-consumer, ofs-efi, ofs-kernel]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     permissions:
@@ -135,6 +201,10 @@ jobs:
         with:
           name: ofs-qualified-${{ github.sha }}
           path: dist
+      - uses: actions/download-artifact@v4
+        with:
+          name: ofs-kernel-${{ github.sha }}
+          path: build/qualified-kernel
       - name: Publish exact qualified immutable version
         env:
           GH_TOKEN: ${{ github.token }}
@@ -151,7 +221,8 @@ jobs:
           mkdir -p build/package
           dpkg-deb -x dist/*.deb build/package
           install -m 0644 build/package/System/Filesystems/OFS.so dist/OFS.so
-          (cd dist && sha256sum *.deb *.run OFS.so > SHA256SUMS)
-          gh release create "$tag" dist/*.deb dist/*.run dist/OFS.so dist/SHA256SUMS \
+          install -m 0644 build/qualified-kernel/ofs.ko dist/ofs-linux-6.12.107.ko
+          (cd dist && sha256sum *.deb *.run OFS.so *.ko > SHA256SUMS)
+          gh release create "$tag" dist/*.deb dist/*.run dist/OFS.so dist/*.ko dist/SHA256SUMS \
             --target "$GITHUB_SHA" --title "Amiga Original File System ${version}" \
-            --notes "OFS.so V1/V2/V3 and generic Boot V1. DOS0/2/4/6 image I/O, all seven OFS block sizes, independent producer/consumer comparisons with documented oracle limits, failure/recovery tests, and real OVMF Linux handoff through the unchanged released Boot consumer. Portable DEB/direct SO and source-first measured native RUN. Scope and remaining platform/original-Amiga qualification gates are in docs/SO_COMPLETION.md; this release does not install a kernel driver or change an ESP."
+            --notes "One freestanding OFS.so for V1/V2/V3, generic Boot V1 and Defragmenter V2. DOS0/2/4/6, all seven block sizes, alias/metadata preservation, exact Growth Defrag, durable staged recovery and interruption tests through the production consumer. Portable DEB/direct SO and source-first measured native RUN. Native ofs-linux-6.12.107.ko is independently VM-tested against that pinned kernel; rebuild it for another host ABI. Kernel SO loading remains a later generic bridge. Evidence and original-Amiga qualification limits are in docs/SO_COMPLETION.md. No ESP or host kernel installation is performed."
