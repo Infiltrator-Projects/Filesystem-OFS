@@ -1,5 +1,12 @@
 # DOS\\0 — feature-completion and independent acceptance matrix
 
+**29 October 2026 shared-module update:** the independent OFS.so V3 and generic
+Boot V1 implementation and its current software evidence are tracked in
+[SO completion and qualification](SO_COMPLETION.md). The historical platform
+assessment below is retained; Linux, physical-media and original-Amiga gates
+are not closed by the separate SO/Boot release.
+
+
 **Scope:** Authentic original AmigaDOS Original File System (`DOS\\0`, DOSType `0x444F5300`), **not** international `DOS\\2`, directory-cache `DOS\\4`, LNFS `DOS\\6`, FFS or muFS. Canonical disk format: [`native/filesystems/ofs/OFS_SPECIFICATION.md`](../native/filesystems/ofs/OFS_SPECIFICATION.md).
 
 **Status (24 October 2026): NOT FEATURE COMPLETE.** A passing CI build, an empty formatted image, a successful synthetic self-check or even a mounted 32-MiB volume does not complete the format. Green checks certify only exercised cases. This is a mandatory closure list, not a declaration that any unchecked row has passed.

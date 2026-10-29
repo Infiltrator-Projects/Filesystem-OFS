@@ -1,163 +1,169 @@
-/* SPDX-License-Identifier: GPL-3.0-or-later */
-/* Single-file OFS.so adapter of the already-qualified OFS EFI reader,
- * shared canonical OFS primitives and DOS type classification.
- * No EFI protocol or Linux kernel symbols are imported.
+/* SPDX-License-Identifier: GPL-3.0-or-later
+ * V1/V2 compatibility adapters over the same portable OFS engine as V3/Boot.
+ * Public layouts and the original 512-byte DOS0/2/4 contract stay unchanged.
+ * The old standalone EFI reader is no longer linked into OFS.so.
  */
 #include "ofs_module.h"
-#include "../core/ofs_primitives.h"
-
-static int block_read(void *opaque, uint32_t block, uint8_t data[512])
-{
-    const IfsOfsDropInIo *io = (const IfsOfsDropInIo *)opaque;
-    const uint64_t offset = (uint64_t)block * UINT64_C(512);
-    if (!io || !io->read_at || offset > io->volume_bytes ||
-        UINT64_C(512) > io->volume_bytes - offset)
+#include "../core/ofs_engine.h"
+static OfsFs legacy;
+static int block_read(void *opaque, uint32_t block, uint8_t data[512]) {
+    const IfsOfsDropInIo *io = opaque;
+    uint64_t at = (uint64_t)block * 512u;
+    if (!io || !io->read_at || at > io->volume_bytes || 512u > io->volume_bytes - at)
         return -1;
-    return io->read_at(io->context, offset, data, 512u) == 0 ? 0 : -1;
+    return io->read_at(io->context, at, data, 512u) == 0 ? 0 : -1;
 }
-static int module_mount(IfsOfsDropInVolume *volume,
-                        const IfsOfsDropInIo *io)
-{
-    uint64_t blocks;
-    if (!volume || !io || !io->read_at || io->volume_bytes % 512u ||
-        io->volume_bytes < 16u * UINT64_C(512))
+static uint32_t flags(uint32_t variant) { return variant == 0 ? 0 : variant == 2 ? 2u : 6u; }
+static int bind(const IfsOfsDropInVolume *v) {
+    if (!v || !v->io.read_at || v->reader.opaque != &v->io || v->reader.read_block != block_read)
         return -1;
-    blocks = io->volume_bytes / 512u;
-    if (blocks > UINT32_MAX)
+    ofs_release(&legacy);
+    IfsOfsIoV3 io = {
+        sizeof(io), IFS_OFS_READ_ONLY, v->io.context, v->io.volume_bytes, v->io.read_at, 0, 0, 0, 0,
+        0};
+    IfsOfsMountV3 options = {sizeof(options), 512u, 2u, 0};
+    int r = ofs_probe(&legacy, &io, &options);
+    return r || legacy.variant > 4u || legacy.root != v->reader.root ||
+                   legacy.blocks != v->reader.blocks ||
+                   flags(legacy.variant) != v->reader.variant_flags
+               ? -1
+               : 0;
+}
+static int mount_volume(IfsOfsDropInVolume *v, const IfsOfsDropInIo *io) {
+    if (!v || !io || !io->read_at)
         return -1;
-    volume->io = *io;
-    return ifs_ofs_efi_mount(&volume->reader, (uint32_t)blocks,
-                             block_read, &volume->io);
-}
-static IfsOfsEfiEntry module_root(const IfsOfsDropInVolume *v)
-{
-    return ifs_ofs_efi_root(v ? &v->reader : 0);
-}
-static int module_lookup(const IfsOfsDropInVolume *v,
-                         const IfsOfsEfiEntry *dir,
-                         const uint8_t *name, uint32_t length,
-                         IfsOfsEfiEntry *out)
-{
-    return v ? ifs_ofs_efi_lookup(&v->reader, dir, name, length, out) : -1;
-}
-static int module_next(const IfsOfsDropInVolume *v,
-                       const IfsOfsEfiEntry *dir, IfsOfsEfiDirCursor *cursor,
-                       IfsOfsEfiEntry *out, uint8_t name[31])
-{
-    return v ? ifs_ofs_efi_next(&v->reader, dir, cursor, out, name) : -1;
-}
-static int module_read(const IfsOfsDropInVolume *v,
-                       const IfsOfsEfiEntry *file, uint32_t offset,
-                       void *buffer, uint32_t length,
-                       IfsOfsEfiFileCursor *cursor)
-{
-    return v ? ifs_ofs_efi_read(&v->reader, file, offset, buffer, length,
-                                cursor) : -1;
-}
-/* Non-executed format identity for safe single-file selection. */
-__attribute__((used,section(".ifsmeta")))
-static const char ifs_module_format_identity[] = "IFS-MODULE:ofs:1";
-static const IfsOfsDropInModule module = {
-    IFS_OFS_DROPIN_ABI_VERSION,
-    sizeof(IfsOfsDropInModule),
-    "ofs",
-    "Amiga Original File System",
-    IFS_OFS_CAP_PROBE | IFS_OFS_CAP_LOOKUP |
-    IFS_OFS_CAP_ENUMERATE | IFS_OFS_CAP_FILE_READ |
-    IFS_OFS_CAP_DOS0 | IFS_OFS_CAP_DOS2 |
-    IFS_OFS_CAP_DOS4 | IFS_OFS_CAP_BLOCK512,
-    module_mount, module_root, module_lookup, module_next, module_read
-};
-__attribute__((visibility("default")))
-const IfsOfsDropInModule *infiltrator_filesystem_module_v1(void)
-{
-    return &module;
-}
-
-/* First migrated OFS writer operation: existing allocated file bytes only.
- * The canonical reader locates/checks the data chain; canonical checksum
- * primitives produce the OFS data-block checksum. No bitmap or size change. */
-static int module_overwrite_existing(IfsOfsDropInVolume *volume,
-    const IfsOfsEfiEntry *file, uint32_t position, const void *source,
-    uint32_t length, IfsOfsWriteAt write_at, IfsOfsSync sync)
-{
-    IfsOfsEfiVolume refreshed = {0};
-    uint8_t block[512], persisted[512];
-    uint32_t block_number, expected_sum, done = 0U;
-    const uint8_t *data = (const uint8_t *)source;
-    if (!volume || !file || !source || !write_at || !sync ||
-        !volume->io.read_at || file->type != IFS_OFS_EFI_FILE ||
-        !length || position >= file->size ||
-        length > file->size - position)
+    ofs_release(&legacy);
+    v->io = *io;
+    IfsOfsIoV3 input = {sizeof(input),
+                        IFS_OFS_READ_ONLY,
+                        io->context,
+                        io->volume_bytes,
+                        io->read_at,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0};
+    IfsOfsMountV3 options = {sizeof(options), 512u, 2u, 0};
+    if (ofs_probe(&legacy, &input, &options) || legacy.variant > 4u)
         return -1;
-    /* Re-detect the same media identity before permitting any mutation. */
-    if (volume->reader.opaque != &volume->io ||
-        volume->reader.read_block != block_read ||
-        ifs_ofs_efi_mount(&refreshed, volume->reader.blocks,
-                          block_read, &volume->io) != 0 ||
-        refreshed.root != volume->reader.root ||
-        refreshed.variant_flags != volume->reader.variant_flags)
+    v->reader =
+        (IfsOfsEfiVolume){block_read, &v->io, legacy.blocks, legacy.root, flags(legacy.variant)};
+    return 0;
+}
+static IfsOfsEfiEntry root(const IfsOfsDropInVolume *v) {
+    return (IfsOfsEfiEntry){v ? v->reader.root : 0, 0, IFS_OFS_EFI_DIRECTORY};
+}
+static int entry(const OfsNode *n, IfsOfsEfiEntry *out) {
+    if (!out ||
+        (n->type != IFS_OFS_ROOT && n->type != IFS_OFS_DIRECTORY && n->type != IFS_OFS_FILE))
         return -1;
-    /* Validate the *entire* destination chain first. An invalid trailing
-     * block must never cause an earlier valid block to be overwritten. */
-    for (uint32_t checked = 0U; checked < length;) {
-        uint32_t at = position + checked;
-        uint32_t count = 488U - at % 488U;
-        uint64_t offset;
-        if (count > length - checked) count = length - checked;
-        if (ifs_ofs_efi_resolve_file_block(&volume->reader, file, at,
-                                           &block_number, block) != 0)
-            return -1;
-        offset = (uint64_t)block_number * UINT64_C(512);
-        if (offset > volume->io.volume_bytes ||
-            UINT64_C(512) > volume->io.volume_bytes - offset)
-            return -1;
-        checked += count;
+    *out = (IfsOfsEfiEntry){n->key, n->bytes,
+                            n->type == IFS_OFS_FILE ? IFS_OFS_EFI_FILE : IFS_OFS_EFI_DIRECTORY};
+    return 0;
+}
+static int lookup(const IfsOfsDropInVolume *v, const IfsOfsEfiEntry *dir, const uint8_t *name,
+                  uint32_t length, IfsOfsEfiEntry *out) {
+    if (bind(v) || !dir || dir->type != IFS_OFS_EFI_DIRECTORY || ofs_name_valid(name, length, 30u))
+        return -1;
+    OfsNode n;
+    int r = ofs_lookup(&legacy, dir->block, name, length, &n);
+    return r == IFS_OFS_NOT_FOUND ? 1 : r ? -1 : entry(&n, out);
+}
+static int next(const IfsOfsDropInVolume *v, const IfsOfsEfiEntry *dir, IfsOfsEfiDirCursor *cursor,
+                IfsOfsEfiEntry *out, uint8_t name[31]) {
+    if (bind(v) || !dir || dir->type != IFS_OFS_EFI_DIRECTORY || !cursor || !name ||
+        cursor->visited >= IFS_OFS_EFI_MAX_DIRECTORY_ENTRIES)
+        return -1;
+    OfsDirCursor c = {cursor->bucket, cursor->next_block, cursor->next_block, cursor->visited};
+    OfsNode n;
+    int r = ofs_next(&legacy, dir->block, &c, &n);
+    if (r)
+        return r == IFS_OFS_END ? 1 : -1;
+    if (entry(&n, out))
+        return -1;
+    ofs_copy(name, n.name, n.name_bytes);
+    name[n.name_bytes] = 0;
+    *cursor = (IfsOfsEfiDirCursor){c.bucket, c.next, c.visited};
+    return 0;
+}
+static int file_node(const IfsOfsEfiEntry *file, OfsNode *n) {
+    if (!file || file->type != IFS_OFS_EFI_FILE ||
+        ofs_node(&legacy, file->block, n, legacy.scratch[1]) || n->type != IFS_OFS_FILE ||
+        n->bytes != file->size)
+        return -1;
+    return 0;
+}
+static int read_file(const IfsOfsDropInVolume *v, const IfsOfsEfiEntry *file, uint32_t at,
+                     void *buffer, uint32_t count, IfsOfsEfiFileCursor *cursor) {
+    OfsNode n;
+    if (bind(v) || file_node(file, &n))
+        return -1;
+    OfsFileCursor c = {0};
+    int r = ofs_read_file(&legacy, &n, at, buffer, count, &c);
+    if (!r && cursor) {
+        cursor->sequence = c.sequence;
+        cursor->block = c.block;
     }
-    /* Commit each validated data block. The host must hold the volume
-     * exclusively; I/O failure may leave already-written blocks modified.
-     * There is no implied transaction or crash-atomicity guarantee. */
-    while (done < length) {
-        uint32_t at = position + done;
-        uint32_t count = 488U - at % 488U;
-        uint64_t device_offset;
-        if (count > length - done) count = length - done;
-        if (ifs_ofs_efi_resolve_file_block(&volume->reader, file, at,
-                                           &block_number, block) != 0)
+    return r ? -1 : 0;
+}
+static int overwrite(IfsOfsDropInVolume *v, const IfsOfsEfiEntry *file, uint32_t at,
+                     const void *source, uint32_t count, IfsOfsWriteAt write_at, IfsOfsSync sync) {
+    OfsNode n;
+    if (bind(v) || file_node(file, &n) || !write_at || !sync || !source || !count ||
+        at >= n.bytes || count > n.bytes - at)
+        return -1;
+    if (ofs_check_file(&legacy, &n))
+        return -1;
+    /* V2 retains its existing-data callback authority and persistence checks.
+     * V3 owns normal dirty-bitmap/metadata operations and allocation. */
+    legacy.io.flags = 0;
+    legacy.io.write_at = write_at;
+    legacy.io.flush = sync;
+    const uint8_t *input = source;
+    uint32_t done = 0, total = (n.bytes - 1u) / 488u + 1u;
+    OfsFileCursor c = {0};
+    while (done < count) {
+        uint32_t position = at + done, logical = position / 488u, key;
+        if (ofs_pointer(&legacy, n.object, logical, total, &c, &key))
             return -1;
-        device_offset = (uint64_t)block_number * UINT64_C(512);
-        if (device_offset > volume->io.volume_bytes ||
-            UINT64_C(512) > volume->io.volume_bytes - device_offset)
+        uint8_t *b = legacy.scratch[4], *persisted = legacy.scratch[5];
+        if (ofs_data(&legacy, n.object, n.bytes, logical, key, b))
             return -1;
-        for (uint32_t i = 0; i < count; ++i)
-            block[24U + at % 488U + i] = data[done + i];
-        expected_sum = ifs_ofs_checksum_word_value(block, 512U, 5U);
-        block[20] = (uint8_t)(expected_sum >> 24);
-        block[21] = (uint8_t)(expected_sum >> 16);
-        block[22] = (uint8_t)(expected_sum >> 8);
-        block[23] = (uint8_t)expected_sum;
-        if (ifs_ofs_block_checksum(block, 512U) != 0U ||
-            write_at(volume->io.context, device_offset, block, 512U) != 0 ||
-            sync(volume->io.context) != 0 ||
-            volume->io.read_at(volume->io.context, device_offset,
-                               persisted, 512U) != 0 ||
-            ifs_ofs_block_checksum(persisted, 512U) != 0U)
+        uint32_t part = 488u - position % 488u;
+        if (part > count - done)
+            part = count - done;
+        ofs_copy(b + 24u + position % 488u, input + done, part);
+        ofs_checksum(&legacy, b, 5);
+        if (ofs_write_block(&legacy, key, b) || sync(v->io.context) ||
+            v->io.read_at(v->io.context, (uint64_t)key * 512u, persisted, 512u) ||
+            !ofs_equal(b, persisted, 512u))
             return -1;
-        for (uint32_t i = 0; i < 512U; ++i)
-            if (persisted[i] != block[i]) return -1;
-        done += count;
+        done += part;
     }
     return 0;
 }
-__attribute__((used,section(".ifsmeta")))
-static const char ifs_module_format_identity_v2[] = "IFS-MODULE:ofs:2";
-static const IfsOfsDropInModuleV2 module_v2 = {
-    IFS_OFS_DROPIN_ABI_V2, sizeof(IfsOfsDropInModuleV2),
-    "ofs", IFS_OFS_CAP_EXISTING_FILE_OVERWRITE,
-    module_overwrite_existing
-};
-__attribute__((visibility("default")))
-const IfsOfsDropInModuleV2 *infiltrator_filesystem_module_v2(void)
-{
-    return &module_v2;
+__attribute__((used, section(".ifsmeta"))) static const char identity[] = "IFS-MODULE:ofs:1";
+__attribute__((used, section(".ifsmeta"))) static const char identity2[] = "IFS-MODULE:ofs:2";
+static const IfsOfsDropInModule module = {
+    1,
+    sizeof(module),
+    "ofs",
+    "Amiga Original File System",
+    IFS_OFS_CAP_PROBE | IFS_OFS_CAP_LOOKUP | IFS_OFS_CAP_ENUMERATE | IFS_OFS_CAP_FILE_READ |
+        IFS_OFS_CAP_DOS0 | IFS_OFS_CAP_DOS2 | IFS_OFS_CAP_DOS4 | IFS_OFS_CAP_BLOCK512,
+    mount_volume,
+    root,
+    lookup,
+    next,
+    read_file};
+static const IfsOfsDropInModuleV2 module2 = {2, sizeof(module2), "ofs",
+                                             IFS_OFS_CAP_EXISTING_FILE_OVERWRITE, overwrite};
+__attribute__((visibility("default"))) const IfsOfsDropInModule *
+infiltrator_filesystem_module_v1(void) {
+    return &module;
+}
+__attribute__((visibility("default"))) const IfsOfsDropInModuleV2 *
+infiltrator_filesystem_module_v2(void) {
+    return &module2;
 }

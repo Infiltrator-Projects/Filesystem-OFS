@@ -1,5 +1,12 @@
 # OFS format completeness and implementation qualification
 
+**29 October 2026 shared-module update:** the independent OFS.so V3 and generic
+Boot V1 implementation and its current software evidence are tracked in
+[SO completion and qualification](SO_COMPLETION.md). The historical platform
+assessment below is retained; Linux, physical-media and original-Amiga gates
+are not closed by the separate SO/Boot release.
+
+
 **DOS0 implementation evidence matrix:** [OFS_DOS0_COMPLETION_MATRIX.md](OFS_DOS0_COMPLETION_MATRIX.md) records DOS0 verification and remaining platform qualification requirements.
 
 **DOS0-specific acceptance contract:** [native/filesystems/ofs/DOS0_COMPLETION.md](../native/filesystems/ofs/DOS0_COMPLETION.md) tracks feature completion of the original DOS0 format independently of the other OFS variants.

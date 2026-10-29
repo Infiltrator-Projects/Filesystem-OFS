@@ -88,9 +88,22 @@ static void fixture(void)
     put(root, 0, 2);
     put(root, 3, 72);
     put(root, 127, 1);
+    put(root, 78, UINT32_MAX);
+    put(root, 79, 2);
     name(root, "OFSROOT");
     put(root, 6u + hash("boot"), 4);
     checksum(root);
+
+    /* Valid fixtures include the allocation bitmap and reversed data table. */
+    for (uint32_t key = 2; key < BLOCKS; ++key)
+        if (key != 2 && key != ROOT && (key < 4 || key > 7))
+            put(disk[2], 1 + (key-2)/32,
+                load32(disk[2] + (1 + (key-2)/32)*4) | (1u << ((key-2)%32)));
+    {
+        uint32_t sum=0;
+        for (uint32_t i=1;i<128;i++) sum+=load32(disk[2]+i*4);
+        put(disk[2],0,0u-sum);
+    }
 
     put(dir, 0, 2);
     put(dir, 1, 4);
@@ -104,6 +117,7 @@ static void fixture(void)
     put(file, 1, 5);
     put(file, 2, 1);
     put(file, 4, 6);
+    put(file, 77, 6);
     put(file, 81, 5);
     put(file, 125, 4);
     put(file, 127, (uint32_t)-3);
@@ -223,6 +237,7 @@ int main(void)
         uint32_t count_before;
         fixture();
         put(disk[5], 2, 2);
+        put(disk[5], 76, 7);
         put(disk[5], 81, 600);
         checksum(disk[5]);
         put(disk[6], 3, 488);

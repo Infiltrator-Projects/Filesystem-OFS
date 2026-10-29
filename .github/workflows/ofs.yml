@@ -1,4 +1,4 @@
-name: OFS independent core, shared object and EFI
+name: Qualify and publish OFS shared module
 on:
   push:
     branches: [main]
@@ -6,14 +6,109 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: filesystem-ofs-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
   ofs-so:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
-      - name: Build and run original OFS core, reader and V1/V2 tests
-        run: make test
+      - name: Install build prerequisites
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential binutils python3 dpkg-dev
+      - name: Fetch hash-pinned independent Amiga oracle
+        run: python3 tests/fetch-oracle.py --output .qualification/oracle
+      - name: Preserve original interfaces and qualify all OFS variants and geometries
+        run: |
+          make check
+          make interop AMITOOLS_SOURCE=.qualification/oracle/amitools-0.8.1
+      - name: Check actual engine memory and arithmetic safety
+        run: bash tests/check-sanitizers.sh
+      - name: Build portable package and source-first native installer
+        run: make release
+      - name: Inspect portable package and native source installation result
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(find dist -maxdepth 1 -type f | wc -l)" -eq 2
+          python3 tests/check-package.py dist/*.deb --profile portable
+          bash dist/*.run --help
+          bash dist/*.run --profile aggressive --system-package-mode --build-only --output build/native-package
+          python3 tests/check-package.py build/native-package/*.deb --profile aggressive
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ofs-qualified-${{ github.sha }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+  boot-consumer:
+    needs: ofs-so
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - name: Check out released Boot consumer
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: Infiltrator-Projects/Boot
+          ref: dbc6a710dbe88b78318c8b9afbf47bb64e8706b3
+          path: .qualification/Boot
+      - name: Install real firmware integration prerequisites
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential binutils python3 gnu-efi qemu-system-x86 ovmf dosfstools mtools busybox-static cpio
+      - name: Fetch independent oracle and build actual released Boot EFI
+        run: |
+          python3 tests/fetch-oracle.py --output .qualification/oracle
+          cd .qualification/Boot
+          bash scripts/build-gnuefi.sh
+      - uses: actions/download-artifact@v4
+        with:
+          name: ofs-qualified-${{ github.sha }}
+          path: dist
+      - name: Check the same portable and measured native SO through Boot
+        shell: bash
+        run: |
+          set -euo pipefail
+          make test
+          dpkg-deb -x dist/*.deb build/release-package
+          cmp build/OFS.so build/release-package/System/Filesystems/OFS.so
+          bash dist/*.run --build-only --output build/native-package
+          dpkg-deb -x build/native-package/*.deb build/native-payload
+          mkdir -p build-native
+          cp build/native-payload/System/Filesystems/OFS.so build-native/OFS.so
+          oracle="$GITHUB_WORKSPACE/.qualification/oracle/amitools-0.8.1"
+          boot="$GITHUB_WORKSPACE/.qualification/Boot"
+          bash tests/check-boot-so.sh build/OFS.so "$boot" "$oracle"
+          bash tests/check-boot-so.sh build-native/OFS.so "$boot" "$oracle"
+          IFS_SO_SANITIZE=1 bash tests/check-boot-so.sh build/OFS.so "$boot" "$oracle"
+          mkdir -p build/boot-kernel
+          kernel_package=$(apt-cache depends linux-image-generic | awk '/Depends: linux-image-[0-9]/ {sub("linux-image-", "linux-image-unsigned-", $2); print $2; exit}')
+          test -n "$kernel_package"
+          (cd build/boot-kernel && apt-get download "$kernel_package")
+          dpkg-deb -x build/boot-kernel/*.deb build/boot-kernel/root
+          kernel=$(find "$GITHUB_WORKSPACE/build/boot-kernel/root/boot" -name 'vmlinuz-*' -print -quit)
+          test -s "$kernel"
+          for profile in build build-native; do
+            python3 tests/test_boot_linux.py --boot "$boot/refind/refind_x64.efi" \
+              --module "$profile/OFS.so" --kernel "$kernel" --oracle "$oracle" \
+              --output "build/boot-$profile"
+          done
+          python3 tests/test_boot_linux.py --boot "$boot/refind/refind_x64.efi" \
+            --module build/OFS.so --kernel "$kernel" --oracle "$oracle" \
+            --variant 6 --block-bytes 32768 --output build/boot-lnfs-32k
+          python3 tests/test_boot_linux.py --boot "$boot/refind/refind_x64.efi" \
+            --module build/OFS.so --kernel "$kernel" --oracle "$oracle" \
+            --reject-module --output build/boot-reject
+      - name: Preserve firmware evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ofs-boot-consumer-${{ github.sha }}
+          path: |
+            build/boot-build/*.log
+            build/boot-build-native/*.log
+            build/boot-lnfs-32k/*.log
+            build/boot-reject/*.log
   ofs-efi:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -21,10 +116,41 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
       - name: Install GNU-EFI development libraries
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends gcc binutils gnu-efi file
-      - name: Build native OFS EFI driver without deploying or touching the ESP
+      - name: Preserve build of the transitional native OFS EFI adapter
         run: make efi
-      - name: Confirm actual firmware artifact
+      - name: Inspect adapter artifact
         run: |
           test -s build/uefi/OFS_x64.efi
           file build/uefi/OFS_x64.efi
           sha256sum build/uefi/OFS_x64.efi
+  publish:
+    needs: [ofs-so, boot-consumer, ofs-efi]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: actions/download-artifact@v4
+        with:
+          name: ofs-qualified-${{ github.sha }}
+          path: dist
+      - name: Publish exact qualified immutable version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$(git ls-remote origin refs/heads/main | cut -f1)"
+          version=$(cat VERSION)
+          tag="v${version}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Immutable $tag already exists; no release update required."
+            exit 0
+          fi
+          dpkg-deb -x dist/*.deb build/package
+          install -m 0644 build/package/System/Filesystems/OFS.so dist/OFS.so
+          (cd dist && sha256sum *.deb *.run OFS.so > SHA256SUMS)
+          gh release create "$tag" dist/*.deb dist/*.run dist/OFS.so dist/SHA256SUMS \
+            --target "$GITHUB_SHA" --title "Amiga Original File System ${version}" \
+            --notes "OFS.so V1/V2/V3 and generic Boot V1. DOS0/2/4/6 image I/O, all seven OFS block sizes, independent producer/consumer comparisons with documented oracle limits, failure/recovery tests, and real OVMF Linux handoff through the unchanged released Boot consumer. Portable DEB/direct SO and source-first measured native RUN. Scope and remaining platform/original-Amiga qualification gates are in docs/SO_COMPLETION.md; this release does not install a kernel driver or change an ESP."

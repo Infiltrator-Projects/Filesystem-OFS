@@ -3,3 +3,9 @@
 *.ko
 *.so
 *.efi
+/build-native/
+/build-sanitize/
+/dist/
+/.qualification/
+__pycache__/
+*.pyc
