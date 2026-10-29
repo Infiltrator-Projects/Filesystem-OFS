@@ -714,6 +714,12 @@ static int remount(struct super_block *sb, int *flags, char *data) {
     if (synced) return synced;
     mutex_lock(&m->lock);
     int r = 0;
+    /* A read-only transition cannot complete a later last-close deletion.
+     * Keep the writable lifetime intact until those native objects close. */
+    if ((*flags & SB_RDONLY) && m->fs->orphans) {
+        mutex_unlock(&m->lock);
+        return -EBUSY;
+    }
     if (*flags & SB_RDONLY) m->fs->io.flags |= IFS_OFS_READ_ONLY;
     else if (m->fs->io.flags & IFS_OFS_READ_ONLY) {
         m->fs->io.flags &= ~IFS_OFS_READ_ONLY;

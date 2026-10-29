@@ -7,6 +7,7 @@
 #include <sys/statvfs.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/mount.h>
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -140,6 +141,15 @@ static void alias_permissions(void) {
     int code; CHECK(waitpid(child, &code, 0) == child && WIFEXITED(code) && WEXITSTATUS(code) == 0);
     CHECK(chmod(path("Aliased"), 0755) == 0);
 }
+static void readonly_orphan(void) {
+    int fd = make("extra/readonly-orphan", "last close"); CHECK(close(fd) == 0);
+    fd = open(path("extra/readonly-orphan"), O_RDONLY); CHECK(fd >= 0);
+    CHECK(unlink(path("extra/readonly-orphan")) == 0);
+    CHECK(mount(NULL, root, NULL, MS_REMOUNT | MS_RDONLY, NULL) == -1 && errno == EBUSY);
+    exact(fd, "last close", 10, 0); CHECK(close(fd) == 0);
+    CHECK(mount(NULL, root, NULL, MS_REMOUNT | MS_RDONLY, NULL) == 0);
+    CHECK(mount(NULL, root, NULL, MS_REMOUNT, NULL) == 0);
+}
 static void create_data(unsigned bs, unsigned variant) {
     CHECK(mkdir(path("extra"), 0755) == 0);
     size_t first = original_bytes(bs), length;
@@ -196,7 +206,9 @@ static void create_data(unsigned bs, unsigned variant) {
     CHECK(rename(path("Aliased/from-alias"), path("DirectoryAlias/Renamed")) == 0);
     alias_permissions();
     if (variant == 6) large_extension(bs, 0);
-    metadata(variant, 0); lifetimes(); free(data); free(want);
+    metadata(variant, 0); lifetimes();
+    if (bs == 512 && variant == 0) readonly_orphan();
+    free(data); free(want);
 }
 static void verify_data(unsigned bs, unsigned variant) {
     size_t length; unsigned char *want = expected(bs, &length);

@@ -89,6 +89,8 @@ Mount options retain `bs`, `reserved`, `root`, `setuid`, `setgid`, `mode`,
 Presentation/geometry changes require a new mount; nonempty remount options
 are rejected rather than silently ignored. Read-only/read-write transitions
 are supported and enabling writes revalidates allocation.
+A read-only transition with live unlinked objects returns `EBUSY`; closing
+those handles completes deletion before a later read-only transition.
 
 Defrag transactions are separate from ordinary V3 mutations: the SO creates a
 complete verified stage before touching the source, persists a strictly parsed
