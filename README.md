@@ -1,6 +1,6 @@
 # Filesystem-OFS
 
-**Source owner:** Independent AmigaDOS Old File System engine for InfiltratorOS.
+**Source owner:** Independent AmigaDOS Original File System engine for InfiltratorOS.
 
 This repository contains the actual OFS implementation imported from [Filesystems](https://github.com/Infiltrator-Projects/Filesystems/tree/7473534b1afbd1e9b14f8ab9ae0769fc6be2126e/native/filesystems/ofs) at source commit `7473534b1afbd1e9b14f8ab9ae0769fc6be2126e` on 29 October 2026. Source paths, copyright notices, Linux VFS adapter, UEFI driver, and original test code are preserved.
 
