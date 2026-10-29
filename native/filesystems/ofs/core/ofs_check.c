@@ -265,6 +265,7 @@ static int rebuild(Check *c) {
     OfsFs *f = c->fs;
     f->bitmap_valid = 1;
     f->failed = 0;
+    f->io.flags &= ~IFS_OFS_ALLOW_DIRTY;
     int r = ofs_begin(f);
     if (r)
         return r;
@@ -337,6 +338,10 @@ int ofs_verify(OfsFs *f, IfsOfsCheckV3 *report, int repair) {
         r = rebuild(&c);
         if (!r)
             invalid = 0;
+    }
+    if (!r && repair && !invalid) {
+        f->io.flags &= ~IFS_OFS_ALLOW_DIRTY;
+        f->used_blocks = (uint32_t)report->referenced_blocks;
     }
     if (!r && invalid) {
         report->errors = 1;

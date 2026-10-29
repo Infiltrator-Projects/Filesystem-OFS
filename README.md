@@ -68,7 +68,9 @@ transitional; this release does not install a Linux kernel or Windows driver.
 The earlier [DOS0 platform completion matrix](docs/OFS_DOS0_COMPLETION_MATRIX.md)
 retains those outstanding platform gates.
 
-Writes follow OFS's bitmap-valid protocol. Failed writes/flushes are reported;
+Writable mounts verify ownership and allocation before enabling writes.
+Explicit dirty mounts allow inspection/recovery until a successful recovery
+scan. Writes follow OFS's bitmap-valid protocol. Failed writes/flushes are reported;
 there is no journal or atomic rollback promise. Recovery rebuilds allocation
 only when the namespace and data ownership are consistent. Contradictory
 metadata is reported rather than guessed into a valid filesystem.

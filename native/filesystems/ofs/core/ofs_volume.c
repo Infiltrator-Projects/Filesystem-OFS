@@ -329,29 +329,17 @@ int ofs_probe(OfsFs *f, const IfsOfsIoV3 *io, const IfsOfsMountV3 *opts) {
     }
     f->alloc_hint = reserved;
     f->mounted = 1;
-    if (!(io->flags & IFS_OFS_READ_ONLY) && f->variant == 6u && f->bitmap_valid &&
-        !(io->flags & IFS_OFS_ALLOW_DIRTY)) {
-        IfsOfsSpaceV3 space;
-        status = ofs_space(f, &space);
-        if (!status) {
-            f->used_blocks = f->blocks - f->reserved - (uint32_t)(space.free_bytes / chosen);
-            status = ofs_metadata(f, f->root, r);
-            uint32_t stored = ofs_be32(r + chosen - 44u);
-            if (!status && stored && stored != f->used_blocks)
-                status = IFS_OFS_CORRUPT;
-        }
-        if (status) {
-            ofs_release(f);
-            return status;
-        }
-    }
-    if (!(io->flags & (IFS_OFS_READ_ONLY | IFS_OFS_ALLOW_DIRTY)) && f->variant == 4u) {
+    /* A valid flag does not make a contradictory allocation map safe. Verify
+     * ownership before enabling any allocator on an ordinary writable mount.
+     * Read-only Boot retains its bounded, heap-free streaming path. */
+    if (!(io->flags & (IFS_OFS_READ_ONLY | IFS_OFS_ALLOW_DIRTY))) {
         IfsOfsCheckV3 check;
         status = ofs_verify(f, &check, 0);
         if (status) {
             ofs_release(f);
             return status;
         }
+        f->used_blocks = (uint32_t)check.referenced_blocks;
     }
     return 0;
 }
@@ -499,7 +487,8 @@ int ofs_allocate(OfsFs *f, uint32_t *key) {
     return IFS_OFS_NO_SPACE;
 }
 int ofs_begin(OfsFs *f) {
-    if (!f->mounted || f->mutation || !f->bitmap_valid || (f->io.flags & IFS_OFS_READ_ONLY))
+    if (!f->mounted || f->mutation || !f->bitmap_valid ||
+        (f->io.flags & (IFS_OFS_READ_ONLY | IFS_OFS_ALLOW_DIRTY)))
         return IFS_OFS_ACCESS;
     uint8_t *r = f->scratch[6];
     int status = ofs_metadata(f, f->root, r);

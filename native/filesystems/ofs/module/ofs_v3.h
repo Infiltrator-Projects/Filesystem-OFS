@@ -47,8 +47,9 @@ typedef struct {
     int (*read_at)(void *, uint64_t, void *, uint32_t);
     int (*write_at)(void *, uint64_t, const void *, uint32_t);
     int (*flush)(void *);
-    /* Writable mounts index bitmap/system keys (at most about 8 MiB at the
-     * format limit). Verification additionally needs a volume-sized bitset.
+    /* Writable mounts verify ownership before enabling allocation: bitmap/
+     * system indexes plus four volume-sized bitsets and traversal storage.
+     * ALLOW_DIRTY mounts require explicit successful recovery before writes.
      * The read-only Boot view uses bounded internal buffers without a heap. */
     void *(*allocate)(void *, size_t);
     void (*release)(void *, void *);

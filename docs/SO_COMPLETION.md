@@ -21,7 +21,7 @@ remain unchanged at released commit
 | Large directories | 600 entries with collisions, enumeration, rename and deletion for DOS0/4/6. The sanitizer run uses 128 entries per profile to retain cache-chain coverage while bounding instrumentation cost; ordinary portable and native qualification uses 600. |
 | DOS4 | Fresh root/user-directory cache creation, authoritative metadata comparison, multiple cache pages, shrink/free, file-size/comment/ownership/date updates and rejection of malformed owners/counts/cycles. Read-only Boot enumerates authoritative hashes. |
 | DOS6 | Inline/overflow comment ownership/checksums, allocation cleanup, rename, full-volume hard-link promotion by recycling the removed alias, existing comment-block reuse, root DOSType echo and used-block accounting/recovery. Writers cap names at 106 Latin-1 bytes; the reader also accepts a tested 107-byte raw fixture. |
-| Allocation | Full/near-full images return NO_SPACE before ordinary file growth/create writes; partial bitmap pages, multiple bitmap extensions, duplicate/cyclic keys, configurable reserved counts and odd/even roots are tested. |
+| Allocation | Writable mounts reject contradictory allocation, even if the bitmap-valid flag is set. ALLOW_DIRTY sessions block ordinary mutations until successful explicit recovery. Full/near-full images return NO_SPACE before ordinary file growth/create writes; partial bitmap pages, multiple bitmap extensions, duplicate/cyclic keys, configurable reserved counts and odd/even roots are tested. |
 | High addresses/maximum file length | Virtual read-only fixtures run the actual SO at unsigned keys above 2^31 at every B, with byte offsets above 1 TiB. The 32768-byte fixture reads the end of a UINT32_MAX-byte file through multiple extension lists. These are arithmetic/address tests, not fully populated multi-terabyte media or physical-write evidence. |
 | Failure/recovery | Every write and flush barrier of actual overwrite, growth, mkdir, cross-directory rename and unlink is failed in turn (DOS0/4/6). Successful commands use the dirty/valid bitmap protocol. Explicit recovery rebuilds allocation/counters only after a consistent ownership scan; structural contradictions remain errors. Corrupt data/pointers/checksums/cache/comments and repeated failed bitmap indexing are tested. |
 | Memory/arithmetic | `tests/check-sanitizers.sh` instruments the actual engine with AddressSanitizer and UBSan. Release SO inspection separately requires zero runtime imports. |
@@ -34,7 +34,7 @@ remain unchanged at released commit
 The public API is `native/filesystems/ofs/module/ofs_v3.h`. Byte callbacks must
 be exact, partition-relative and bounded to `volume_bytes`. A successful flush
 must mean durable host storage completion. Writable mounts require allocation
-callbacks; Boot's read-only streaming path has bounded internal memory and no
+callbacks and a successful full ownership/bitmap scan before enabling writes; Boot's read-only streaming path has bounded internal memory and no
 host heap. V3 can take explicit filesystem B/reserved/root options; its normal
 reserved default is two. Device-sector size is not filesystem block size.
 Space reports allocated/free filesystem-block capacity, including the native

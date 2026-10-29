@@ -149,7 +149,8 @@ def corruption(a,path):
            ('data-size',data,12,1),('data-next',data,16,data)]
     for name,k,at,v in cases:
         path.write_bytes(base);b=block(path,k,512);put(b,at,v);checksum(b);store(path,k,512,b)
-        h=Host(path);assert a.mount(C.byref(h.io),None)==0
+        h=Host(path);assert a.mount(C.byref(h.io),None)==-3
+        h.io.flags=1;assert a.mount(C.byref(h.io),None)==0
         writes=h.writes;out=C.create_string_buffer(1100)
         assert a.read(b'/file',0,out,1100)!=0,name
         assert a.write(b'/file',0,b'Z',1)!=0,name
@@ -241,6 +242,27 @@ def geometry(a,path):
             o=Mount(C.sizeof(Mount),bs,reserved,0);assert a.mount(C.byref(h.io),C.byref(o))==0
             assert a.data(b'/geometry')==b'G';assert a.unmount()==0;h.close()
     print('OFS-ODD-GEOMETRY-RESERVED-ROOT-ALL-SIZES-PASS',flush=True)
+
+def allocation_mount_safety(a,path):
+    for variant in (0,2,4,6):
+        h=fresh(a,path,512,variant,256)
+        assert a.create(b'/victim')==0 and a.write(b'/victim',0,b'preserve',8)==0
+        key=a.meta(b'/victim').block;root=space(a).root
+        assert a.unmount()==0;h.close()
+        bm=u32(block(path,root,512),316);b=block(path,bm,512)
+        bit=key-2;at=4+4*(bit//32);put(b,at,u32(b,at)|(1<<(bit%32)))
+        checksum(b,0);store(path,bm,512,b);before=digest(path)
+        h=Host(path);assert a.mount(C.byref(h.io),None)==-3 and h.writes==0
+        assert digest(path)==before
+        h.io.flags=2;assert a.mount(C.byref(h.io),None)==0
+        assert a.create(b'/new')==-6 and a.write(b'/victim',8,b'X',1)==-6
+        assert digest(path)==before
+        c=Check();assert a.recover_bitmap(C.byref(c))==0
+        assert a.data(b'/victim')==b'preserve'
+        assert a.write(b'/victim',8,b'X',1)==0 and a.create(b'/new')==0
+        a.check();assert a.unmount()==0;h.close()
+    print('OFS-WRITABLE-MOUNT-OWNERSHIP-AND-RECOVERY-GATE-PASS',flush=True)
+
 
 def bitmap_extensions(a,path):
     h=fresh(a,path,512,0,1100000)
@@ -388,7 +410,7 @@ def main():
         for variant in (0,4,6):full_media(a,path,variant)
         for variant in ((0,) if args.quick else (0,4,6)):many_entries(a,path,variant,128 if args.sanitized else 600)
         corruption(a,path);faults(a,path);mutation_faults(a,path);geometry(a,path);unsigned_and_max_file(a)
-        bitmap_extensions(a,path);variant_corruption(a,path);lnfs_full_promotion(a,path)
+        allocation_mount_safety(a,path);bitmap_extensions(a,path);variant_corruption(a,path);lnfs_full_promotion(a,path)
     print('OFS-SO-COMPLETE-BOUNDARY-FAILURE-SUITE-PASS')
 
 if __name__=='__main__':main()
