@@ -119,7 +119,7 @@ int ofs_create(OfsFs *f, const char *path, int32_t type, const char *target, uin
     if (r != IFS_OFS_NOT_FOUND)
         return r;
     if (type != IFS_OFS_FILE && type != IFS_OFS_DIRECTORY && type != IFS_OFS_SOFTLINK &&
-        type != IFS_OFS_LINKFILE)
+        type != IFS_OFS_LINKFILE && type != IFS_OFS_LINKDIR)
         return IFS_OFS_INVALID;
     r = parent_writable(f, parent);
     if (r)
@@ -136,13 +136,14 @@ int ofs_create(OfsFs *f, const char *path, int32_t type, const char *target, uin
             if (f->scratch[4][i] < 32u)
                 return IFS_OFS_INVALID;
     }
-    if (type == IFS_OFS_LINKFILE) {
+    if (type == IFS_OFS_LINKFILE || type == IFS_OFS_LINKDIR) {
         r = ofs_node(f, original, &exists, f->scratch[1]);
         if (r)
             return r;
-        if (exists.type != IFS_OFS_FILE)
+        if (exists.type != (type == IFS_OFS_LINKFILE ? IFS_OFS_FILE : IFS_OFS_DIRECTORY))
             return IFS_OFS_INVALID;
-        r = ofs_check_file(f, &exists);
+        r = type == IFS_OFS_LINKFILE ? ofs_check_file(f, &exists)
+                                   : directory_validate(f, exists.key, 0);
         if (r)
             return r;
     }
@@ -177,13 +178,13 @@ int ofs_create(OfsFs *f, const char *path, int32_t type, const char *target, uin
     r = ofs_put_strings(f, key, b, name, length, 0, 0);
     if (r)
         return ofs_end(f, r);
-    if (type == IFS_OFS_LINKFILE) {
+    if (type == IFS_OFS_LINKFILE || type == IFS_OFS_LINKDIR) {
         ofs_put32(b + f->block_bytes - 44u, original);
         ofs_put32(b + f->block_bytes - 40u, exists.link);
     }
     ofs_checksum(f, b, 5);
     r = ofs_write_block(f, key, b);
-    if (!r && type == IFS_OFS_LINKFILE) {
+    if (!r && (type == IFS_OFS_LINKFILE || type == IFS_OFS_LINKDIR)) {
         r = ofs_metadata(f, original, b);
         if (!r) {
             ofs_put32(b + f->block_bytes - 40u, key);
@@ -228,6 +229,35 @@ static int remove_alias(OfsFs *f, const OfsNode *n) {
         r = ofs_drop_comment(f, n->key);
     return r ? r : ofs_bitmap_set(f, n->key, 1);
 }
+static int parent_cycle(OfsFs *f, uint32_t object, uint32_t parent);
+/* An explicit directory hard link may point into its own tree. Such aliases
+ * are finite on disk and are scanned once per original object. Promotion,
+ * however, must retain an original-parent route to the root: moving the
+ * original into its own descendant would strand the entire tree. Select a
+ * rooted alias before writes, including when a cyclic alias is newest. */
+static int promotion(OfsFs *f, const OfsNode *n, OfsNode *chosen, uint32_t *previous) {
+    uint32_t key = n->link, before = n->key, visited = 0;
+    while (key) {
+        if (++visited > f->blocks - f->reserved)
+            return IFS_OFS_CORRUPT;
+        int r = ofs_node(f, key, chosen, f->scratch[1]);
+        if (r)
+            return r;
+        if (chosen->original != n->key ||
+            chosen->type != (n->type == IFS_OFS_DIRECTORY ? IFS_OFS_LINKDIR : IFS_OFS_LINKFILE))
+            return IFS_OFS_CORRUPT;
+        r = n->type == IFS_OFS_DIRECTORY ? parent_cycle(f, n->key, chosen->parent) : 0;
+        if (!r) {
+            *previous = before;
+            return 0;
+        }
+        if (r != IFS_OFS_ACCESS)
+            return r;
+        before = key;
+        key = chosen->link;
+    }
+    return IFS_OFS_ACCESS;
+}
 static int unlink_node(OfsFs *f, OfsNode *n) {
     if (n->key == f->root || n->protection & 1u)
         return IFS_OFS_ACCESS;
@@ -235,11 +265,24 @@ static int unlink_node(OfsFs *f, OfsNode *n) {
         return remove_alias(f, n);
     if (n->link) {
         OfsNode promoted;
-        int r = ofs_node(f, n->link, &promoted, f->scratch[1]);
+        uint32_t previous;
+        int r = promotion(f, n, &promoted, &previous);
         if (r)
             return r;
-        if (promoted.original != n->key)
-            return IFS_OFS_CORRUPT;
+        uint32_t remaining = n->link;
+        if (previous == n->key)
+            remaining = promoted.link;
+        else {
+            uint8_t *link = f->scratch[1];
+            r = ofs_metadata(f, previous, link);
+            if (r)
+                return r;
+            ofs_put32(link + f->block_bytes - 40u, promoted.link);
+            ofs_checksum(f, link, 5);
+            r = ofs_write_block(f, previous, link);
+            if (r)
+                return r;
+        }
         uint32_t alias_comment = 0;
         if (f->variant == 6u) {
             r = ofs_metadata(f, promoted.key, f->scratch[3]);
@@ -267,7 +310,7 @@ static int unlink_node(OfsFs *f, OfsNode *n) {
                             n->comment_bytes);
         if (r)
             return r;
-        ofs_put32(b + f->block_bytes - 40u, promoted.link);
+        ofs_put32(b + f->block_bytes - 40u, remaining);
         ofs_checksum(f, b, 5);
         r = ofs_write_block(f, n->key, b);
         if (r)
@@ -301,8 +344,14 @@ static int can_unlink(OfsFs *f, OfsNode *n) {
     int r = parent_writable(f, n->parent);
     if (r)
         return r;
-    if (n->type == IFS_OFS_DIRECTORY)
-        return directory_validate(f, n->object, 1);
+    if (n->type == IFS_OFS_DIRECTORY) {
+        r = directory_validate(f, n->object, !n->link);
+        if (r || !n->link)
+            return r;
+        OfsNode chosen;
+        uint32_t previous;
+        return promotion(f, n, &chosen, &previous);
+    }
     if (n->object_type == IFS_OFS_FILE)
         return ofs_check_file(f, n);
     return 0;
@@ -356,7 +405,7 @@ int ofs_rename(OfsFs *f, const char *from, const char *to) {
         if (r)
             return r;
     }
-    if (n.object_type == IFS_OFS_DIRECTORY) {
+    if (n.type == IFS_OFS_DIRECTORY) {
         r = parent_cycle(f, n.object, parent);
         if (r)
             return r;

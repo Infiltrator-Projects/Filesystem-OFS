@@ -106,6 +106,9 @@ typedef struct {
     int (*set_dates)(const char *, const IfsOfsDate *, uint32_t);
     int (*set_label)(const char *);
     int (*space)(IfsOfsSpaceV3 *);
+    /* Explicit native file or user-directory hard link. Directory aliases
+     * may form cycles. Removing an original promotes a rooted alias; an
+     * operation which would orphan its only directory tree is refused. */
     int (*hardlink)(const char *, const char *);
     int (*symlink)(const char *, const char *); /* Native Amiga target syntax. */
     int (*readlink)(const char *, char *, uint32_t);

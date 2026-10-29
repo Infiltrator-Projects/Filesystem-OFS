@@ -13,7 +13,7 @@ its 24-byte data header and checksum. Amiga FFS is a separate filesystem.
 | --- | --- |
 | Geometry | 512, 1024, 2048, 4096, 8192, 16384 and 32768-byte filesystem blocks; unsigned 32-bit block keys and 64-bit volume byte offsets; explicit reserved/root geometry in V3 |
 | Files | Read, random overwrite, append, zero-filled growth, truncate, reversed header pointer tables and multiple extension blocks; 32-bit file lengths |
-| Namespace | Lookup, enumeration, create, mkdir, rename/move/replace, unlink/rmdir, file hard links with promotion and native Amiga symbolic targets |
+| Namespace | Lookup, enumeration, create, mkdir, rename/move/replace, unlink/rmdir, file/directory hard links with promotion and native Amiga symbolic targets |
 | Metadata | Latin-1 on disk/UTF-8 at the API, DOS-specific case folding, protection bits, uid/gid, comments, DateStamps, labels and allocation space |
 | DOS4 | Cache creation, validation and updates after namespace, file-size and metadata changes |
 | DOS6 | Long names, inline/overflow comments and allocated-block counter maintenance; 106-byte writer/107-byte reader name limits |
@@ -25,9 +25,12 @@ bounded partition-relative I/O, allocation, flush and optional native Amiga
 time callbacks. Its public contract is
 [`ofs_v3.h`](native/filesystems/ofs/module/ofs_v3.h). Existing V1/V2 clients keep
 their 512-byte DOS0/2/4 contract; V2 remains bounded existing-file overwrite.
-New filesystem operations use V3. File hard links can be created; directory
-hard-link creation is deliberately refused. Existing directory aliases can
-be read with bounded traversal.
+New filesystem operations use V3. File and user-directory hard links support
+creation, mutation through aliases, deletion and promotion. Explicit directory
+links may form cycles; traversal is bounded and whole-volume verification visits
+each original once. Removing the sole rooted name of a cyclic directory tree
+is refused before writes, preserving reachability. The volume root itself is
+not a user directory and cannot be hard-linked.
 
 Build and qualify on x86-64 Linux:
 
@@ -47,7 +50,7 @@ include flags, profile and the installed module's SHA256. The RUN can build a
 package without installing it:
 
 ```sh
-bash filesystem-ofs-0.1.0-native-installer.run --build-only --output ./native-package
+bash filesystem-ofs-0.1.1-native-installer.run --build-only --output ./native-package
 ```
 
 For Boot **v0.1.38**, stage the same portable SO bytes as `OFS.so` in

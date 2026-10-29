@@ -103,6 +103,64 @@ def extension(a,path,bs):
     assert a.write(b'/large',0xffffffff,b'X',1)==-1
     assert a.unmount()==0;h.close();print('OFS-REVERSED-EXTENSIONS-ZERO-FILL-PASS',bs,flush=True)
 
+def directory_links(a,path,bs,variant):
+    h=fresh(a,path,bs,variant)
+    assert a.mkdir(b'/D')==0 and a.mkdir(b'/D/Sub')==0 and a.mkdir(b'/E')==0
+    assert a.create(b'/D/Sub/F')==0 and a.write(b'/D/Sub/F',0,b'kept',4)==0
+    original=a.meta(b'/D').block
+    assert a.hardlink(b'/D',b'/E/A')==0
+    assert a.hardlink(b'/E/A',b'/B')==0
+    assert a.meta(b'/E/A').type==4 and a.meta(b'/E/A').original==original
+    # Check native link records independently of path resolution.
+    alias=a.meta(b'/B').block;hdr=block(path,alias,bs)
+    assert u32(hdr,bs-4)==4 and u32(hdr,bs-44)==original
+    assert u32(block(path,original,bs),bs-40)==alias
+    assert a.create(b'/E/A/Shared')==0 and a.write(b'/B/Shared',0,b'shared',6)==0
+    assert a.data(b'/D/Shared')==b'shared'
+    assert a.set_comment(b'/B',b'object comment')==0
+    # Native explicit hard links may form loops; enumeration/verification
+    # follows each original once, without recursion or an arbitrary entry cap.
+    assert a.hardlink(b'/D',b'/D/Sub/Cycle')==0
+    assert a.data(b'/D/Sub/Cycle/Sub/Cycle/Shared')==b'shared'
+    a.check()
+    assert a.rename(b'/D/Sub/Cycle',b'/D/Sub/MovedCycle')==0
+    assert a.unlink(b'/D')==0 # Skip the newest cyclic alias for promotion.
+    assert a.meta(b'/B').block==original and a.meta(b'/B').type==2
+    assert a.data(b'/E/A/Sub/F')==b'kept'
+    assert u32(block(path,a.meta(b'/B/Sub').block,bs),bs-12)==original
+    assert a.meta(b'/B').comment==b'object comment'
+    a.check();assert a.unmount()==0;h.close()
+    h=Host(path);assert a.mount(C.byref(h.io),None)==0
+    assert a.unlink(b'/B')==0 and a.meta(b'/E/A').block==original
+    assert a.data(b'/E/A/Sub/MovedCycle/Sub/F')==b'kept'
+    # Removing the sole rooted name would orphan the tree; reject it before
+    # dirtying media. The user may remove the internal alias first.
+    before=digest(path);writes=h.writes
+    assert a.unlink(b'/E/A')==-6 and digest(path)==before and h.writes==writes
+    assert a.hardlink(b'/',b'/RootAlias')==-1
+    assert a.unlink(b'/E/A/Sub/MovedCycle')==0
+    assert a.unlink(b'/E/A/Sub/F')==0 and a.unlink(b'/E/A/Sub')==0
+    assert a.unlink(b'/E/A/Shared')==0 and a.unlink(b'/E/A')==0
+    assert a.unlink(b'/E')==0
+    a.check();assert a.unmount()==0;h.close()
+    print('OFS-DIRECTORY-HARDLINK-MUTATION-PROMOTION-CYCLES-PASS',bs,variant,flush=True)
+
+def full_directory_promotion(a,path):
+    h=fresh(a,path,512,6,32)
+    assert a.mkdir(b'/D')==0 and a.create(b'/D/child')==0
+    assert a.write(b'/D/child',0,b'preserved child',15)==0
+    assert a.set_comment(b'/D',b'c'*79)==0
+    alias=b'/'+b'A'*106
+    assert a.hardlink(b'/D',alias)==0 and a.create(b'/fill')==0
+    free=space(a).free//512
+    assert a.truncate(b'/fill',free*488)==0 and space(a).free==0
+    key=a.meta(b'/D').block
+    assert a.unlink(b'/D')==0
+    assert a.meta(alias).block==key and a.meta(alias).comment==b'c'*79
+    assert a.data(alias+b'/child')==b'preserved child'
+    a.check();assert a.unmount()==0;h.close()
+    print('OFS-FULL-LNFS-DIRECTORY-PROMOTION-COMMENT-REUSE-PASS',flush=True)
+
 def many_entries(a,path,variant,count=600):
     h=fresh(a,path,512,variant,8192)
     assert a.mkdir(b'/Many')==0
@@ -204,11 +262,14 @@ def mutation_faults(a,path):
         h=fresh(a,path,512,variant,256)
         assert a.mkdir(b'/A')==0 and a.mkdir(b'/B')==0 and a.create(b'/A/file')==0
         assert a.write(b'/A/file',0,b'original',8)==0
+        assert a.hardlink(b'/A',b'/Alias')==0
         assert a.unmount()==0;h.close();base=path.read_bytes()
         operations=(('grow',lambda:a.truncate(b'/A/file',1500)),
                     ('create-dir',lambda:a.mkdir(b'/A/new')),
                     ('rename',lambda:a.rename(b'/A/file',b'/B/moved')),
-                    ('unlink',lambda:a.unlink(b'/A/file')))
+                    ('unlink',lambda:a.unlink(b'/A/file')),
+                    ('link-directory',lambda:a.hardlink(b'/A',b'/B/Linked')),
+                    ('promote-directory',lambda:a.unlink(b'/A')))
         for name,operation in operations:
             path.write_bytes(base);h=Host(path);assert a.mount(C.byref(h.io),None)==0
             assert operation()==0;writes=h.writes;barriers=h.flushes
@@ -405,12 +466,15 @@ def main():
     with tempfile.TemporaryDirectory(prefix='ofs-complete-') as tmp:
         path=Path(tmp)/'regular.img'
         for bs in ((512,) if args.quick else SIZES):
-            for variant in (0,2,4,6):metadata(a,path,bs,variant)
+            for variant in (0,2,4,6):
+                metadata(a,path,bs,variant)
+                directory_links(a,path,bs,variant)
         for bs in ((512,) if args.quick else (512,1024,4096)):extension(a,path,bs)
         for variant in (0,4,6):full_media(a,path,variant)
         for variant in ((0,) if args.quick else (0,4,6)):many_entries(a,path,variant,128 if args.sanitized else 600)
         corruption(a,path);faults(a,path);mutation_faults(a,path);geometry(a,path);unsigned_and_max_file(a)
         allocation_mount_safety(a,path);bitmap_extensions(a,path);variant_corruption(a,path);lnfs_full_promotion(a,path)
+        full_directory_promotion(a,path)
     print('OFS-SO-COMPLETE-BOUNDARY-FAILURE-SUITE-PASS')
 
 if __name__=='__main__':main()

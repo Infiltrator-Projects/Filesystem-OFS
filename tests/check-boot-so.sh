@@ -24,7 +24,7 @@ prefix=${GNU_EFI_PREFIX:-/usr}
     -Wl,--gc-sections "$prefix/lib/libefi.a" -o "$work/protocol"
 for variant in 0 2 4 6; do
 for bytes in 512 1024 2048 4096 8192 16384 32768; do
-    python3 "$root/tests/ofs_boot_fixture.py" --output "$work/volume.img" --variant "$variant" --block-bytes "$bytes" --oracle "$oracle"
+    python3 "$root/tests/ofs_boot_fixture.py" --output "$work/volume.img" --variant "$variant" --block-bytes "$bytes" --oracle "$oracle" --module "$module"
     python3 - "$work/volume.img" "$work/whole.img" <<'PY'
 from pathlib import Path
 import struct,sys
@@ -34,6 +34,7 @@ with open(sys.argv[2],'wb') as f:f.write(m);f.seek(1024*1024);f.write(b)
 PY
     before=$(sha256sum "$work/volume.img")
     "$work/loader" "$module" "$work/volume.img" '/Nested Directory/Boot Read Test.bin' "$work/volume.bin"
+    "$work/loader" "$module" "$work/volume.img" '/Linked Directory/Boot Read Test.bin' "$work/volume.bin"
     "$work/protocol" "$module" "$work/volume.img" "$work/whole.img"
     test "$(sha256sum "$work/volume.img")" = "$before"
 done

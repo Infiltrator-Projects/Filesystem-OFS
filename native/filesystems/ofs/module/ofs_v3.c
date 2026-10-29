@@ -138,7 +138,13 @@ static int space(IfsOfsSpaceV3 *out) { return ofs_space(&ifs_ofs_active, out); }
 static int hardlink(const char *old, const char *path) {
     OfsNode n;
     int r = ofs_path(&ifs_ofs_active, old, 1, &n);
-    return r ? r : ofs_create(&ifs_ofs_active, path, IFS_OFS_LINKFILE, 0, n.object);
+    if (r)
+        return r;
+    if (n.object_type != IFS_OFS_FILE && n.object_type != IFS_OFS_DIRECTORY)
+        return IFS_OFS_INVALID;
+    return ofs_create(&ifs_ofs_active, path,
+                      n.object_type == IFS_OFS_DIRECTORY ? IFS_OFS_LINKDIR : IFS_OFS_LINKFILE,
+                      0, n.object);
 }
 static int symlink(const char *target, const char *path) {
     return ofs_create(&ifs_ofs_active, path, IFS_OFS_SOFTLINK, target, 0);

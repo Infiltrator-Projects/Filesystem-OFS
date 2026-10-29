@@ -12,17 +12,22 @@ OFS is separate from FFS and SFS. Shared AmigaDOS format concepts do not imply a
 
 Qualification requires supported-target builds, destructive read/write verification, independently created test media, and source review confirming that the active implementation is project-authored code.
 
-## Standalone OFS.so adapter (experimental, read-only)
+## Authoritative shared engine
 
-`module/ofs_module.c` exports the same standalone, versioned entry point
-as the experimental FAT16 drop-in, and compiles the **existing**
-`efi/reader.c` with `core/ofs_core.c` and `core/ofs_primitives.c` into
-one `OFS.so`. This is reuse of format code, **not a replacement for**
-`ofs.ko` or `OFS_x64.efi`. The Linux and UEFI drivers, along with their
-separate build and release qualification, remain in this repository.
+`core/ofs_{volume,nodes,files,namespace,check,strings,cache}.c` implements the
+portable read/write engine. Preserved V1/V2, full V3 and Boot V1 adapters all
+use that engine. OFS.so has no libc imports, constructors or platform I/O;
+the host supplies bounded partition-relative byte I/O, heap and persistence.
 
-At present this .so exports only read-only 512-byte DOS0/DOS2/DOS4
-detection, directory traversal, and file access. Larger-block OFS,
-formatting, writable operations, defragmentation/recovery and direct
-Boot ELF-module execution are **not** claimed by the .so. See the
-[drop-in contract](../../../docs/DROP_IN_FILESYSTEM_MODULES.md).
+V3 implements DOS0/2/4/6 at all seven block sizes, unsigned keys, formatting,
+file/directory operations, metadata, file and directory hard links, native
+symbolic targets, ownership verification and explicit bitmap recovery.
+Directory links include cyclic aliases and deletion/promotion with a preserved
+rooted parent route. V1/V2 retain their historical binary contract.
+
+The Linux VFS and standalone EFI adapters remain transitional separate
+consumers. Their platform qualification and the original DOS0 A–I checklist
+are retained; feature implementation in the shared engine does not establish
+physical-disk, original-handler or kernel-root deployment evidence.
+See [shared-module qualification](../../../docs/SO_COMPLETION.md) for the
+reproducible current tests and their limits.

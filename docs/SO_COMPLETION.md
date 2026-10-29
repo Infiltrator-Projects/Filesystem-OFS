@@ -17,7 +17,7 @@ remain unchanged at released commit
 | Source/ABI | Original V1/V2 layouts preserved and original assertions retained; V3 and Boot use the same engine. Exact Boot header comparison, export/manifest/no-import/relative-relocation inspection in `standalone/build.py` and `tests/check-boot-so.sh`. |
 | Seven geometries/four variants | `tests/ofs_v3_test.py`: 56 two-way producer/consumer round trips (seven sizes × DOS0/2/4/6 × own/foreign producer), independent LNFS reader comparisons and remounts. Oracle limitations and the narrowly corrected DOS4 cache-type defect are in the provenance document. |
 | Native OFS file data | Header/owner/sequence/checksum and forward-chain/reversed-pointer agreement; extension rollover and shrink across multiple lists; random and EOF reads, zero-filled growth, overwrite and 32-bit length overflow checks in `tests/ofs_complete_test.py`. |
-| Namespace/metadata | Every variant/size exercises create, mkdir, rename/move/replace, unlink, file hard-link promotion, symbolic targets/loops, protection, uid/gid, comments, exact DateStamps and labels. DOS0 and international high-byte case behavior are distinguished. |
+| Namespace/metadata | Every variant/size exercises create, mkdir, rename/move/replace, unlink, file and directory hard-link promotion, symbolic targets/loops, protection, uid/gid, comments, exact DateStamps and labels. DOS0 and international high-byte case behavior are distinguished. |
 | Large directories | 600 entries with collisions, enumeration, rename and deletion for DOS0/4/6. The sanitizer run uses 128 entries per profile to retain cache-chain coverage while bounding instrumentation cost; ordinary portable and native qualification uses 600. |
 | DOS4 | Fresh root/user-directory cache creation, authoritative metadata comparison, multiple cache pages, shrink/free, file-size/comment/ownership/date updates and rejection of malformed owners/counts/cycles. Read-only Boot enumerates authoritative hashes. |
 | DOS6 | Inline/overflow comment ownership/checksums, allocation cleanup, rename, full-volume hard-link promotion by recycling the removed alias, existing comment-block reuse, root DOSType echo and used-block accounting/recovery. Writers cap names at 106 Latin-1 bytes; the reader also accepts a tested 107-byte raw fixture. |
@@ -42,8 +42,11 @@ OFS data-header overhead in any eventual payload allocation.
 
 Dates are native 1978-epoch local DateStamps with 50-Hz ticks. The library does
 not infer a timezone. Protection bits remain raw Amiga flags with independent
-read/write/delete inhibition. File hard-link creation is supported; directory
-hard-link creation is refused. Symbolic targets preserve native Amiga colon
+read/write/delete inhibition. File and user-directory hard-link creation is supported, including cyclic
+aliases, writes through aliases and deletion/promotion. Promotion chooses a
+rooted alias even when a newer alias is inside the original tree; an unlink
+which would orphan the only rooted directory tree is refused before writes.
+The special volume root is not a user-directory link target. Symbolic targets preserve native Amiga colon
 and repeated-slash semantics. Cross-volume symbolic targets are not resolved
 without a host volume resolver.
 
@@ -67,3 +70,18 @@ These are explicit scope boundaries, not evidence that the requested shared
 module or its real Boot handoff is absent. Do not turn this release into an
 unqualified claim that every platform row of the original DOS0 contract has
 closed. No physical disk, ESP or NVRAM changes are part of these tests.
+
+## 0.1.1 directory-link completion
+
+`tests/ofs_complete_test.py` covers directory hard-link records, alias-to-alias
+creation, mutations, cyclic traversal, rooted promotion, remount, DOS4 cache
+consistency and full-volume DOS6 comment-block recycling at every geometry
+and profile. Each write/flush of directory-link creation and promotion is
+also failed in turn. `tests/check-boot-so.sh` reads the same file through
+both its independently produced original directory and its V3-created alias
+using the unchanged released Boot ELF loader at all 28 variant/geometries.
+
+OFS publication is admitted by Infiltrator-Repository's canonical catalogue.
+InfiltratorOS 1.0.43 adds a verified native OFS job through the 62-component
+snapshot; the previous 61-component endpoint is retained for old installers.
+Publication and provisioning remain distinct from physical ESP deployment.
