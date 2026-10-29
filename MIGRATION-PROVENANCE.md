@@ -17,6 +17,12 @@ The generic Linux VFS compatibility header is preserved from Filesystem-FAT16
 commit `4ce1c01130845f9e065ed0faad5766c4d9a99ee2`; it contains only kernel API
 version adaptation, and each native KO compiles its own copy.
 
+The native OFS KO now compiles that same portable engine through separate
+translation units and a Linux VFS binding. The old AFFS-derived Linux storage,
+namespace and lifecycle implementation has been removed. Device-buffer I/O is
+independent of filesystem block and host page sizes. Deferred open-inode
+deletion is shared engine code with its own every-barrier failure tests.
+
 The normative reference remains `native/filesystems/ofs/OFS_SPECIFICATION.md`.
 The external format references include the ADFlib author's
 [Amiga disk FAQ](https://adflib.github.io/FAQ/adf_info.html) and Olaf Barthel's
@@ -57,4 +63,4 @@ trust/ELF rejection assertions remain real tests of Boot's consumer.
 
 This evidence demonstrates disposable-image software compatibility. It does
 not establish interoperability with every original Amiga handler or certify
-physical media, a Windows driver, or the transitional Linux VFS adapter.
+physical media, a Windows driver, or Linux kernel ABIs beyond the pinned VM.

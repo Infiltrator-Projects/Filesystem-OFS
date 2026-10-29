@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: GPL-3.0-or-later
-# Build the transitional native Linux adapter against an explicit kernel ABI.
-# The SO is the Boot/Defragmenter engine; the kernel SO bridge is a later step.
+# Build the canonical OFS engine with its Linux VFS binding for an explicit ABI.
+# Dynamic kernel SO loading remains a later, filesystem-neutral bridge.
 set -euo pipefail
 if [[ $# -ne 2 ]]; then
     echo 'Usage: build-ofs-kernel.sh OUTPUT_DIRECTORY PREPARED_KERNEL_BUILD_DIRECTORY' >&2

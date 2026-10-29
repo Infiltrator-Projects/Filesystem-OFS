@@ -356,7 +356,28 @@ static int can_unlink(OfsFs *f, OfsNode *n) {
         return ofs_check_file(f, n);
     return 0;
 }
-int ofs_unlink(OfsFs *f, const char *path) {
+int ofs_is_orphan(const OfsFs *f, uint32_t key) {
+    for (const OfsOrphan *o = f->orphans; o; o = o->next)
+        if (o->key == key) return 1;
+    return 0;
+}
+static int orphan_detach(OfsFs *f, OfsNode *n, OfsOrphan *o) {
+    int r = remove_hash(f, n);
+    if (r) return r;
+    o->key = n->object; o->next = f->orphans; f->orphans = o;
+    uint8_t *b = f->scratch[1];
+    r = ofs_metadata(f, n->object, b);
+    if (!r) {
+        /* A removed parent may itself be deleted while the handle is open.
+         * Orphans have no namespace membership or DOS4 cache record. */
+        ofs_put32(b + f->block_bytes - 12u, f->root);
+        ofs_put32(b + f->block_bytes - 16u, 0);
+        ofs_checksum(f, b, 5);
+        r = ofs_write_block(f, n->object, b);
+    }
+    return r;
+}
+static int unlink_path(OfsFs *f, const char *path, int deferred) {
     OfsNode n;
     int r = ofs_path(f, path, 0, &n);
     if (r)
@@ -364,10 +385,43 @@ int ofs_unlink(OfsFs *f, const char *path) {
     r = can_unlink(f, &n);
     if (r)
         return r;
+    OfsOrphan *o = 0;
+    if (deferred && !n.link && (n.type == IFS_OFS_FILE || n.type == IFS_OFS_DIRECTORY ||
+                               n.type == IFS_OFS_SOFTLINK)) {
+        o = f->io.allocate(f->io.context, sizeof(*o));
+        if (!o) return IFS_OFS_NO_MEMORY;
+    }
     r = ofs_begin(f);
-    if (r)
+    if (r) {
+        if (o) f->io.release(f->io.context, o);
         return r;
-    return ofs_end(f, unlink_node(f, &n));
+    }
+    r = o ? orphan_detach(f, &n, o) : unlink_node(f, &n);
+    if (o && !ofs_is_orphan(f, n.object)) f->io.release(f->io.context, o);
+    return ofs_end(f, r);
+}
+int ofs_unlink(OfsFs *f, const char *path) { return unlink_path(f, path, 0); }
+int ofs_unlink_deferred(OfsFs *f, const char *path) { return unlink_path(f, path, 1); }
+int ofs_release_orphan(OfsFs *f, uint32_t key) {
+    OfsOrphan **at = &f->orphans;
+    while (*at && (*at)->key != key) at = &(*at)->next;
+    if (!*at) return IFS_OFS_NOT_FOUND;
+    OfsNode n;
+    int r = ofs_node(f, key, &n, f->scratch[1]);
+    if (!r && (n.link || (n.type != IFS_OFS_FILE && n.type != IFS_OFS_DIRECTORY &&
+                          n.type != IFS_OFS_SOFTLINK))) r = IFS_OFS_CORRUPT;
+    if (!r) r = ofs_begin(f);
+    if (r) return r;
+    n.protection &= ~4u;
+    if (n.type == IFS_OFS_FILE) r = ofs_resize(f, &n, 0);
+    else if (n.type == IFS_OFS_DIRECTORY) r = ofs_cache_drop(f, n.key);
+    if (!r) r = ofs_drop_comment(f, key);
+    if (!r) r = ofs_bitmap_set(f, key, 1);
+    if (!r) {
+        OfsOrphan *old = *at; *at = old->next;
+        f->io.release(f->io.context, old);
+    }
+    return ofs_end(f, r);
 }
 static int parent_cycle(OfsFs *f, uint32_t object, uint32_t parent) {
     for (uint32_t i = 0; i < f->blocks - f->reserved; ++i) {
@@ -385,7 +439,7 @@ static int parent_cycle(OfsFs *f, uint32_t object, uint32_t parent) {
     }
     return IFS_OFS_CORRUPT;
 }
-int ofs_rename(OfsFs *f, const char *from, const char *to) {
+static int rename_path(OfsFs *f, const char *from, const char *to, int deferred) {
     OfsNode n, dest;
     uint8_t name[108];
     uint32_t length, parent;
@@ -436,11 +490,20 @@ int ofs_rename(OfsFs *f, const char *from, const char *to) {
         if (r)
             return r;
     }
+    OfsOrphan *o = 0;
+    if (deferred && !present && dest.key != n.key && !dest.link &&
+        (dest.type == IFS_OFS_FILE || dest.type == IFS_OFS_DIRECTORY || dest.type == IFS_OFS_SOFTLINK)) {
+        o = f->io.allocate(f->io.context, sizeof(*o));
+        if (!o) return IFS_OFS_NO_MEMORY;
+    }
     r = ofs_begin(f);
-    if (r)
+    if (r) {
+        if (o) f->io.release(f->io.context, o);
         return r;
+    }
     if (!present && dest.key != n.key) {
-        r = unlink_node(f, &dest);
+        r = o ? orphan_detach(f, &dest, o) : unlink_node(f, &dest);
+        if (o && !ofs_is_orphan(f, dest.object)) f->io.release(f->io.context, o);
         if (r)
             return ofs_end(f, r);
     }
@@ -464,10 +527,12 @@ int ofs_rename(OfsFs *f, const char *from, const char *to) {
         r = insert_hash(f, n.key, parent, name, length);
     return ofs_end(f, r);
 }
+int ofs_rename(OfsFs *f, const char *from, const char *to) { return rename_path(f, from, to, 0); }
+int ofs_rename_deferred(OfsFs *f, const char *from, const char *to) { return rename_path(f, from, to, 1); }
 /* Metadata operation selectors are private to the V3 adapter. */
-int ofs_set_metadata(OfsFs *f, const char *path, uint32_t operation, const void *value) {
+int ofs_set_metadata_key(OfsFs *f, uint32_t key_in, uint32_t operation, const void *value) {
     OfsNode n;
-    int r = ofs_path(f, path, 0, &n);
+    int r = ofs_node(f, key_in, &n, f->scratch[1]);
     if (r)
         return r;
     if (n.object != n.key) {
@@ -536,6 +601,11 @@ int ofs_set_metadata(OfsFs *f, const char *path, uint32_t operation, const void 
     if (!r && n.parent == f->root)
         r = touch_directory(f, f->root);
     return ofs_end(f, r);
+}
+int ofs_set_metadata(OfsFs *f, const char *path, uint32_t operation, const void *value) {
+    OfsNode n;
+    int r = ofs_path(f, path, 0, &n);
+    return r ? r : ofs_set_metadata_key(f, n.object, operation, value);
 }
 int ofs_set_label(OfsFs *f, const char *label) {
     uint8_t name[31];

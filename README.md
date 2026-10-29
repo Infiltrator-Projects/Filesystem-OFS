@@ -67,10 +67,12 @@ Build the native kernel adapter separately, without installation:
 make kernel KERNEL_BUILD=/path/to/prepared/kernel/build
 ```
 
-The shipped reference KO is specific to Linux 6.12.107. Its tested DOS0/2
-read/write block sizes stop at 4096 bytes; the SO's wider DOS4/6 and 32 KiB
-support does not imply that this transitional native adapter has that coverage.
-Kernel SO loading is a later generic mechanism.
+The shipped reference KO is specific to Linux 6.12.107. It compiles the same
+canonical engine as the SO and supports read/write DOS0/2/4/6 at all seven
+block sizes, including 8, 16 and 32 KiB on a 4 KiB-page kernel. Its VFS binding
+provides buffered I/O, executable/private/shared mappings, native metadata
+xattrs, hard-link lifetimes and deferred deletion of open files. Each mounted
+volume has independent state. Kernel SO loading is a later generic mechanism.
 
 For Boot **v0.1.38**, stage the same portable SO bytes as `OFS.so` in
 `filesystems_x64/` beside Boot's EFI executable. A manual entry can require
@@ -85,8 +87,8 @@ The evidence and its limits are recorded in
 [`MIGRATION-PROVENANCE.md`](MIGRATION-PROVENANCE.md). Qualification includes an
 independent Amiga-compatible producer/consumer and real Linux handoff through
 Boot in OVMF. Native Amiga hardware/handler interoperability remains a separate
-qualification gate. The existing Linux VFS and standalone EFI adapters are
-transitional; this release does not install a Linux kernel or Windows driver.
+qualification gate. The standalone EFI adapter is retained for compatibility;
+Boot uses the shared module. This release does not install a Linux kernel or Windows driver.
 The earlier [DOS0 platform completion matrix](docs/OFS_DOS0_COMPLETION_MATRIX.md)
 retains those outstanding platform gates.
 

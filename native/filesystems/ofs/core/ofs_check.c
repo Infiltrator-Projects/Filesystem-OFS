@@ -296,6 +296,7 @@ int ofs_verify(OfsFs *f, IfsOfsCheckV3 *report, int repair) {
     report->structure_bytes = sizeof(*report);
     if (repair && (f->io.flags & IFS_OFS_READ_ONLY))
         return IFS_OFS_ACCESS;
+    if (repair && f->orphans) return IFS_OFS_ACCESS;
     if (!f->io.allocate || !f->io.release)
         return IFS_OFS_NO_MEMORY;
     ofs_invalidate(f);
@@ -320,6 +321,30 @@ int ofs_verify(OfsFs *f, IfsOfsCheckV3 *report, int repair) {
         r = reference(&c, f->system_keys[i]);
     if (!r)
         r = namespace_walk(&c);
+    for (OfsOrphan *o = f->orphans; o && !r; o = o->next) {
+        OfsNode n;
+        r = ofs_node(f, o->key, &n, f->scratch[5]);
+        if (!r && n.link) r = IFS_OFS_CORRUPT;
+        if (!r && n.type == IFS_OFS_SOFTLINK) {
+            r = reference(&c, n.key);
+            if (!r) r = comment_reference(&c, n.key);
+            if (!r) {
+                uint8_t *b = f->scratch[5];
+                r = ofs_metadata(f, n.key, b);
+                uint32_t length = 0, limit = f->block_bytes - 224u;
+                while (!r && length < limit && b[24u + length]) ++length;
+                if (length == limit) r = IFS_OFS_CORRUPT;
+            }
+        } else if (!r) {
+            if (n.type != IFS_OFS_FILE && n.type != IFS_OFS_DIRECTORY) r = IFS_OFS_CORRUPT;
+            if (!r && n.type == IFS_OFS_DIRECTORY) {
+                OfsDirCursor cursor = {0}; OfsNode child;
+                r = ofs_next(f, n.key, &cursor, &child);
+                r = r == IFS_OFS_END ? 0 : IFS_OFS_CORRUPT;
+            }
+            if (!r) r = process_object(&c, o->key);
+        }
+    }
     int invalid = !f->bitmap_valid;
     if (!r)
         r = bitmap_compare(&c, &invalid);

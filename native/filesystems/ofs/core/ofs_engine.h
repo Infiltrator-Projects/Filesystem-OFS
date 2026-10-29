@@ -20,6 +20,10 @@ typedef struct {
 typedef struct {
     uint32_t owner, size, sequence, block, next, list, list_index;
 } OfsFileCursor;
+typedef struct OfsOrphan {
+    uint32_t key;
+    struct OfsOrphan *next;
+} OfsOrphan;
 typedef struct {
     IfsOfsIoV3 io;
     uint32_t block_bytes, blocks, reserved, root, variant, hash_size;
@@ -40,6 +44,9 @@ typedef struct {
      * updates and hard-link metadata resolution own 7, never concurrently. */
     uint8_t scratch[8][OFS_MAX_BLOCK];
     char link_path[2][OFS_MAX_BLOCK * 4u];
+    /* Open, unlinked objects are live allocations until the last host handle
+     * closes. Their presence keeps the on-disk bitmap dirty across flushes. */
+    OfsOrphan *orphans;
 } OfsFs;
 uint32_t ofs_be32(const void *);
 void ofs_put32(void *, uint32_t);
@@ -90,10 +97,17 @@ int ofs_check_file(OfsFs *, const OfsNode *);
 int ofs_data(OfsFs *, uint32_t, uint32_t, uint32_t, uint32_t, uint8_t *);
 int ofs_resize(OfsFs *, OfsNode *, uint32_t);
 int ofs_write_file(OfsFs *, OfsNode *, uint32_t, const void *, uint32_t);
+int ofs_write_checked(OfsFs *, OfsNode *, uint32_t, const void *, uint32_t);
+int ofs_resize_checked(OfsFs *, OfsNode *, uint32_t);
 int ofs_create(OfsFs *, const char *, int32_t, const char *, uint32_t);
 int ofs_rename(OfsFs *, const char *, const char *);
 int ofs_unlink(OfsFs *, const char *);
+int ofs_unlink_deferred(OfsFs *, const char *);
+int ofs_rename_deferred(OfsFs *, const char *, const char *);
+int ofs_is_orphan(const OfsFs *, uint32_t);
+int ofs_release_orphan(OfsFs *, uint32_t);
 int ofs_set_metadata(OfsFs *, const char *, uint32_t, const void *);
+int ofs_set_metadata_key(OfsFs *, uint32_t, uint32_t, const void *);
 int ofs_set_label(OfsFs *, const char *);
 int ofs_readlink(OfsFs *, const char *, char *, uint32_t);
 int ofs_verify(OfsFs *, IfsOfsCheckV3 *, int);

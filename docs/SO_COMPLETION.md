@@ -9,7 +9,7 @@ qualification gates are not redefined by a successful SO test.
 
 The V1/V2-only independent baseline is
 `386d97969996864a939bd644c500cd6394a348a3`. The module now includes one portable
-engine, reused by V1/V2, the additive V3 API and generic Boot V1. The separate
+engine, reused by V1/V2, the additive V3 API, generic Boot V1 and the native KO. The separate
 legacy EFI reader is no longer linked into OFS.so. Boot production sources
 remain unchanged at released commit
 `dbc6a710dbe88b78318c8b9afbf47bb64e8706b3` (v0.1.38).
@@ -30,7 +30,8 @@ remain unchanged at released commit
 | Boot interface | The actual released generic ELF loader and unchanged UEFI bridge tests consume OFS.so across all 28 variant/size combinations, including UTF-8 names, seek/EOF, whole-disk rejection, read-only operations, trust/memory protection and 26 malformed ELF cases. Portable/native objects follow the same path. |
 | Actual firmware handoff | `tests/test_boot_linux.py` independently creates an OFS volume containing a real Linux kernel/initramfs. Released Boot has only OFS.so staged; Linux prints the success marker. CI requires portable/native DOS0 and a 32768-byte DOS6 handoff plus a broken-module/no-fallback rejection. Image hashes must remain unchanged. |
 | Defragmenter | `tests/ofs_defrag_test.py` compiles the exact production generic host, compares both public ABI headers, then drives the packaged SO through analysis, Defrag, Growth Defrag and Recover. All 28 profiles preserve contents, file/directory/cyclic aliases, soft links, ownership, timestamps, comments, cache records and counters. Canonical layouts are idempotent; free Growth gaps are independently read from disk. Tests cross reversed-pointer lists and bitmap extensions, reject insufficient space without source writes, interrupt every journal phase and real source writes, honour Stop and refuse wrong targets, altered precommit sources and corrupt stages. The diagnostic SO and generic host also run under ASan/UBSan. |
-| Native Linux KO | `scripts/build-ofs-kernel.sh` builds `ofs.ko` against an explicitly prepared kernel tree. `tests/test_kernel_runtime.py` boots the real KO in Linux 6.12.107, checks read/write, multiple data blocks, mkdir, hard links, rename, deletion and persistent remount for DOS0/2 at 512/1024/2048/4096 bytes, then checks each image through the SO. No host module is installed or loaded. |
+| Native Linux KO | `scripts/build-ofs-kernel.sh` compiles the canonical engine and Linux VFS binding against an explicit kernel tree. `tests/test_kernel_runtime.py` boots the real KO in Linux 6.12.107 for all 28 DOS0/2/4/6 and 512..32768-byte profiles. An independent POSIX client exercises random writes, zero-filled growth/shrink, pointer-list rollover, shared/private mmap, executable loading, hard-link promotion, directory aliases, open unlink/replace/rmdir, case folding, metadata, DOS4 cache updates, DOS6 long names/overflow comments, simultaneous mounts, geometry autodetection and read-only remounts. Device buffers include 4096-byte logical sectors. After unmount, canonical verification and an independent amitools reader inspect the written contents and metadata. Rejected FFS media must remain byte-identical. No host module is installed or loaded. |
+| Open inode durability | `tests/ofs_orphan_test.c` exercises deferred file, directory and symbolic-link deletion across all 28 profiles and fails every writer/flush barrier. Live allocations stay tracked and the on-disk bitmap remains dirty until the last close. The same unit runs under ASan/UBSan with leak checks. |
 | Packaging/publication | Portable DEB/direct SO and source-embedded native RUN; native build uses measured PGO/LTO. Extracted package payload/BUILD-INFO/hash/API behavior are verified. Main publication depends on filesystem, Boot and preserved transitional EFI-build jobs and creates an immutable version tag with checksums. |
 
 ## API and limits
@@ -62,11 +63,10 @@ error even if the in-memory image happens to contain complete final bytes.
 
 ## Platform gates still open
 
-The native Linux VFS adapter is not converted to the SO engine by this release.
-Its demonstrated read/write envelope is DOS0/2 through 4096-byte blocks. DOS4
-remains read-only there; DOS6 and larger filesystem blocks require subsequent
-kernel work. The separate KO is kernel-ABI-specific and must be rebuilt for
-another host kernel. The standalone GNU-EFI adapter is preserved/build-tested, but
+The native Linux VFS adapter now compiles the canonical engine directly;
+the obsolete, narrower Linux filesystem engine has been removed. The separate
+KO is kernel-ABI-specific and must be rebuilt for another host kernel. Dynamic
+SO loading in the kernel remains a later generic bridge. The standalone GNU-EFI adapter is preserved/build-tested, but
 Boot uses its generic SO bridge. Windows is outside this SO/Boot release.
 Original Amiga hardware/handler interoperability, arbitrary RDB/physical-media
 and cross-OS original-handler qualification remain open. Defragmenter operations
@@ -78,6 +78,17 @@ These are explicit scope boundaries, not evidence that the requested shared
 module or its real Boot handoff is absent. Do not turn this release into an
 unqualified claim that every platform row of the original DOS0 contract has
 closed. No physical disk, ESP or NVRAM changes are part of these tests.
+
+The native VFS uses bounded device-buffer I/O independently of filesystem B
+and folio size. Shared mappings write through the same validated byte writer.
+Open deleted objects remain allocated without hidden directory entries; a
+power loss during that lifetime leaves the bitmap dirty for explicit recovery.
+This preserves open-inode semantics without claiming a journaled disk format.
+Mount options retain `bs`, `reserved`, `root`, `setuid`, `setgid`, `mode`,
+`protect`, `prefix`, `volume`, `mufs` ownership presentation and `verbose`.
+Presentation/geometry changes require a new mount; nonempty remount options
+are rejected rather than silently ignored. Read-only/read-write transitions
+are supported and enabling writes revalidates allocation.
 
 Defrag transactions are separate from ordinary V3 mutations: the SO creates a
 complete verified stage before touching the source, persists a strictly parsed

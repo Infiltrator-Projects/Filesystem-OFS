@@ -30,11 +30,15 @@ $(OUT)/ofs-core-test: tests/ofs_core_test.c $(CORE) | $(OUT)
 $(OUT)/ofs-primitives-test: tests/ofs_primitives_test.c $(OFS)/core/ofs_primitives.c | $(OUT)
 	$(CC) $(CFLAGS) $(INC) $(filter %.c,$^) -o "$@"
 
-test: $(OUT)/OFS.so $(OUT)/ofs-module-test $(OUT)/ofs-reader-test $(OUT)/ofs-core-test $(OUT)/ofs-primitives-test
+$(OUT)/ofs-orphan-test: tests/ofs_orphan_test.c $(filter-out $(OFS)/defrag/%,$(ENGINE)) $(OFS)/core/ofs_primitives.c $(HEADERS) | $(OUT)
+	$(CC) $(CFLAGS) $(INC) $(filter %.c,$^) -o "$@"
+
+test: $(OUT)/OFS.so $(OUT)/ofs-module-test $(OUT)/ofs-reader-test $(OUT)/ofs-core-test $(OUT)/ofs-primitives-test $(OUT)/ofs-orphan-test
 	$(OUT)/ofs-module-test
 	$(OUT)/ofs-reader-test
 	$(OUT)/ofs-core-test
 	$(OUT)/ofs-primitives-test
+	$(OUT)/ofs-orphan-test
 	readelf -Ws $(OUT)/OFS.so | grep -F 'infiltrator_filesystem_module_v1'
 	readelf -Ws $(OUT)/OFS.so | grep -F 'infiltrator_filesystem_module_v2'
 	readelf -p .ifsmeta $(OUT)/OFS.so | grep -F 'IFS-MODULE:ofs:1'

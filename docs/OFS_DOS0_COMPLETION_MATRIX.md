@@ -3,8 +3,11 @@
 **29 October 2026 shared-module update:** the independent OFS.so V3 and generic
 Boot V1 implementation and its current software evidence are tracked in
 [SO completion and qualification](SO_COMPLETION.md). The historical platform
-assessment below is retained; Linux, physical-media and original-Amiga gates
-are not closed by the separate SO/Boot release.
+assessment below is retained as a dated record. The subsequent canonical KO
+replaces the old Linux engine and qualifies read/write DOS0/2/4/6 at all seven
+block sizes in Linux 6.12.107, including executable and shared/private mappings,
+native metadata and open-unlink lifetimes. See the current evidence above.
+Physical-media, other kernel ABIs and original-Amiga qualification are separate.
 
 
 **Scope:** Authentic original AmigaDOS Original File System (`DOS\\0`, DOSType `0x444F5300`), **not** international `DOS\\2`, directory-cache `DOS\\4`, LNFS `DOS\\6`, FFS or muFS. Canonical disk format: [`native/filesystems/ofs/OFS_SPECIFICATION.md`](../native/filesystems/ofs/OFS_SPECIFICATION.md).

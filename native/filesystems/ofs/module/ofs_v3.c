@@ -58,63 +58,16 @@ static int read_file(const char *p, uint32_t at, void *b, uint32_t n) {
     int r = ofs_path(&ifs_ofs_active, p, 1, &file);
     return r ? r : ofs_read_file(&ifs_ofs_active, &file, at, b, n, 0);
 }
-static int grow_check(OfsFs *f, uint32_t old, uint32_t bytes) {
-    if (bytes <= old)
-        return 0;
-    uint32_t payload = f->block_bytes - 24u;
-    uint64_t a = old ? (old - 1u) / payload + 1u : 0, b = (bytes - 1u) / payload + 1u;
-    uint64_t ae = a ? (a - 1u) / f->hash_size : 0, be = (b - 1u) / f->hash_size;
-    IfsOfsSpaceV3 space;
-    int r = ofs_space(f, &space);
-    if (r)
-        return r;
-    return b - a + be - ae <= space.free_bytes / f->block_bytes ? 0 : IFS_OFS_NO_SPACE;
-}
 static int write_file(const char *p, uint32_t at, const void *b, uint32_t n) {
-    OfsFs *f = &ifs_ofs_active;
     OfsNode file;
-    if ((!b && n) || n > UINT32_MAX - at)
-        return IFS_OFS_INVALID;
-    int r = ofs_path(f, p, 1, &file);
-    if (r)
-        return r;
-    if (file.object_type != IFS_OFS_FILE)
-        return IFS_OFS_INVALID;
-    if (file.protection & 4u)
-        return IFS_OFS_ACCESS;
-    if (!n)
-        return 0;
-    r = ofs_check_file(f, &file);
-    if (r)
-        return r;
-    r = grow_check(f, file.bytes, at + n);
-    if (r)
-        return r;
-    r = ofs_begin(f);
-    if (r)
-        return r;
-    return ofs_end(f, ofs_write_file(f, &file, at, b, n));
+    if ((!b && n) || n > UINT32_MAX - at) return IFS_OFS_INVALID;
+    int r = ofs_path(&ifs_ofs_active, p, 1, &file);
+    return r ? r : ofs_write_checked(&ifs_ofs_active, &file, at, b, n);
 }
 static int truncate_file(const char *p, uint32_t bytes) {
-    OfsFs *f = &ifs_ofs_active;
     OfsNode file;
-    int r = ofs_path(f, p, 1, &file);
-    if (r)
-        return r;
-    if (file.object_type != IFS_OFS_FILE)
-        return IFS_OFS_INVALID;
-    if (file.protection & 4u)
-        return IFS_OFS_ACCESS;
-    r = ofs_check_file(f, &file);
-    if (r)
-        return r;
-    r = grow_check(f, file.bytes, bytes);
-    if (r)
-        return r;
-    r = ofs_begin(f);
-    if (r)
-        return r;
-    return ofs_end(f, ofs_resize(f, &file, bytes));
+    int r = ofs_path(&ifs_ofs_active, p, 1, &file);
+    return r ? r : ofs_resize_checked(&ifs_ofs_active, &file, bytes);
 }
 static int rename_path(const char *a, const char *b) { return ofs_rename(&ifs_ofs_active, a, b); }
 static int unlink_path(const char *p) { return ofs_unlink(&ifs_ofs_active, p); }

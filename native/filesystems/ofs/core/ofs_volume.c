@@ -164,6 +164,11 @@ static int system_key(OfsFs *f, uint32_t key) {
     return lo < f->system_count && f->system_keys[lo] == key;
 }
 void ofs_release(OfsFs *f) {
+    while (f->orphans) {
+        OfsOrphan *next = f->orphans->next;
+        f->io.release(f->io.context, f->orphans);
+        f->orphans = next;
+    }
     if (f->bitmap_keys && f->io.release)
         f->io.release(f->io.context, f->bitmap_keys);
     if (f->cache_dirty && f->io.release)
@@ -542,7 +547,7 @@ int ofs_end(OfsFs *f, int status) {
         if (!status) {
             if (f->variant == 6u)
                 ofs_put32(r + f->block_bytes - 44u, f->used_blocks);
-            ofs_put32(r + f->block_bytes - 200u, UINT32_MAX);
+            ofs_put32(r + f->block_bytes - 200u, f->orphans ? 0 : UINT32_MAX);
             ofs_checksum(f, r, 5);
             status = ofs_write_block(f, f->root, r);
         }

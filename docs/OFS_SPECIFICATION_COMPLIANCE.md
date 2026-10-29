@@ -3,8 +3,11 @@
 **29 October 2026 shared-module update:** the independent OFS.so V3 and generic
 Boot V1 implementation and its current software evidence are tracked in
 [SO completion and qualification](SO_COMPLETION.md). The historical platform
-assessment below is retained; Linux, physical-media and original-Amiga gates
-are not closed by the separate SO/Boot release.
+assessment below is retained as a dated record. The current canonical Linux KO
+replaces the old PAGE_SIZE-dependent engine and qualifies read/write DOS0/2/4/6
+at 512..32768-byte blocks in Linux 6.12.107. Current tests and limits are in
+the linked completion document. Physical-media, other kernel ABIs and
+original-Amiga qualification remain separate.
 
 
 **DOS0 implementation evidence matrix:** [OFS_DOS0_COMPLETION_MATRIX.md](OFS_DOS0_COMPLETION_MATRIX.md) records DOS0 verification and remaining platform qualification requirements.

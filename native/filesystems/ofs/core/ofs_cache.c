@@ -49,7 +49,7 @@ int ofs_cache_queue(OfsFs *f, uint32_t key) {
     return r;
 }
 int ofs_cache_object(OfsFs *f, uint32_t key) {
-    if (f->variant != 4u)
+    if (f->variant != 4u || ofs_is_orphan(f, key))
         return 0;
     OfsNode object;
     int r = ofs_node(f, key, &object, f->scratch[5]);

@@ -2,8 +2,7 @@ config OFS_FS
 	tristate "Amiga OFS filesystem support"
 	depends on BLOCK
 	select BUFFER_HEAD
-	select LEGACY_DIRECT_IO
 	help
-	  Native Amiga OFS support maintained as an independent
-	  Filesystems module. This driver accepts only OFS
-	  on-disk variants; related Amiga filesystems are separate modules.
+	  The canonical OFS engine with a Linux VFS binding. Read/write
+	  DOS0, DOS2, DOS4 and DOS6 with 512..32768-byte filesystem blocks,
+	  independent of the host page size. FFS is a separate module.

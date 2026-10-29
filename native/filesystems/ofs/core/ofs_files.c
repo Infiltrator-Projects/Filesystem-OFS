@@ -5,6 +5,39 @@
  */
 #include "ofs_engine.h"
 
+/* Shared admission for public byte APIs and native host adapters. A host must
+ * not bypass whole-file validation, write protection or allocation preflight
+ * merely because it already holds an inode/object key. */
+static int growth_available(OfsFs *f, uint32_t old, uint32_t bytes) {
+    if (bytes <= old) return 0;
+    uint32_t payload = f->block_bytes - 24u;
+    uint64_t a = old ? (old - 1u) / payload + 1u : 0;
+    uint64_t b = (bytes - 1u) / payload + 1u;
+    uint64_t ae = a ? (a - 1u) / f->hash_size : 0;
+    uint64_t be = (b - 1u) / f->hash_size;
+    IfsOfsSpaceV3 space;
+    int r = ofs_space(f, &space);
+    return r ? r : b - a + be - ae <= space.free_bytes / f->block_bytes ? 0 : IFS_OFS_NO_SPACE;
+}
+int ofs_write_checked(OfsFs *f, OfsNode *n, uint32_t at, const void *data, uint32_t bytes) {
+    if (!n || n->object_type != IFS_OFS_FILE || (!data && bytes) || bytes > UINT32_MAX - at)
+        return IFS_OFS_INVALID;
+    if (n->protection & 4u) return IFS_OFS_ACCESS;
+    if (!bytes) return 0;
+    int r = ofs_check_file(f, n);
+    if (!r) r = growth_available(f, n->bytes, at + bytes);
+    if (!r) r = ofs_begin(f);
+    return r ? r : ofs_end(f, ofs_write_file(f, n, at, data, bytes));
+}
+int ofs_resize_checked(OfsFs *f, OfsNode *n, uint32_t bytes) {
+    if (!n || n->object_type != IFS_OFS_FILE) return IFS_OFS_INVALID;
+    if (n->protection & 4u) return IFS_OFS_ACCESS;
+    int r = ofs_check_file(f, n);
+    if (!r) r = growth_available(f, n->bytes, bytes);
+    if (!r) r = ofs_begin(f);
+    return r ? r : ofs_end(f, ofs_resize(f, n, bytes));
+}
+
 static uint32_t file_blocks(OfsFs *f, uint32_t bytes) {
     return bytes ? (bytes - 1u) / (f->block_bytes - 24u) + 1u : 0;
 }

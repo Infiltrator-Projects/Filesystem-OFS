@@ -21,6 +21,8 @@ from ofs_defrag_test import build_host
 build_host(Path(os.environ['OFS_DEFRAG_SOURCE']).resolve()/'defragger', Path('build-sanitize/defrag-host').resolve())
 PY
 fi
+make OUT=build-sanitize CFLAGS='-std=c11 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer' build-sanitize/ofs-orphan-test
+ASAN_OPTIONS=${ASAN_OPTIONS:-detect_leaks=1} UBSAN_OPTIONS=halt_on_error=1 build-sanitize/ofs-orphan-test
 # The diagnostic DSO intentionally uses sanitizer runtimes. The final portable
 # and native release objects separately must pass the zero-import inspection.
 export LD_PRELOAD
