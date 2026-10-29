@@ -148,6 +148,7 @@ jobs:
             echo "Immutable $tag already exists; no release update required."
             exit 0
           fi
+          mkdir -p build/package
           dpkg-deb -x dist/*.deb build/package
           install -m 0644 build/package/System/Filesystems/OFS.so dist/OFS.so
           (cd dist && sha256sum *.deb *.run OFS.so > SHA256SUMS)
