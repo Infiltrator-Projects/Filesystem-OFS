@@ -6,7 +6,8 @@
 
 int ofs_put_strings(OfsFs *f, uint32_t key, uint8_t *b, const uint8_t *name, uint32_t n,
                     const uint8_t *comment, uint32_t c) {
-    if (c > 79u || ofs_name_valid(name, n, key == f->root || f->variant != 6u ? 30u : 106u))
+    if (c > 79u || (!(key == f->root && n == 0u) &&
+                   ofs_name_valid(name, n, key == f->root || f->variant != 6u ? 30u : 106u)))
         return IFS_OFS_INVALID;
     uint32_t size = f->block_bytes;
     if (key == f->root || f->variant != 6u) {

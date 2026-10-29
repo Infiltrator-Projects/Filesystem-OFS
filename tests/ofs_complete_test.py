@@ -28,17 +28,20 @@ def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
 def space(a):
     s=Space();assert a.space(C.byref(s))==0;return s
 
-def fresh(a,path,bs=512,variant=0,blocks=4096,reserved=2):
+def fresh(a,path,bs=512,variant=0,blocks=4096,reserved=2,label=b'BOUNDARY'):
     image(path,bs*blocks);h=Host(path)
-    fmt=Format(C.sizeof(Format),bs,reserved,variant,b'BOUNDARY')
+    fmt=Format(C.sizeof(Format),bs,reserved,variant,label)
     assert a.format(C.byref(h.io),C.byref(fmt))==0
     opt=Mount(C.sizeof(Mount),0,reserved,0)
     r=a.mount(C.byref(h.io),C.byref(opt));assert r==0,('fresh',bs,variant,r)
     return h
 
 def metadata(a,path,bs,variant):
-    h=fresh(a,path,bs,variant)
+    h=fresh(a,path,bs,variant,label=b'')
+    assert a.meta(b'/').name==b''
     assert a.set_label('Fran\u00e7ais'.encode())==0 and a.meta(b'/').name=='Fran\u00e7ais'.encode()
+    assert a.set_label(b'')==0 and a.meta(b'/').name==b''
+    assert a.set_label('Fran\u00e7ais'.encode())==0
     stamp=Date(123,45,678)
     for mask,field in ((1,'changed'),(2,'volume_changed'),(4,'created')):
         assert a.set_dates(b'/',C.byref(stamp),mask)==0
@@ -76,6 +79,8 @@ def metadata(a,path,bs,variant):
     e=Entry();assert a.stat(b'/D/loop',C.byref(e))==-3
     assert a.mkdir(b'/else')==0
     assert a.hardlink(b'/D/F',b'/else/A')==0 and a.hardlink(b'/D/F',b'/else/B')==0
+    assert a.set_comment(b'/else/A',b'c'*79)==0
+    assert a.meta(b'/D/F').comment==a.meta(b'/else/A').comment==a.meta(b'/else/B').comment==b'c'*79
     assert a.unlink(b'/D/F')==0 and a.data(b'/else/A')==b'hello'
     assert a.unlink(b'/else/A')==0 and a.data(b'/else/B')==b'hello'
     assert a.rename(b'/else/B',b'/D/last')==0
@@ -117,6 +122,10 @@ def directory_links(a,path,bs,variant):
     assert u32(block(path,original,bs),bs-40)==alias
     assert a.create(b'/E/A/Shared')==0 and a.write(b'/B/Shared',0,b'shared',6)==0
     assert a.data(b'/D/Shared')==b'shared'
+    assert a.set_comment(b'/B',b'object comment')==0
+    assert a.meta(b'/D').comment==a.meta(b'/B').comment==a.meta(b'/E/A').comment==b'object comment'
+    assert a.set_comment(b'/E/A',b'c'*79)==0
+    assert a.meta(b'/B').comment==b'c'*79
     assert a.set_comment(b'/B',b'object comment')==0
     # Native explicit hard links may form loops; enumeration/verification
     # follows each original once, without recursion or an arbitrary entry cap.

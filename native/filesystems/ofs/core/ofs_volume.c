@@ -605,7 +605,8 @@ int ofs_format(OfsFs *f, const IfsOfsIoV3 *io, const IfsOfsFormatV3 *opts) {
     if (!f || !io_valid(io) || io->flags || !opts || opts->structure_bytes != sizeof(*opts) ||
         !block_size_valid(opts->block_bytes) ||
         (opts->variant != 0 && opts->variant != 2 && opts->variant != 4 && opts->variant != 6) ||
-        ofs_latin1(opts->label, label, 30, &length, 1) || !length)
+        ofs_latin1(opts->label, label, 30, &length, 0) ||
+        (length && ofs_name_valid(label, length, 30)))
         return IFS_OFS_INVALID;
     uint32_t b = opts->block_bytes, reserved = opts->reserved_blocks ? opts->reserved_blocks : 2u;
     if (reserved < 1 || io->volume_bytes % b || io->volume_bytes / b > UINT32_MAX ||

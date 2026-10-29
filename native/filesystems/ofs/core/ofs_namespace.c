@@ -540,7 +540,9 @@ int ofs_set_metadata(OfsFs *f, const char *path, uint32_t operation, const void 
 int ofs_set_label(OfsFs *f, const char *label) {
     uint8_t name[31];
     uint32_t length;
-    int r = ofs_latin1(label, name, 30, &length, 1);
+    int r = ofs_latin1(label, name, 30, &length, 0);
+    if (!r && length)
+        r = ofs_name_valid(name, length, 30);
     if (r)
         return r;
     r = ofs_begin(f);

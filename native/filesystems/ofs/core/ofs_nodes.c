@@ -163,6 +163,17 @@ int ofs_node(OfsFs *f, uint32_t key, OfsNode *n, uint8_t *b) {
         n->uid = ofs_be16(target + f->block_bytes - 196u);
         n->gid = ofs_be16(target + f->block_bytes - 194u);
         n->changed = ofs_get_date(target + f->block_bytes - (f->variant == 6u ? 60u : 92u));
+        /* Metadata setters address the original object through a hard link.
+         * Report that same object's comment, while retaining this alias's
+         * name and directory membership. DOS6 may read an overflow block,
+         * so consume the other target fields before node_strings reuses 7. */
+        OfsNode object;
+        ofs_zero(&object, sizeof(object));
+        r = node_strings(f, n->original, target, &object);
+        if (r)
+            return r;
+        n->comment_bytes = object.comment_bytes;
+        ofs_copy(n->comment, object.comment, object.comment_bytes + 1u);
     }
     return 0;
 }

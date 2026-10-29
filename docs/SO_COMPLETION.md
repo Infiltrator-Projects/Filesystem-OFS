@@ -85,3 +85,8 @@ OFS publication is admitted by Infiltrator-Repository's canonical catalogue.
 InfiltratorOS 1.0.43 adds a verified native OFS job through the 62-component
 snapshot; the previous 61-component endpoint is retained for old installers.
 Publication and provisioning remain distinct from physical ESP deployment.
+
+The same metadata tests exercise empty root labels in formatting/relabeling
+and shared comments through both file and directory aliases. A metadata setter
+and every alias reader must address the same original object, including LNFS
+overflow comments; an alias retains its own name and namespace membership.
