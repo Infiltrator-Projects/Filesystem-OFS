@@ -170,7 +170,7 @@ echo 'FAT16-KO-RUNTIME-PASS' >/dev/ttyS0
         packed = subprocess.run(['cpio', '--null', '-o', '--format=newc'], cwd=root,
                                 input=listing.stdout, check=True, stdout=subprocess.PIPE)
         subprocess.run(['gzip', '-9'], input=packed.stdout, stdout=target, check=True)
-    command = ['qemu-system-x86_64', '-machine', 'q35', '-m', '256', '-nographic', '-no-reboot', '-nic', 'none',
+    command = ['qemu-system-x86_64', '-machine', 'q35', '-m', '512', '-nographic', '-no-reboot', '-nic', 'none',
                '-kernel', str(a.kernel.resolve()), '-initrd', str(archive),
                '-append', 'console=ttyS0 panic=-1']
     if a.qemu_data: command += ['-L', str(a.qemu_data.resolve())]
@@ -180,7 +180,10 @@ echo 'FAT16-KO-RUNTIME-PASS' >/dev/ttyS0
                     '-device', f'virtio-blk-pci,drive=d{index}{sector}']
     with (output / 'serial.log').open('w') as log:
         process = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT)
-        deadline = time.monotonic() + 600
+        # At B=32768 the first extension-table boundary exceeds 266 MiB.
+        # Full checksum/ownership validation runs repeatedly under software
+        # CPU emulation; retain those checks and budget the larger fixture.
+        deadline = time.monotonic() + 1200
         try:
             while process.poll() is None and time.monotonic() < deadline:
                 serial = (output / 'serial.log').read_text(errors='replace')
