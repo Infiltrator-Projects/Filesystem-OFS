@@ -1,0 +1,131 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [6 0 R 8 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 3260 >>
+stream
+0.060 0.115 0.200 rg 0 750 595 92 re f
+0.020 0.520 0.560 rg 45 747 90 4 re f
+BT /F2 10 Tf 0.570 0.820 0.870 rg 1 0 0 1 45 803 Tm (INFILTRATOR  /  FILESYSTEMS) Tj ET
+BT /F2 21 Tf 1.000 1.000 1.000 rg 1 0 0 1 45 774 Tm (Amiga Original File System) Tj ET
+BT /F1 9 Tf 0.320 0.390 0.450 rg 1 0 0 1 45 37 Tm (Filesystem-OFS  |  User manual  |  0.1.2) Tj ET
+0.810 0.850 0.880 RG 1 w 45 50 m 550 50 l S
+BT /F1 9 Tf 0.320 0.390 0.450 rg 1 0 0 1 519 37 Tm (01 / 02) Tj ET
+BT /F2 12 Tf 0.020 0.520 0.560 rg 1 0 0 1 45 714 Tm (WHAT IS THIS FILESYSTEM?) Tj ET
+BT /F1 11 Tf 0.060 0.115 0.200 rg 1 0 0 1 45 687 Tm (OFS is the Amiga Original File System, not Amiga Fast File System \(FFS\). Its) Tj ET
+BT /F1 11 Tf 0.060 0.115 0.200 rg 1 0 0 1 45 668 Tm (on-disk file data blocks contain headers and checksums that the driver must) Tj ET
+BT /F1 11 Tf 0.060 0.115 0.200 rg 1 0 0 1 45 649 Tm (preserve.) Tj ET
+0.020 0.520 0.560 rg 45 581 4 22 re f
+BT /F2 15 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 592 Tm (How the disk is organised) Tj ET
+BT /F1 10 Tf 0.320 0.390 0.450 rg 1 0 0 1 45 567 Tm (Simplified illustration; not a sector-for-sector specification.) Tj ET
+0.080 0.480 0.520 rg 45 484 118 63 re f
+BT /F2 10 Tf 1.000 1.000 1.000 rg 1 0 0 1 55 518 Tm (ROOT + BITMAP) Tj ET
+BT /F1 9 Tf 0.910 0.970 0.980 rg 1 0 0 1 55 497 Tm (Part 1) Tj ET
+BT /F2 13 Tf 0.320 0.390 0.450 rg 1 0 0 1 163 514 Tm (>) Tj ET
+0.120 0.590 0.590 rg 174 484 118 63 re f
+BT /F2 10 Tf 1.000 1.000 1.000 rg 1 0 0 1 184 518 Tm (HEADER BLOCKS) Tj ET
+BT /F1 9 Tf 0.910 0.970 0.980 rg 1 0 0 1 184 497 Tm (Part 2) Tj ET
+BT /F2 13 Tf 0.320 0.390 0.450 rg 1 0 0 1 292 514 Tm (>) Tj ET
+0.160 0.690 0.620 rg 303 484 118 63 re f
+BT /F2 10 Tf 1.000 1.000 1.000 rg 1 0 0 1 313 518 Tm (DATA HEADERS) Tj ET
+BT /F1 9 Tf 0.910 0.970 0.980 rg 1 0 0 1 313 497 Tm (Part 3) Tj ET
+BT /F2 13 Tf 0.320 0.390 0.450 rg 1 0 0 1 421 514 Tm (>) Tj ET
+0.170 0.400 0.520 rg 432 484 118 63 re f
+BT /F2 10 Tf 1.000 1.000 1.000 rg 1 0 0 1 442 518 Tm (FILE CONTENT) Tj ET
+BT /F1 9 Tf 0.910 0.970 0.980 rg 1 0 0 1 442 497 Tm (Part 4) Tj ET
+0.020 0.520 0.560 rg 45 430 4 22 re f
+BT /F2 15 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 441 Tm (What this implementation provides) Tj ET
+0.020 0.520 0.560 rg 47 414 7 7 re f
+BT /F1 10.7 Tf 0.060 0.115 0.200 rg 1 0 0 1 65 413 Tm (Handles DOS0, international DOS2, directory-cache DOS4 and DOS6) Tj ET
+0.020 0.520 0.560 rg 47 384 7 7 re f
+BT /F1 10.7 Tf 0.060 0.115 0.200 rg 1 0 0 1 65 383 Tm (Supports 512 bytes to 32 KiB filesystem blocks) Tj ET
+0.020 0.520 0.560 rg 47 354 7 7 re f
+BT /F1 10.7 Tf 0.060 0.115 0.200 rg 1 0 0 1 65 353 Tm (V3 file operations and metadata, read-only generic Boot interface) Tj ET
+0.020 0.520 0.560 rg 47 324 7 7 re f
+BT /F1 10.7 Tf 0.060 0.115 0.200 rg 1 0 0 1 65 323 Tm (Native Defrag V2 layout, journal, Growth reserve and recovery) Tj ET
+0.020 0.520 0.560 rg 45 234 4 22 re f
+BT /F2 15 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 245 Tm (One installed module and one manual) Tj ET
+0.930 0.960 0.970 rg 45 136 506 79 re f
+BT /F3 11 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 192 Tm (/System/Filesystems/OFS.so) Tj ET
+BT /F3 10 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 168 Tm (/System/Resources/Documentation/Filesystem-OFS/) Tj ET
+BT /F3 11 Tf 0.020 0.520 0.560 rg 1 0 0 1 60 147 Tm (OFS.pdf) Tj ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 9 0 R >>
+endobj
+9 0 obj
+<< /Length 3152 >>
+stream
+0.060 0.115 0.200 rg 0 750 595 92 re f
+0.020 0.520 0.560 rg 45 747 90 4 re f
+BT /F2 10 Tf 0.570 0.820 0.870 rg 1 0 0 1 45 803 Tm (INFILTRATOR  /  FILESYSTEMS) Tj ET
+BT /F2 21 Tf 1.000 1.000 1.000 rg 1 0 0 1 45 774 Tm (Amiga Original File System) Tj ET
+BT /F1 9 Tf 0.320 0.390 0.450 rg 1 0 0 1 45 37 Tm (Filesystem-OFS  |  User manual  |  0.1.2) Tj ET
+0.810 0.850 0.880 RG 1 w 45 50 m 550 50 l S
+BT /F1 9 Tf 0.320 0.390 0.450 rg 1 0 0 1 519 37 Tm (02 / 02) Tj ET
+0.020 0.520 0.560 rg 45 703 4 22 re f
+BT /F2 15 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 714 Tm (How to use the installed module) Tj ET
+BT /F1 11 Tf 0.060 0.115 0.200 rg 1 0 0 1 45 687 Tm (The OFS.so driver is a shared library. It is loaded by a compatible filesystem) Tj ET
+BT /F1 11 Tf 0.060 0.115 0.200 rg 1 0 0 1 45 669 Tm (consumer through its published versioned interfaces; it is not a command to run) Tj ET
+BT /F1 11 Tf 0.060 0.115 0.200 rg 1 0 0 1 45 651 Tm (directly.) Tj ET
+0.020 0.520 0.560 rg 45 593 4 22 re f
+BT /F2 15 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 604 Tm (Installation and verification) Tj ET
+0.930 0.960 0.970 rg 45 465 506 117 re f
+BT /F1 10.7 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 560 Tm (Portable package: install the released Debian .deb.) Tj ET
+BT /F1 10.7 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 539 Tm (Native option: run the released .run installer.) Tj ET
+BT /F1 10.7 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 515 Tm (The Debian package owns exactly one .so and this PDF.) Tj ET
+BT /F1 10.7 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 492 Tm (Build records and checksums live in the Debian package metadata.) Tj ET
+BT /F1 10.7 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 473 Tm (Full source, tests and engineering notes remain in GitHub.) Tj ET
+0.020 0.520 0.560 rg 45 418 4 22 re f
+BT /F2 15 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 429 Tm (Current limits and boundaries) Tj ET
+0.740 0.460 0.140 rg 47 402 7 7 re f
+BT /F1 10.8 Tf 0.060 0.115 0.200 rg 1 0 0 1 65 401 Tm (OFS and FFS are different formats.) Tj ET
+0.740 0.460 0.140 rg 47 370 7 7 re f
+BT /F1 10.8 Tf 0.060 0.115 0.200 rg 1 0 0 1 65 369 Tm (Boot integration is read-only; write paths are distinct application) Tj ET
+BT /F1 10.8 Tf 0.060 0.115 0.200 rg 1 0 0 1 65 352 Tm (interfaces.) Tj ET
+0.740 0.460 0.140 rg 47 321 7 7 re f
+BT /F1 10.8 Tf 0.060 0.115 0.200 rg 1 0 0 1 65 320 Tm (The released kernel .ko is qualified for a pinned Linux version only.) Tj ET
+0.020 0.520 0.560 rg 45 245 4 22 re f
+BT /F2 15 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 256 Tm (Operational model) Tj ET
+BT /F3 11 Tf 0.060 0.115 0.200 rg 1 0 0 1 45 229 Tm (Media -> host I/O callbacks -> filesystem .so -> caller) Tj ET
+BT /F1 11 Tf 0.060 0.115 0.200 rg 1 0 0 1 45 204 Tm (The host supplies target selection and protected byte I/O. The filesystem driver) Tj ET
+BT /F1 11 Tf 0.060 0.115 0.200 rg 1 0 0 1 45 187 Tm (interprets that filesystem's on-disk structures. Ownership, verification and all) Tj ET
+BT /F1 11 Tf 0.060 0.115 0.200 rg 1 0 0 1 45 170 Tm (destructive actions remain the responsibility of the calling application.) Tj ET
+BT /F1 9.8 Tf 0.320 0.390 0.450 rg 1 0 0 1 45 95 Tm (This is a user guide, not a claim of untested kernel or firmware support.) Tj ET
+endstream
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000127 00000 n 
+0000000197 00000 n 
+0000000272 00000 n 
+0000000340 00000 n 
+0000000486 00000 n 
+0000003797 00000 n 
+0000003943 00000 n 
+trailer
+<< /Root 1 0 R /Size 10 >>
+startxref
+7146
+%%EOF

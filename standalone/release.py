@@ -27,6 +27,18 @@ DIST = ROOT / "dist"
 def run(args):
     subprocess.run([str(a) for a in args], check=True)
 
+def source_revision():
+    record = ROOT / "SOURCE-REVISION"
+    if record.exists():
+        revision = record.read_text().strip()
+    else:
+        revision = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
+    if not re.fullmatch(r"[0-9a-f]{40}", revision):
+        raise RuntimeError("Unqualified filesystem source revision")
+    return revision
+
+
 def build_deb(profile, dest):
     with tempfile.TemporaryDirectory(prefix=SLUG + "-package-") as tmp:
         root = Path(tmp) / "root"
@@ -38,16 +50,13 @@ def build_deb(profile, dest):
         (module.parent / "ofs-module-test").unlink()
         info_dir = root / "System/Resources/Documentation" / REPO
         info_dir.mkdir(parents=True)
+        manual = info_dir / "OFS.pdf"
+        shutil.copyfile(ROOT / "docs/OFS.pdf", manual)
+        if manual.read_bytes()[:5] != b"%PDF-":
+            raise RuntimeError("Missing valid illustrated PDF")
         digest = hashlib.sha256(module.read_bytes()).hexdigest()
-        (info_dir / "BUILD-INFO").write_text(
-            f"Version: {VERSION}\nModule: /System/Filesystems/{MODULE}\n"
-            f"Package: {PACKAGE}\nProfile: {profile}\n"
-            f"C flags: {' '.join(flags)}\n"
-            f"LTO: {'enabled' if profile == 'aggressive' else 'disabled'}\n"
-            f"PGO: {'trained two-pass profile (OFS V1/V2/V3 boundary and failure fixtures)' if profile == 'aggressive' else 'disabled'}\n"
-            f"SHA256: {digest}\n")
-        for item in ("README.md", "MIGRATION-PROVENANCE.md", "LICENSE"):
-            shutil.copy2(ROOT / item, info_dir / item)
+        pdf_digest = hashlib.sha256(manual.read_bytes()).hexdigest()
+        revision = source_revision()
         control = root / "DEBIAN"
         control.mkdir()
         deb_version = VERSION + ("+native1" if profile == "aggressive" else "")
@@ -55,6 +64,13 @@ def build_deb(profile, dest):
             f"Package: {PACKAGE}\nVersion: {deb_version}\nArchitecture: amd64\n"
             "Section: admin\nPriority: optional\n"
             "Maintainer: Infiltrator Projects <noreply@infiltrator-projects.invalid>\n"
+            f"X-Infiltrator-Source-Revision: {revision}\n"
+            f"X-Infiltrator-Native-Profile: {profile}\n"
+            f"X-Infiltrator-LTO: {'enabled' if profile == 'aggressive' else 'disabled'}\n"
+            f"X-Infiltrator-PGO: {'trained-two-pass' if profile == 'aggressive' else 'disabled'}\n"
+            f"X-Infiltrator-Cflags: {' '.join(flags)}\n"
+            f"X-Infiltrator-Resource-SHA256: {digest}\n"
+            f"X-Infiltrator-PDF-SHA256: {pdf_digest}\n"
             "Description: Amiga Original File System shared object for InfiltratorOS\n"
             " Installs OFS.so in /System/Filesystems.\n")
         dest.parent.mkdir(parents=True, exist_ok=True)
@@ -62,6 +78,13 @@ def build_deb(profile, dest):
         content = subprocess.check_output(["dpkg-deb", "--contents", str(dest)], text=True)
         if f"./System/Filesystems/{MODULE}" not in content:
             raise RuntimeError("Missing selected module in package")
+        with tempfile.TemporaryDirectory(prefix="filesystem-payload-check-") as check:
+            run(["dpkg-deb", "-x", dest, check])
+            actual = sorted(str(p.relative_to(check)) for p in Path(check).rglob("*") if p.is_file())
+            expected = sorted([f"System/Filesystems/{MODULE}",
+                               f"System/Resources/Documentation/{REPO}/OFS.pdf"])
+            if actual != expected:
+                raise RuntimeError("DEB must own one .so and one PDF: " + str(actual))
     return dest
 
 def source_files():
@@ -96,6 +119,10 @@ def create_run(path):
                 entry = tarfile.TarInfo(p.as_posix())
                 entry.size, entry.mode, entry.uid, entry.gid, entry.mtime = len(data), 0o644, 0, 0, 0
                 tar.addfile(entry, io.BytesIO(data))
+            revision = (source_revision() + "\n").encode("ascii")
+            stamp = tarfile.TarInfo("SOURCE-REVISION")
+            stamp.size, stamp.mode, stamp.uid, stamp.gid, stamp.mtime = len(revision), 0o644, 0, 0, 0
+            tar.addfile(stamp, io.BytesIO(revision))
         temp.seek(0)
         payload = temp.read()
     digest = hashlib.sha256(payload).hexdigest()
@@ -152,10 +179,24 @@ def install(rest):
         run(args)
         installed = Path("/System/Filesystems") / MODULE
         fsbuild.inspect(installed)
-        record = (Path("/System/Resources/Documentation") / REPO / "BUILD-INFO").read_text()
-        sha = hashlib.sha256(installed.read_bytes()).hexdigest()
-        if f"SHA256: {sha}\n" not in record:
-            raise RuntimeError("Installed binary does not match BUILD-INFO")
+        manual = Path("/System/Resources/Documentation") / REPO / "OFS.pdf"
+        if not manual.is_file() or manual.read_bytes()[:5] != b"%PDF-":
+            raise RuntimeError("Installed filesystem PDF missing")
+        control = subprocess.check_output(["dpkg-query", "-s", PACKAGE], text=True)
+        metadata = dict(line.split(": ", 1) for line in control.splitlines() if ": " in line)
+        expected = {
+            "Version": VERSION + ("+native1" if opt.profile == "aggressive" else ""),
+            "X-Infiltrator-Native-Profile": opt.profile,
+            "X-Infiltrator-Source-Revision": source_revision(),
+            "X-Infiltrator-Resource-SHA256": hashlib.sha256(installed.read_bytes()).hexdigest(),
+            "X-Infiltrator-PDF-SHA256": hashlib.sha256(manual.read_bytes()).hexdigest(),
+        }
+        if any(metadata.get(k) != v for k, v in expected.items()):
+            raise RuntimeError("Installed filesystem Debian metadata mismatch")
+        for path in (installed, manual):
+            owner = subprocess.check_output(["dpkg-query", "-S", str(path)], text=True)
+            if not owner.startswith(PACKAGE + ":"):
+                raise RuntimeError("Filesystem package does not own " + str(path))
         print("Installed and verified", installed)
 
 def main():
