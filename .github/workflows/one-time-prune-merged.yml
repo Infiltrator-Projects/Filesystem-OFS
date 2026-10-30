@@ -1,0 +1,60 @@
+name: One-time prune branches already included in main
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Remove only content-integrated branches without open pull requests
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin '+refs/heads/*:refs/remotes/origin/*'
+          prs="$(gh pr list --state open --limit 200 --json headRefName --jq '.[].headRefName')"
+          while IFS= read -r branch; do
+            [[ -n "$branch" && "$branch" != main && "$branch" != HEAD ]] || continue
+            if grep -Fxq "$branch" <<< "$prs"; then
+              echo "KEEP $branch: open PR"
+              continue
+            fi
+            ref="refs/remotes/origin/$branch"
+            safe=0
+            if git merge-base --is-ancestor "$ref" refs/remotes/origin/main; then
+              safe=1
+            else
+              ancestor="$(git merge-base refs/remotes/origin/main "$ref" || true)"
+              [[ -n "$ancestor" ]] || { echo "KEEP $branch: unrelated history"; continue; }
+              mapfile -d '' changed < <(git diff --name-only -z "$ancestor" "$ref")
+              safe=1
+              for path in "${changed[@]}"; do
+                if ! git diff --quiet refs/remotes/origin/main "$ref" -- "$path"; then
+                  safe=0
+                  break
+                fi
+              done
+            fi
+            if [[ "$safe" != 1 ]]; then
+              echo "KEEP $branch: unique content not on main"
+              continue
+            fi
+            expected="$(git rev-parse "$ref")"
+            current="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$branch" --jq '.object.sha' || true)"
+            if [[ "$expected" != "$current" || -z "$current" ]]; then
+              echo "KEEP $branch: changed since fetch"
+              continue
+            fi
+            if gh api --method DELETE "repos/$GITHUB_REPOSITORY/git/refs/heads/$branch"; then
+              echo "DELETED $branch: all branch changes already included in main"
+            else
+              echo "KEEP $branch: GitHub refused deletion"
+            fi
+          done < <(git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin | sort)
