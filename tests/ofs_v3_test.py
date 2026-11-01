@@ -275,6 +275,43 @@ def long_name_reader(api,path,bs):
     print('OFS-LNFS-LONG-NAME-COMMENT-INDEPENDENT-READER-PASS',bs,flush=True)
 
 
+def disposable_fixture_bulk(api,path):
+    """Keep production durability intact; qualify the disposable fast path."""
+    image(path,16*1024*1024)
+    h=Host(path)
+    opts=Format(C.sizeof(Format),512,2,0,b'LD_OFS')
+    assert api.format(C.byref(h.io),C.byref(opts))==0
+    durable=h.flushes
+    assert durable>=2
+    h.io.flags=4  # IFS_OFS_EPHEMERAL_FIXTURE; never set on user data
+    assert api.mount(C.byref(h.io),None)==0
+    assert api.mkdir(b'/Defragmenter-TestData')==0
+    assert api.mkdir(b'/Defragmenter-TestData/directory')==0
+    for i in range(160):
+        entry=f'/Defragmenter-TestData/directory/entry-{i:05d}'.encode()
+        assert api.create(entry)==0
+    for i in range(0,160,2):
+        entry=f'/Defragmenter-TestData/directory/entry-{i:05d}'.encode()
+        assert api.unlink(entry)==0
+    assert api.create(b'/Defragmenter-TestData/payload.bin')==0
+    payload=bytes((i*37+7)&255 for i in range(65536))
+    for offset in range(0,1024*1024,65536):
+        assert api.write(b'/Defragmenter-TestData/payload.bin',offset,
+                         payload,len(payload))==0
+    assert h.flushes==durable,('fixture issued intermediate fsync',h.flushes,durable)
+    api.check()
+    assert api.unmount()==0
+    assert h.flushes==durable+1,('fixture omitted final durability barrier',h.flushes)
+    h.io.flags=0
+    assert api.mount(C.byref(h.io),None)==0
+    assert api.data(b'/Defragmenter-TestData/payload.bin')==payload*16
+    api.check()
+    assert api.unmount()==0
+    assert h.flushes>durable+1
+    h.close()
+    print('OFS-DISPOSABLE-BULK-DURABLE-FINAL-VERIFY-PASS',flush=True)
+
+
 def main():
     p=argparse.ArgumentParser();p.add_argument('--module',type=Path,required=True)
     p.add_argument('--oracle',type=Path,required=True);p.add_argument('--quick',action='store_true')
@@ -290,6 +327,7 @@ def main():
                     path.unlink()
                     print('OFS-SO-INDEPENDENT-ROUNDTRIP-PASS',bs,variant,foreign,flush=True)
             long_name_reader(api,Path(tmp)/'long-name.img',bs)
+        disposable_fixture_bulk(api,Path(tmp)/'disposable-fixture.img')
     print('OFS-SO-V3-LIFECYCLE-INDEPENDENT-PASS')
 
 
