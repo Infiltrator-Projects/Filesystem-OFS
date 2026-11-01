@@ -175,6 +175,7 @@ void ofs_release(OfsFs *f) {
         f->io.release(f->io.context, f->cache_dirty);
     f->cache_dirty = 0;
     f->cache_dirty_count = f->cache_dirty_capacity = 0;
+    f->writable_mount_verified = 0;
     f->bitmap_keys = 0;
     f->system_keys = 0;
     f->system_count = 0;
@@ -263,6 +264,7 @@ int ofs_probe(OfsFs *f, const IfsOfsIoV3 *io, const IfsOfsMountV3 *opts) {
     f->mounted = 0;
     f->mutation = 0;
     f->failed = 0;
+    f->writable_mount_verified = 0;
     for (uint32_t b = requested ? requested : 512u; b <= OFS_MAX_BLOCK; b <<= 1) {
         if (io->volume_bytes % b || io->volume_bytes / b > UINT32_MAX) {
             if (requested)
@@ -345,6 +347,11 @@ int ofs_probe(OfsFs *f, const IfsOfsIoV3 *io, const IfsOfsMountV3 *opts) {
             return status;
         }
         f->used_blocks = (uint32_t)check.referenced_blocks;
+        /* All file block chains have been verified at this mount. Ordinary
+         * writes need only validate the blocks they actually touch, not scan
+         * every previously written block again on each append. This requires
+         * exclusive writable access: out-of-band device writes are unsupported. */
+        f->writable_mount_verified = 1;
     }
     return 0;
 }
@@ -513,8 +520,10 @@ int ofs_begin(OfsFs *f) {
     if (!status && !(f->io.flags & IFS_OFS_EPHEMERAL_FIXTURE) &&
         f->io.flush(f->io.context))
         status = IFS_OFS_IO_ERROR;
-    if (status)
+    if (status) {
         f->failed = 1;
+        f->writable_mount_verified = 0;
+    }
     return status;
 }
 int ofs_touch_root(OfsFs *f, int directory) {
@@ -538,6 +547,7 @@ int ofs_end(OfsFs *f, int status) {
     if (!f->mutation)
         return status;
     if (status || f->failed) {
+        f->writable_mount_verified = 0;
         f->mutation = 0;
         return status ? status : IFS_OFS_IO_ERROR;
     }
@@ -563,8 +573,10 @@ int ofs_end(OfsFs *f, int status) {
     }
     if (!status)
         f->bitmap_valid = 1;
-    else
+    else {
         f->failed = 1;
+        f->writable_mount_verified = 0;
+    }
     f->mutation = 0;
     return status;
 }
