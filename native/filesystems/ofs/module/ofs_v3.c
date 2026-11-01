@@ -12,9 +12,8 @@ static int unmount_volume(void) {
     OfsFs *f = &ifs_ofs_active;
     if (!f->mounted)
         return IFS_OFS_INVALID;
-    int r = 0;
-    if (!(f->io.flags & IFS_OFS_READ_ONLY) && f->io.flush(f->io.context))
-        r = IFS_OFS_IO_ERROR;
+    /* Ordered data flush and durable clean marker precede release. */
+    int r = ofs_sync_pending(f);
     ofs_release(f);
     return r;
 }
@@ -111,9 +110,7 @@ static int flush(void) {
     OfsFs *f = &ifs_ofs_active;
     if (!f->mounted)
         return IFS_OFS_INVALID;
-    return f->io.flags & IFS_OFS_READ_ONLY   ? 0
-           : f->io.flush(f->io.context) == 0 ? 0
-                                             : IFS_OFS_IO_ERROR;
+    return ofs_sync_pending(f);
 }
 __attribute__((used, section(".ifsmeta"))) static const char identity[] = "IFS-MODULE:ofs:3";
 static const IfsOfsModuleV3 module = {IFS_OFS_ABI_V3,
