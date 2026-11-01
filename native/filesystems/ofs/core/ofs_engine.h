@@ -34,6 +34,11 @@ typedef struct {
     uint32_t *cache_dirty;
     size_t cache_dirty_count, cache_dirty_capacity;
     int mounted, mutation, failed, preserve_volume_date;
+    /* A successful full writable-mount scan validates every data chain.
+     * With the driver's exclusive writer contract, subsequent mutations
+     * validate touched blocks and preserve the established invariants.
+     * Read-only/dirty mounts never set this trust bit. */
+    int writable_mount_verified;
     struct {
         uint64_t offset;
         uint32_t bytes;
