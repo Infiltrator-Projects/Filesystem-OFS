@@ -277,6 +277,38 @@ def long_name_reader(api,path,bs):
     print('OFS-LNFS-LONG-NAME-COMMENT-INDEPENDENT-READER-PASS',bs,flush=True)
 
 
+def normal_directory_workload(api,path):
+    """Exercise real ordinary creates/deletes, never disposable fixture mode."""
+    image(path,16*1024*1024)
+    h=Host(path)
+    opts=Format(C.sizeof(Format),512,2,0,b'NORMALDIR')
+    assert api.format(C.byref(h.io),C.byref(opts))==0
+    assert h.io.flags==0
+    assert api.mount(C.byref(h.io),None)==0
+    assert api.mkdir(b'/Documents')==0
+    spans=[]
+    for i in range(256):
+        prev=h.read_bytes
+        assert api.create(f'/Documents/document-{i:05d}.txt'.encode())==0
+        spans.append(h.read_bytes-prev)
+    early=sum(spans[32:64])
+    late=sum(spans[224:256])
+    # A full parent-directory scan on every creation grows quadratically.
+    # Hash-bucket collision costs may legitimately grow; allow a generous
+    # multiple while detecting the catastrophic all-entries rescan.
+    assert late<6*early+8*1024*1024,(
+        'normal create repeatedly rescans the whole directory',early,late)
+    for i in range(0,256,2):
+        assert api.unlink(f'/Documents/document-{i:05d}.txt'.encode())==0
+    assert api.stat(b'/Documents/document-00000.txt',C.byref(Entry()))==2
+    assert api.stat(b'/Documents/document-00001.txt',C.byref(Entry()))==0
+    api.check()
+    assert api.unmount()==0
+    h.close()
+    print('OFS-NORMAL-DIRECTORY-CREATE-DELETE-INTEGRITY-PASS',
+          early,late,flush=True)
+
+
 def normal_writable_append_cost(api,path):
     """Normal writes must not rescan the whole already verified file.
 
@@ -361,6 +393,7 @@ def main():
                     path.unlink()
                     print('OFS-SO-INDEPENDENT-ROUNDTRIP-PASS',bs,variant,foreign,flush=True)
             long_name_reader(api,Path(tmp)/'long-name.img',bs)
+        normal_directory_workload(api,Path(tmp)/'normal-directory.img')
         normal_writable_append_cost(api,Path(tmp)/'normal-append.img')
         disposable_fixture_bulk(api,Path(tmp)/'disposable-fixture.img')
     print('OFS-SO-V3-LIFECYCLE-INDEPENDENT-PASS')
