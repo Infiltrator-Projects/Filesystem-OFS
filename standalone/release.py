@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Release the OFS DEB and source-embedded native RUN."""
+"""Release exactly one filesystem's DEB and source-embedded native RUN."""
 import argparse
 import hashlib
 import io
@@ -15,10 +15,11 @@ import tempfile
 import build as fsbuild
 
 ROOT = Path(__file__).resolve().parents[1]
-REPO = "Filesystem-OFS"
-SLUG = "filesystem-ofs"
-PACKAGE = "infiltrator-filesystem-ofs"
-MODULE = "OFS.so"
+REPO = fsbuild.REPO
+SLUG = fsbuild.SLUG
+PACKAGE = fsbuild.PACKAGE
+MODULE = fsbuild.NAME
+PDF = fsbuild.PDF
 VERSION = (ROOT / "VERSION").read_text().strip()
 if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", VERSION):
     raise SystemExit("Invalid standalone VERSION")
@@ -44,14 +45,17 @@ def build_deb(profile, dest):
         root = Path(tmp) / "root"
         module = root / "System/Filesystems" / MODULE
         module.parent.mkdir(parents=True)
+        fsbuild.install_deps()
         flags = fsbuild.build(profile, module)
         fsbuild.test(module)
+        if hasattr(fsbuild, "cleanup_test_artifacts"):
+            fsbuild.cleanup_test_artifacts(module)
         # The fixture test is an ephemeral QA executable, never a filesystem driver.
-        (module.parent / "ofs-module-test").unlink()
+        # The fixture executable is removed by the standalone test harness.
         info_dir = root / "System/Resources/Documentation" / REPO
         info_dir.mkdir(parents=True)
-        manual = info_dir / "OFS.pdf"
-        shutil.copyfile(ROOT / "docs/OFS.pdf", manual)
+        manual = info_dir / PDF.name
+        shutil.copyfile(ROOT / PDF, manual)
         if manual.read_bytes()[:5] != b"%PDF-":
             raise RuntimeError("Missing valid illustrated PDF")
         digest = hashlib.sha256(module.read_bytes()).hexdigest()
@@ -64,6 +68,7 @@ def build_deb(profile, dest):
             f"Package: {PACKAGE}\nVersion: {deb_version}\nArchitecture: amd64\n"
             "Section: admin\nPriority: optional\n"
             "Maintainer: Infiltrator Projects <noreply@infiltrator-projects.invalid>\n"
+            f"Depends: {fsbuild.dependencies(module)}\n"
             f"X-Infiltrator-Source-Revision: {revision}\n"
             f"X-Infiltrator-Native-Profile: {profile}\n"
             f"X-Infiltrator-LTO: {'enabled' if profile == 'aggressive' else 'disabled'}\n"
@@ -71,8 +76,8 @@ def build_deb(profile, dest):
             f"X-Infiltrator-Cflags: {' '.join(flags)}\n"
             f"X-Infiltrator-Resource-SHA256: {digest}\n"
             f"X-Infiltrator-PDF-SHA256: {pdf_digest}\n"
-            "Description: Amiga Original File System shared object for InfiltratorOS\n"
-            " Installs OFS.so in /System/Filesystems.\n")
+            f"Description: Independent {MODULE} filesystem shared object for InfiltratorOS\n"
+            f" Installs only {MODULE} and its illustrated PDF.\n")
         dest.parent.mkdir(parents=True, exist_ok=True)
         run(["dpkg-deb", "--root-owner-group", "--build", root, dest])
         content = subprocess.check_output(["dpkg-deb", "--contents", str(dest)], text=True)
@@ -82,7 +87,7 @@ def build_deb(profile, dest):
             run(["dpkg-deb", "-x", dest, check])
             actual = sorted(str(p.relative_to(check)) for p in Path(check).rglob("*") if p.is_file())
             expected = sorted([f"System/Filesystems/{MODULE}",
-                               f"System/Resources/Documentation/{REPO}/OFS.pdf"])
+                               f"System/Resources/Documentation/{REPO}/{PDF.name}"])
             if actual != expected:
                 raise RuntimeError("DEB must own one .so and one PDF: " + str(actual))
     return dest
@@ -93,21 +98,24 @@ def source_files():
         paths = [Path(os.fsdecode(p)) for p in names.split(b"\0") if p]
     else:
         paths = [p.relative_to(ROOT) for p in ROOT.rglob("*") if p.is_file()]
+    if hasattr(fsbuild, "release_source_files"):
+        paths = fsbuild.release_source_files()
+    # Source-exact self-contained archives, same deterministic PAX builder
+    # as FAT/OFS. Never include a build result, a symlink, or a local Git dir.
     chosen = []
     for p in paths:
         q = p.as_posix()
-        selected = (
-            q.startswith("native/filesystems/ofs/") or
-            q.startswith("native/include/infiltratr/fs/") or
-            q == "native/platform/linux_kernel/vfs_compat.h" or
-            q.startswith("standalone/") or q.startswith("docs/") or
-            q.startswith("tests/") or q.startswith("scripts/") or q.startswith(".github/") or
-            q in ("README.md", "VERSION", "MIGRATION-PROVENANCE.md", "LICENSE", "Makefile",
-                  "tests/ofs_dropin_module_test.c", "tests/ofs_v3_test.py", "tests/ofs_complete_test.py")
-        )
-        if selected and (ROOT / p).is_file() and not (ROOT / p).is_symlink():
+        if (q.startswith((".git/", "dist/", "build/", "__pycache__/"))
+                or "/__pycache__/" in q or "/.git/" in q):
+            continue
+        if (ROOT / p).is_file() and not (ROOT / p).is_symlink():
             chosen.append(p)
-    if len(chosen) < 30:
+    # EXT3 shares an implementation with EXT4, but its native installer
+    # embeds the exact pinned source; installation must never clone a driver.
+    for p in fsbuild.embedded_source_files():
+        if p not in chosen:
+            chosen.append(p)
+    if len(chosen) < 8:
         raise RuntimeError("Insufficient source files for full independent build")
     return sorted(set(chosen))
 
@@ -134,7 +142,7 @@ if [ "$#" -gt 0 ] && [ "$1" = "--help" ]; then
 fi
 temp=$(mktemp -d)
 trap 'rm -rf -- "$temp"' EXIT HUP INT TERM
-line=$(awk '/^__OFS_SOURCE_PAYLOAD_BELOW__$/ {print NR + 1; exit}' "$0")
+line=$(awk '/^__IFS_SOURCE_PAYLOAD_BELOW__$/ {print NR + 1; exit}' "$0")
 test -n "$line"
 tail -n +"$line" "$0" > "$temp/source.tar.gz"
 printf '%s  %s\n' '__SHA256__' "$temp/source.tar.gz" | sha256sum -c - >/dev/null
@@ -142,7 +150,7 @@ mkdir "$temp/source"
 tar -xzf "$temp/source.tar.gz" -C "$temp/source" --no-same-owner --no-same-permissions
 python3 "$temp/source/standalone/release.py" install "$@"
 exit $?
-__OFS_SOURCE_PAYLOAD_BELOW__
+__IFS_SOURCE_PAYLOAD_BELOW__
 """.replace("__NAME__", path.name).replace("__SHA256__", digest)
     path.write_bytes(header.encode("utf-8") + payload)
     path.chmod(0o755)
@@ -151,6 +159,7 @@ def release():
     DIST.mkdir(exist_ok=True)
     if list(DIST.iterdir()):
         raise RuntimeError("Refusing to mix release artifacts; clean dist first")
+    fsbuild.prepare_release_source()
     deb = build_deb("portable", DIST / f"{PACKAGE}_{VERSION}_amd64.deb")
     runfile = DIST / f"{SLUG}-{VERSION}-native-installer.run"
     create_run(runfile)
@@ -167,7 +176,10 @@ def install(rest):
     parser.add_argument("--output", type=Path)
     opt = parser.parse_args(rest)
     with tempfile.TemporaryDirectory(prefix=SLUG + "-install-") as tmp:
-        output = ((opt.output / f"{PACKAGE}_{VERSION}+native1_amd64.deb") if opt.build_only and opt.output else
+        if opt.build_only and not opt.output:
+            raise RuntimeError("--build-only requires --output DIRECTORY")
+        output = ((opt.output / f"{PACKAGE}_{VERSION}+native1_amd64.deb")
+                  if opt.build_only else
                   Path(tmp) / f"{PACKAGE}_{VERSION}+native1_amd64.deb").resolve()
         build_deb(opt.profile, output)
         if opt.build_only:
@@ -179,7 +191,7 @@ def install(rest):
         run(args)
         installed = Path("/System/Filesystems") / MODULE
         fsbuild.inspect(installed)
-        manual = Path("/System/Resources/Documentation") / REPO / "OFS.pdf"
+        manual = Path("/System/Resources/Documentation") / REPO / PDF.name
         if not manual.is_file() or manual.read_bytes()[:5] != b"%PDF-":
             raise RuntimeError("Installed filesystem PDF missing")
         control = subprocess.check_output(["dpkg-query", "-s", PACKAGE], text=True)
@@ -213,5 +225,5 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except (OSError, RuntimeError, subprocess.CalledProcessError) as exc:
+    except (OSError, RuntimeError, ValueError, subprocess.CalledProcessError) as exc:
         sys.exit(f"ERROR: {exc}")
