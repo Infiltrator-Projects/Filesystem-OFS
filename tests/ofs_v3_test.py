@@ -277,6 +277,52 @@ def long_name_reader(api,path,bs):
     print('OFS-LNFS-LONG-NAME-COMMENT-INDEPENDENT-READER-PASS',bs,flush=True)
 
 
+def normal_ordered_writeback(api,path):
+    """Normal buffered writes sync only on fsync/unmount, not every syscall."""
+    image(path,16*1024*1024)
+    h=Host(path)
+    opts=Format(C.sizeof(Format),512,2,0,b'WRITEBACK')
+    assert api.format(C.byref(h.io),C.byref(opts))==0
+    h.io.flags=8  # IFS_OFS_ORDERED_WRITEBACK
+    assert api.mount(C.byref(h.io),None)==0
+    initial=h.flushes
+    assert api.mkdir(b'/Documents')==0
+    assert h.flushes==initial+1,('first ordinary write did not sync dirty marker',initial,h.flushes)
+    for i in range(128):
+        assert api.create(f'/Documents/document-{i:05d}'.encode())==0
+    assert api.create(b'/Documents/report.bin')==0
+    data=bytes((i*3+5)&255 for i in range(8192))
+    for i in range(16):
+        assert api.write(b'/Documents/report.bin',8192*i,data,len(data))==0
+    assert h.flushes==initial+1,('ordinary write unexpectedly synced every mutation',h.flushes)
+    check=api.check()
+    info=Space();assert api.space(C.byref(info))==0
+    assert info.free//512==check.free
+    assert api.flush()==0
+    assert h.flushes==initial+3,('ordered two-phase flush missing',h.flushes-initial)
+    assert api.unmount()==0;h.close()
+    h=Host(path);h.io.flags=8
+    assert api.mount(C.byref(h.io),None)==0
+    assert api.data(b'/Documents/report.bin')==data*16
+    api.check();assert api.unmount()==0;h.close()
+    # A failed first data barrier must NEVER acknowledge a clean filesystem.
+    image(path,16*1024*1024)
+    h=Host(path);h.io.flags=0
+    assert api.format(C.byref(h.io),C.byref(opts))==0
+    h.io.flags=8
+    assert api.mount(C.byref(h.io),None)==0
+    assert api.mkdir(b'/Pending')==0
+    h.fail_flush=h.flushes+1
+    assert api.flush()!=0
+    h.fail_flush=0
+    assert api.unmount()!=0
+    h.close()
+    h=Host(path);h.io.flags=8
+    assert api.mount(C.byref(h.io),None)!=0, 'failed fsync exposed falsely clean volume'
+    h.close()
+    print('OFS-NORMAL-ORDERED-WRITEBACK-DURABILITY-AND-CRASH-FAIL-CLOSED-PASS',flush=True)
+
+
 def normal_directory_workload(api,path):
     """Exercise real ordinary creates/deletes, never disposable fixture mode."""
     image(path,16*1024*1024)
@@ -403,6 +449,7 @@ def main():
                     path.unlink()
                     print('OFS-SO-INDEPENDENT-ROUNDTRIP-PASS',bs,variant,foreign,flush=True)
             long_name_reader(api,Path(tmp)/'long-name.img',bs)
+        normal_ordered_writeback(api,Path(tmp)/'normal-writeback.img')
         normal_directory_workload(api,Path(tmp)/'normal-directory.img')
         normal_writable_append_cost(api,Path(tmp)/'normal-append.img')
         disposable_fixture_bulk(api,Path(tmp)/'disposable-fixture.img')
