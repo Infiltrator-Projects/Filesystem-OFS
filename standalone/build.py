@@ -96,3 +96,61 @@ def main():
 if __name__=='__main__':
     try:main()
     except (OSError,RuntimeError,subprocess.CalledProcessError) as exc:sys.exit('Build failed: '+str(exc))
+
+# Shared standalone release.py adapter. Keep native compilation filesystem-specific,
+# but use the identical verified Python source-embedded RUN/DEB packager everywhere.
+REPO = "Filesystem-OFS"
+SLUG = REPO.lower()
+PACKAGE = "infiltrator-" + SLUG
+NAME = "OFS.so"
+PDF = Path("docs/OFS.pdf")
+
+def install_deps():
+    # Resolve only build-time tools; installed .so and PDF have no Python dependency.
+    packages = ("build-essential", "binutils", "python3", "dpkg-dev")
+    missing = [p for p in packages if subprocess.run(
+        ["dpkg-query", "-W", "-f=$" + "{Status}", p],
+        capture_output=True, text=True).stdout.strip() != "install ok installed"]
+    tools = ("cc", "readelf", "dpkg-deb", "dpkg-query")
+    if missing or any(__import__("shutil").which(cmd) is None for cmd in tools):
+        prefix = [] if os.geteuid() == 0 else ["sudo"]
+        apt = [*prefix, "apt-get", "-o", "DPkg::Lock::Timeout=-1"]
+        run([*apt, "update"])
+        run([*apt, "install", "-y", "--no-install-recommends", *packages])
+
+def dependencies(module):
+    inspect(module)
+    return "libc6"
+
+def prepare_release_source():
+    pass
+
+def embedded_source_files():
+    return []
+
+def cleanup_test_artifacts(module):
+    (module.parent / "ofs-module-test").unlink(missing_ok=True)
+
+def release_source_files():
+    if (ROOT / ".git").exists():
+        names = subprocess.check_output(["git", "-C", str(ROOT), "ls-files", "-z"])
+        paths = [Path(os.fsdecode(p)) for p in names.split(b"\0") if p]
+    else:
+        paths = [p.relative_to(ROOT) for p in ROOT.rglob("*") if p.is_file()]
+    chosen = []
+    for p in paths:
+        q = p.as_posix()
+        selected = (
+            q.startswith("native/filesystems/ofs/") or
+            q.startswith("native/include/infiltratr/fs/") or
+            q == "native/platform/linux_kernel/vfs_compat.h" or
+            q.startswith("standalone/") or q.startswith("docs/") or
+            q.startswith("tests/") or q.startswith("scripts/") or q.startswith(".github/") or
+            q in ("README.md", "VERSION", "MIGRATION-PROVENANCE.md", "LICENSE", "Makefile",
+                  "tests/ofs_dropin_module_test.c", "tests/ofs_v3_test.py", "tests/ofs_complete_test.py")
+        )
+        if selected and (ROOT / p).is_file() and not (ROOT / p).is_symlink():
+            chosen.append(p)
+    if len(chosen) < 30:
+        raise RuntimeError("Insufficient source files for full independent build")
+    return sorted(set(chosen))
