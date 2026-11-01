@@ -24,7 +24,12 @@ int ofs_write_checked(OfsFs *f, OfsNode *n, uint32_t at, const void *data, uint3
         return IFS_OFS_INVALID;
     if (n->protection & 4u) return IFS_OFS_ACCESS;
     if (!bytes) return 0;
-    int r = ofs_check_file(f, n);
+    /* A newly built sacrificial fixture is verified in full before release.
+     * Avoid re-walking every already-written block on each appended chunk:
+     * that turns the 200 MiB fragmented corpus into quadratic read I/O.
+     * The ordinary writable OFS path still performs complete preflight. */
+    int r = (f->io.flags & IFS_OFS_EPHEMERAL_FIXTURE)
+        ? 0 : ofs_check_file(f, n);
     if (!r) r = growth_available(f, n->bytes, at + bytes);
     if (!r) r = ofs_begin(f);
     return r ? r : ofs_end(f, ofs_write_file(f, n, at, data, bytes));
