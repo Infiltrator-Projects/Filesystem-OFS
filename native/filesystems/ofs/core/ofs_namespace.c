@@ -104,6 +104,14 @@ static int parent_writable(OfsFs *f, uint32_t key) {
         return r;
     if (p.protection & 4u)
         return IFS_OFS_ACCESS;
+    /* Writable mount verified all directory chains and their hash buckets.
+     * Our exclusive writer maintains the invariant on each successful
+     * mutation. A full directory traversal per create/unlink is quadratic:
+     * 6,144 files trigger roughly 18 million redundant entry visits.
+     * Still check the parent inode and its protection on every operation.
+     * Use the conservative full scan for unverified/failed mounts. */
+    if (f->writable_mount_verified && !f->failed && f->bitmap_valid)
+        return 0;
     return directory_validate(f, key, 0);
 }
 int ofs_create(OfsFs *f, const char *path, int32_t type, const char *target, uint32_t original) {
@@ -142,8 +150,11 @@ int ofs_create(OfsFs *f, const char *path, int32_t type, const char *target, uin
             return r;
         if (exists.type != (type == IFS_OFS_LINKFILE ? IFS_OFS_FILE : IFS_OFS_DIRECTORY))
             return IFS_OFS_INVALID;
-        r = type == IFS_OFS_LINKFILE ? ofs_check_file(f, &exists)
-                                   : directory_validate(f, exists.key, 0);
+        if (f->writable_mount_verified && !f->failed && f->bitmap_valid)
+            r = 0;
+        else
+            r = type == IFS_OFS_LINKFILE ? ofs_check_file(f, &exists)
+                                         : directory_validate(f, exists.key, 0);
         if (r)
             return r;
     }
@@ -345,7 +356,11 @@ static int can_unlink(OfsFs *f, OfsNode *n) {
     if (r)
         return r;
     if (n->type == IFS_OFS_DIRECTORY) {
-        r = directory_validate(f, n->object, !n->link);
+        /* Empty directories still require a real emptiness check. For
+         * hardlinked directories whose chains were already fully audited on
+         * mount, skip another complete membership scan. */
+        r = n->link && f->writable_mount_verified && !f->failed && f->bitmap_valid
+                ? 0 : directory_validate(f, n->object, !n->link);
         if (r || !n->link)
             return r;
         OfsNode chosen;
@@ -353,7 +368,8 @@ static int can_unlink(OfsFs *f, OfsNode *n) {
         return promotion(f, n, &chosen, &previous);
     }
     if (n->object_type == IFS_OFS_FILE)
-        return ofs_check_file(f, n);
+        return f->writable_mount_verified && !f->failed && f->bitmap_valid
+            ? 0 : ofs_check_file(f, n);
     return 0;
 }
 int ofs_is_orphan(const OfsFs *f, uint32_t key) {

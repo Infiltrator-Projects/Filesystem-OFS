@@ -117,7 +117,9 @@ int ofs_clock(OfsFs *f, IfsOfsDate *d) {
 }
 static int io_valid(const IfsOfsIoV3 *io) {
     return io && io->structure_bytes == sizeof(*io) && io->read_at && io->volume_bytes >= 8192u &&
-           !(io->flags & ~(IFS_OFS_READ_ONLY | IFS_OFS_ALLOW_DIRTY)) &&
+           !(io->flags & ~(IFS_OFS_READ_ONLY | IFS_OFS_ALLOW_DIRTY |
+                             IFS_OFS_EPHEMERAL_FIXTURE | IFS_OFS_ORDERED_WRITEBACK)) &&
+           !(io->flags & IFS_OFS_EPHEMERAL_FIXTURE && io->flags & IFS_OFS_ORDERED_WRITEBACK) &&
            ((io->flags & IFS_OFS_READ_ONLY) ||
             (io->write_at && io->flush && io->allocate && io->release));
 }
@@ -175,6 +177,8 @@ void ofs_release(OfsFs *f) {
         f->io.release(f->io.context, f->cache_dirty);
     f->cache_dirty = 0;
     f->cache_dirty_count = f->cache_dirty_capacity = 0;
+    f->writable_mount_verified = 0;
+    f->writeback_pending = 0;
     f->bitmap_keys = 0;
     f->system_keys = 0;
     f->system_count = 0;
@@ -263,6 +267,8 @@ int ofs_probe(OfsFs *f, const IfsOfsIoV3 *io, const IfsOfsMountV3 *opts) {
     f->mounted = 0;
     f->mutation = 0;
     f->failed = 0;
+    f->writable_mount_verified = 0;
+    f->writeback_pending = 0;
     for (uint32_t b = requested ? requested : 512u; b <= OFS_MAX_BLOCK; b <<= 1) {
         if (io->volume_bytes % b || io->volume_bytes / b > UINT32_MAX) {
             if (requested)
@@ -345,6 +351,11 @@ int ofs_probe(OfsFs *f, const IfsOfsIoV3 *io, const IfsOfsMountV3 *opts) {
             return status;
         }
         f->used_blocks = (uint32_t)check.referenced_blocks;
+        /* All file block chains have been verified at this mount. Ordinary
+         * writes need only validate the blocks they actually touch, not scan
+         * every previously written block again on each append. This requires
+         * exclusive writable access: out-of-band device writes are unsupported. */
+        f->writable_mount_verified = 1;
     }
     return 0;
 }
@@ -432,7 +443,10 @@ int ofs_bitmap_set(OfsFs *f, uint32_t block, int free_bit) {
     ofs_setword(b, at, free_bit ? value | mask : value & ~mask);
     ofs_checksum(f, b, 0);
     r = ofs_write_block(f, key, b);
-    if (!r && f->variant == 6u) {
+    /* The initial writable-mount ownership audit supplied an exact used
+     * count for every DOS variant, not just DOS6. Update it for all variants
+     * so ordinary space preflights don't re-read all allocation bitmaps. */
+    if (!r) {
         if (free_bit)
             --f->used_blocks;
         else
@@ -478,8 +492,7 @@ int ofs_allocate(OfsFs *f, uint32_t *key) {
             r = ofs_write_block(f, bm, b);
             if (r)
                 return r;
-            if (f->variant == 6u)
-                ++f->used_blocks;
+            ++f->used_blocks;
             *key = (uint32_t)candidate;
             f->alloc_hint = *key + 1u < f->blocks ? *key + 1u : f->reserved;
             return 0;
@@ -491,10 +504,24 @@ int ofs_allocate(OfsFs *f, uint32_t *key) {
     }
     return IFS_OFS_NO_SPACE;
 }
+/* For ordinary synchronous V3 mounts, preserve the three durability
+ * barriers per transaction. Linux ordered-writeback mounts instead persist
+ * the dirty marker ONCE before the first write and keep it dirty until
+ * explicit fsync/sync_fs/unmount. This is the standard buffered-write model:
+ * successful write != durable until the explicit sync returns. */
 int ofs_begin(OfsFs *f) {
     if (!f->mounted || f->mutation || !f->bitmap_valid ||
         (f->io.flags & (IFS_OFS_READ_ONLY | IFS_OFS_ALLOW_DIRTY)))
         return IFS_OFS_ACCESS;
+    const int writeback = (f->io.flags & IFS_OFS_ORDERED_WRITEBACK) != 0;
+    if (writeback && f->writeback_pending) {
+        /* The root's dirty marker is already durable; keep it until sync. */
+        f->bitmap_valid = 0;
+        f->mutation = 1;
+        f->preserve_volume_date = 0;
+        f->cache_dirty_count = 0;
+        return 0;
+    }
     uint8_t *r = f->scratch[6];
     int status = ofs_metadata(f, f->root, r);
     if (status)
@@ -506,10 +533,17 @@ int ofs_begin(OfsFs *f) {
     f->preserve_volume_date = 0;
     f->cache_dirty_count = 0;
     status = ofs_write_block(f, f->root, r);
-    if (!status && f->io.flush(f->io.context))
+    /* A durable dirty marker must precede ordinary buffered writes.
+     * Disposable fixture mode still does not issue intermediate barriers. */
+    if (!status && !(f->io.flags & IFS_OFS_EPHEMERAL_FIXTURE) &&
+        f->io.flush(f->io.context))
         status = IFS_OFS_IO_ERROR;
-    if (status)
+    if (!status && writeback)
+        f->writeback_pending = 1;
+    if (status) {
         f->failed = 1;
+        f->writable_mount_verified = 0;
+    }
     return status;
 }
 int ofs_touch_root(OfsFs *f, int directory) {
@@ -533,13 +567,22 @@ int ofs_end(OfsFs *f, int status) {
     if (!f->mutation)
         return status;
     if (status || f->failed) {
+        f->writable_mount_verified = 0;
         f->mutation = 0;
         return status ? status : IFS_OFS_IO_ERROR;
     }
     status = ofs_cache_commit(f);
     if (!status && !f->preserve_volume_date)
         status = ofs_touch_root(f, 0);
-    if (!status && f->io.flush(f->io.context))
+    if (!status && (f->io.flags & IFS_OFS_ORDERED_WRITEBACK)) {
+        /* The dirty marker is durable already. All following bytes remain
+         * buffered until explicit fsync/sync_fs or unmount. */
+        f->bitmap_valid = 1;
+        f->mutation = 0;
+        return 0;
+    }
+    if (!status && !(f->io.flags & IFS_OFS_EPHEMERAL_FIXTURE) &&
+        f->io.flush(f->io.context))
         status = IFS_OFS_IO_ERROR;
     if (!status) {
         uint8_t *r = f->scratch[6];
@@ -551,19 +594,72 @@ int ofs_end(OfsFs *f, int status) {
             ofs_checksum(f, r, 5);
             status = ofs_write_block(f, f->root, r);
         }
-        if (!status && f->io.flush(f->io.context))
+        if (!status && !(f->io.flags & IFS_OFS_EPHEMERAL_FIXTURE) &&
+        f->io.flush(f->io.context))
             status = IFS_OFS_IO_ERROR;
     }
     if (!status)
         f->bitmap_valid = 1;
-    else
+    else {
         f->failed = 1;
+        f->writable_mount_verified = 0;
+    }
     f->mutation = 0;
     return status;
+}
+/* Only a successful explicit data flush permits making the root clean.
+ * Crash before either barrier leaves the durable dirty marker and forces
+ * the existing recovery path rather than exposing a falsely clean volume. */
+int ofs_sync_pending(OfsFs *f) {
+    if (!f || !f->mounted || f->mutation)
+        return IFS_OFS_INVALID;
+    if (f->io.flags & IFS_OFS_READ_ONLY)
+        return 0;
+    if (f->failed || !f->bitmap_valid)
+        return IFS_OFS_IO_ERROR;
+    if (!f->writeback_pending)
+        return f->io.flush(f->io.context) == 0 ? 0 : IFS_OFS_IO_ERROR;
+    if (f->io.flush(f->io.context))
+        goto failed;
+    uint8_t *root = f->scratch[6];
+    if (ofs_metadata(f, f->root, root))
+        goto failed;
+    if (f->variant == 6u)
+        ofs_put32(root + f->block_bytes - 44u, f->used_blocks);
+    ofs_put32(root + f->block_bytes - 200u, f->orphans ? 0u : UINT32_MAX);
+    ofs_checksum(f, root, 5);
+    if (ofs_write_block(f, f->root, root))
+        goto failed;
+    if (f->io.flush(f->io.context))
+        goto failed;
+    f->writeback_pending = 0;
+    return 0;
+failed:
+    f->failed = 1;
+    f->writable_mount_verified = 0;
+    return IFS_OFS_IO_ERROR;
 }
 int ofs_space(OfsFs *f, IfsOfsSpaceV3 *out) {
     if (!f->mounted || !out)
         return IFS_OFS_INVALID;
+    /* ofs_probe() exhaustively audits the ownership bitmap and initialises
+     * used_blocks. Every successful allocator mutation updates that count.
+     * The old implementation re-read/scanned EVERY bitmap block for each
+     * create/write/free-space preflight, even on a healthy 2 GiB volume.
+     * A failed transaction revokes trust and falls back to bitmap scanning. */
+    if (f->writable_mount_verified && !f->failed &&
+        f->used_blocks <= f->blocks - f->reserved) {
+        *out = (IfsOfsSpaceV3){sizeof(*out),
+                               f->block_bytes,
+                               f->blocks,
+                               f->root,
+                               f->variant,
+                               (uint64_t)(f->blocks - f->reserved) * f->block_bytes,
+                               (uint64_t)(f->blocks - f->reserved - f->used_blocks) *
+                                   f->block_bytes,
+                               f->bitmap_valid};
+        return 0;
+    }
     uint64_t free_count = 0;
     for (uint32_t i = 0; i < f->bitmap_count; ++i) {
         uint32_t key;
@@ -639,6 +735,8 @@ int ofs_format(OfsFs *f, const IfsOfsIoV3 *io, const IfsOfsFormatV3 *opts) {
     f->mutation = 0;
     ofs_invalidate(f);
     uint8_t *data = f->scratch[0];
+    /* Format always uses full durability: ephemeral mode is admitted only
+     * during the separate Test Media population mount, never during mkfs. */
     /* Invalidate any old root and flush before replacing the boot area. */
     ofs_zero(data, b);
     ofs_setword(data, 0, 2);

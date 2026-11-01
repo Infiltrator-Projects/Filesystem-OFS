@@ -514,7 +514,9 @@ static int fsync_file(struct file *file, loff_t start, loff_t end, int datasync)
     struct ofs_mount *m = ofs_mount(file_inode(file)->i_sb);
     (void)datasync;
     if (r) return r;
-    mutex_lock(&m->lock); r = flush_io(m) ? -EIO : 0; mutex_unlock(&m->lock);
+    /* Linux ordinary writes are buffered. fsync/sync_fs is the durable
+     * completion boundary: data blocks first, clean root marker second. */
+    mutex_lock(&m->lock); r = status(ofs_sync_pending(m->fs)); mutex_unlock(&m->lock);
     return r;
 }
 static int getattr_inode(struct mnt_idmap *idmap, const struct path *path,
@@ -673,13 +675,15 @@ static int sync_fs(struct super_block *sb, int wait) {
     struct ofs_mount *m = ofs_mount(sb);
     int r;
     (void)wait;
-    mutex_lock(&m->lock); r = flush_io(m) ? -EIO : 0; mutex_unlock(&m->lock);
+    /* Linux ordinary writes are buffered. fsync/sync_fs is the durable
+     * completion boundary: data blocks first, clean root marker second. */
+    mutex_lock(&m->lock); r = status(ofs_sync_pending(m->fs)); mutex_unlock(&m->lock);
     return r;
 }
 static void put_super(struct super_block *sb) {
     struct ofs_mount *m = ofs_mount(sb);
     if (!m) return;
-    (void)flush_io(m); ofs_release(m->fs); kvfree(m->fs); kfree(m->prefix); kfree(m); sb->s_fs_info = NULL;
+    (void)ofs_sync_pending(m->fs); ofs_release(m->fs); kvfree(m->fs); kfree(m->prefix); kfree(m); sb->s_fs_info = NULL;
 }
 static int statfs_inode(struct dentry *dentry, struct kstatfs *out) {
     struct ofs_mount *m = ofs_mount(dentry->d_sb);
@@ -726,7 +730,11 @@ static int remount(struct super_block *sb, int *flags, char *data) {
         IfsOfsCheckV3 check;
         r = ofs_verify(m->fs, &check, 0);
         if (r) m->fs->io.flags |= IFS_OFS_READ_ONLY;
-        else m->fs->used_blocks = check.referenced_blocks;
+        else {
+            m->fs->used_blocks = check.referenced_blocks;
+            m->fs->writable_mount_verified = 1;
+            m->fs->io.flags |= IFS_OFS_ORDERED_WRITEBACK;
+        }
     }
     mutex_unlock(&m->lock); return status(r);
 }
@@ -812,7 +820,11 @@ static int fill_super(struct super_block *sb, void *data, int silent) {
         if (kstrtou32(token, 0, value)) { kfree(settings); goto fail; }
     }
     kfree(settings);
-    IfsOfsIoV3 io = {sizeof(io), sb_rdonly(sb) ? IFS_OFS_READ_ONLY : 0, m,
+    /* Normal Linux buffered file I/O: write-through of dirty allocation
+     * marker at first mutation, ordered data then clean-marker at fsync,
+     * sync_fs or unmount. Do not force three blockdev syncs per syscall. */
+    IfsOfsIoV3 io = {sizeof(io),
+        sb_rdonly(sb) ? IFS_OFS_READ_ONLY : IFS_OFS_ORDERED_WRITEBACK, m,
         bdev_nr_bytes(sb->s_bdev), read_io, write_io, flush_io, allocate_io, release_io, clock_io};
     r = status(ofs_probe(m->fs, &io, &options));
     if (r) goto fail;

@@ -24,7 +24,15 @@ int ofs_write_checked(OfsFs *f, OfsNode *n, uint32_t at, const void *data, uint3
         return IFS_OFS_INVALID;
     if (n->protection & 4u) return IFS_OFS_ACCESS;
     if (!bytes) return 0;
-    int r = ofs_check_file(f, n);
+    /* Every ordinary writable mount has already passed ofs_verify(), which
+     * traverses all file chains and reconciles allocation ownership. Our
+     * serialized writer preserves those invariants; ofs_pointer/ofs_data
+     * still validate every block accessed by this mutation. Rechecking the
+     * entire old file here on each append was quadratic, even for 100%
+     * normal file writes. Retain the full preflight whenever a mount has
+     * not been verified or has encountered any failed transaction. */
+    int r = f->writable_mount_verified && !f->failed && f->bitmap_valid
+        ? 0 : ofs_check_file(f, n);
     if (!r) r = growth_available(f, n->bytes, at + bytes);
     if (!r) r = ofs_begin(f);
     return r ? r : ofs_end(f, ofs_write_file(f, n, at, data, bytes));
@@ -32,7 +40,8 @@ int ofs_write_checked(OfsFs *f, OfsNode *n, uint32_t at, const void *data, uint3
 int ofs_resize_checked(OfsFs *f, OfsNode *n, uint32_t bytes) {
     if (!n || n->object_type != IFS_OFS_FILE) return IFS_OFS_INVALID;
     if (n->protection & 4u) return IFS_OFS_ACCESS;
-    int r = ofs_check_file(f, n);
+    int r = f->writable_mount_verified && !f->failed && f->bitmap_valid
+        ? 0 : ofs_check_file(f, n);
     if (!r) r = growth_available(f, n->bytes, bytes);
     if (!r) r = ofs_begin(f);
     return r ? r : ofs_end(f, ofs_resize(f, n, bytes));

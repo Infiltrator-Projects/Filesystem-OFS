@@ -12,9 +12,14 @@ static int unmount_volume(void) {
     OfsFs *f = &ifs_ofs_active;
     if (!f->mounted)
         return IFS_OFS_INVALID;
-    int r = 0;
-    if (!(f->io.flags & IFS_OFS_READ_ONLY) && f->io.flush(f->io.context))
-        r = IFS_OFS_IO_ERROR;
+    /* Preserve V3 synchronous-mount close semantics under write failures:
+     * flush any surviving writes, leave the bitmap dirty, release the mount.
+     * Ordered buffered mounts additionally must complete their explicit
+     * two-phase commit or fail closed. */
+    int r = f->io.flags & IFS_OFS_ORDERED_WRITEBACK
+        ? ofs_sync_pending(f)
+        : (f->io.flags & IFS_OFS_READ_ONLY) ? 0
+        : f->io.flush(f->io.context) == 0 ? 0 : IFS_OFS_IO_ERROR;
     ofs_release(f);
     return r;
 }
@@ -111,9 +116,10 @@ static int flush(void) {
     OfsFs *f = &ifs_ofs_active;
     if (!f->mounted)
         return IFS_OFS_INVALID;
-    return f->io.flags & IFS_OFS_READ_ONLY   ? 0
-           : f->io.flush(f->io.context) == 0 ? 0
-                                             : IFS_OFS_IO_ERROR;
+    if (!(f->io.flags & IFS_OFS_ORDERED_WRITEBACK))
+        return f->io.flags & IFS_OFS_READ_ONLY ? 0 :
+            f->io.flush(f->io.context) == 0 ? 0 : IFS_OFS_IO_ERROR;
+    return ofs_sync_pending(f);
 }
 __attribute__((used, section(".ifsmeta"))) static const char identity[] = "IFS-MODULE:ofs:3";
 static const IfsOfsModuleV3 module = {IFS_OFS_ABI_V3,
