@@ -40,6 +40,10 @@ typedef struct {
     struct { uint32_t object, bytes; } append_checked[OFS_APPEND_CACHE_SLOTS];
     uint32_t append_checked_count, append_checked_next;
     int append_transaction;
+    /* Sequential public reads retain extension-chain location between calls.
+     * Every metadata mutation invalidates these cursors. */
+    OfsFileCursor read_cursors[OFS_APPEND_CACHE_SLOTS];
+    uint32_t read_cursor_count, read_cursor_next;
     struct {
         uint64_t offset;
         uint32_t bytes;

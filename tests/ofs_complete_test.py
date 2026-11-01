@@ -483,6 +483,14 @@ def interleaved_append(a,path):
     for index,name in enumerate(names):
         expected=b''.join(bytes([1+index,1+chunk])*8192 for chunk in range(8))
         assert a.data(name)==expected,name
+    # Exercise interleaved small reads through the public V3 API. Each file's
+    # cursor must survive another file's read and must restart on a rewind.
+    for chunk in range(32):
+        for index,name in enumerate(names):
+            out=C.create_string_buffer(4096)
+            assert a.read(name,chunk*4096,out,4096)==0,(index,chunk)
+            expect=bytes([1+index,1+chunk//4])*2048
+            assert out.raw==expect,(index,chunk)
     first=space(a).free
     a.check()
     assert space(a).free==first

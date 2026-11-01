@@ -54,9 +54,32 @@ static int mkdir_path(const char *p) {
     return ofs_create(&ifs_ofs_active, p, IFS_OFS_DIRECTORY, 0, 0);
 }
 static int read_file(const char *p, uint32_t at, void *b, uint32_t n) {
+    OfsFs *f = &ifs_ofs_active;
     OfsNode file;
-    int r = ofs_path(&ifs_ofs_active, p, 1, &file);
-    return r ? r : ofs_read_file(&ifs_ofs_active, &file, at, b, n, 0);
+    int r = ofs_path(f, p, 1, &file);
+    if (r) return r;
+    /* Read-only V3 calls frequently arrive as small adjacent chunks. Reusing
+     * the checked extension-chain cursor avoids starting at the file header
+     * for every 15 KiB verification read. Indexed entries are invalidated at
+     * all mutation boundaries, and their size is rechecked on each call. */
+    uint32_t slot = f->read_cursor_count;
+    for (uint32_t i = 0; i < f->read_cursor_count; ++i) {
+        if (f->read_cursors[i].owner == file.object &&
+            f->read_cursors[i].size == file.bytes) {
+            slot = i;
+            break;
+        }
+    }
+    if (slot == f->read_cursor_count) {
+        if (slot < OFS_APPEND_CACHE_SLOTS)
+            ++f->read_cursor_count;
+        else
+            slot = (f->read_cursor_next++) % OFS_APPEND_CACHE_SLOTS;
+        ofs_zero(&f->read_cursors[slot], sizeof(f->read_cursors[slot]));
+    }
+    r = ofs_read_file(f, &file, at, b, n, &f->read_cursors[slot]);
+    if (r) f->read_cursor_count = f->read_cursor_next = 0;
+    return r;
 }
 static int write_file(const char *p, uint32_t at, const void *b, uint32_t n) {
     OfsNode file;
