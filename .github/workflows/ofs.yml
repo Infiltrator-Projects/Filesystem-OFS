@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           repository: Infiltrator-Projects/Defragmenter
-          ref: 7909c7d28709578a7e9ba34117ea4f7b735dc523
+          ref: 449c921fdaba4d7927b3900e2ea2eded4c5d1aaf
           path: .qualification/Defragmenter
           submodules: true
       - name: Install build prerequisites
