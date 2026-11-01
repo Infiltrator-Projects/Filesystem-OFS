@@ -1,0 +1,50 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# One-shot, fail-closed archive of the source-import branch for merged PR #1.
+# The original history is preserved as a SHA-specific git tag.
+name: Archive superseded OFS import branch
+on:
+  push:
+    paths:
+      - '.github/workflows/archive-superseded-import-20261101.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: read
+jobs:
+  archive-import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Preserve exact merged PR branch before removal
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="import/canonical-ofs-engine-20261029"
+          expected="98ec439fbeeb49c2eb9acf90cd726d76ef9d1d4d"
+          tag="archive/2026-11-01/superseded/ofs-import-${expected:0:12}"
+          merged=$(gh api "repos/$GH_REPO/pulls/1" --jq '.merged')
+          [[ "$merged" == "true" ]] || { echo "PR #1 is not merged; keeping branch"; exit 1; }
+          open_heads=$(gh api --paginate "repos/$GH_REPO/pulls?state=open&per_page=100" --jq '.[].head.ref')
+          if grep -Fxq -- "$branch" <<<"$open_heads"; then
+            echo "An open PR uses the branch; keeping it"
+            exit 0
+          fi
+          current=$(gh api "repos/$GH_REPO/git/ref/heads/$branch" --jq '.object.sha' 2>/dev/null) || {
+            echo "Branch no longer exists; nothing to do"
+            exit 0
+          }
+          if [[ "$current" != "$expected" ]]; then
+            echo "Branch moved; keeping it"; exit 1
+          fi
+          actual=$(gh api "repos/$GH_REPO/git/ref/tags/$tag" --jq '.object.sha' 2>/dev/null) || actual=""
+          if [[ -z "$actual" ]]; then
+            gh api -X POST "repos/$GH_REPO/git/refs" -f ref="refs/tags/$tag" -f sha="$expected" >/dev/null
+            actual=$(gh api "repos/$GH_REPO/git/ref/tags/$tag" --jq '.object.sha')
+          fi
+          [[ "$actual" == "$expected" ]] || { echo "Archive mismatch; keeping branch"; exit 1; }
+          still=$(gh api "repos/$GH_REPO/git/ref/heads/$branch" --jq '.object.sha')
+          [[ "$still" == "$expected" ]] || { echo "Branch moved; keeping branch"; exit 1; }
+          gh api -X DELETE "repos/$GH_REPO/git/refs/heads/$branch"
+          echo "Original OFS history preserved: refs/tags/$tag"
