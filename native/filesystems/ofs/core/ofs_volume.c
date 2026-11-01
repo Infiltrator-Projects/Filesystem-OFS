@@ -117,7 +117,7 @@ int ofs_clock(OfsFs *f, IfsOfsDate *d) {
 }
 static int io_valid(const IfsOfsIoV3 *io) {
     return io && io->structure_bytes == sizeof(*io) && io->read_at && io->volume_bytes >= 8192u &&
-           !(io->flags & ~(IFS_OFS_READ_ONLY | IFS_OFS_ALLOW_DIRTY)) &&
+           !(io->flags & ~(IFS_OFS_READ_ONLY | IFS_OFS_ALLOW_DIRTY | IFS_OFS_EPHEMERAL_FIXTURE)) &&
            ((io->flags & IFS_OFS_READ_ONLY) ||
             (io->write_at && io->flush && io->allocate && io->release));
 }
@@ -491,6 +491,10 @@ int ofs_allocate(OfsFs *f, uint32_t *key) {
     }
     return IFS_OFS_NO_SPACE;
 }
+/* On a disposable test fixture, the installed filesystem driver continues
+ * writing transaction markers and metadata; only the intermediate host
+ * durability barriers are deferred. The V3 unmount flush is unconditional.
+ * Normal OFS mounts retain all their existing crash-safety boundaries. */
 int ofs_begin(OfsFs *f) {
     if (!f->mounted || f->mutation || !f->bitmap_valid ||
         (f->io.flags & (IFS_OFS_READ_ONLY | IFS_OFS_ALLOW_DIRTY)))
@@ -506,7 +510,8 @@ int ofs_begin(OfsFs *f) {
     f->preserve_volume_date = 0;
     f->cache_dirty_count = 0;
     status = ofs_write_block(f, f->root, r);
-    if (!status && f->io.flush(f->io.context))
+    if (!status && !(f->io.flags & IFS_OFS_EPHEMERAL_FIXTURE) &&
+        f->io.flush(f->io.context))
         status = IFS_OFS_IO_ERROR;
     if (status)
         f->failed = 1;
@@ -539,7 +544,8 @@ int ofs_end(OfsFs *f, int status) {
     status = ofs_cache_commit(f);
     if (!status && !f->preserve_volume_date)
         status = ofs_touch_root(f, 0);
-    if (!status && f->io.flush(f->io.context))
+    if (!status && !(f->io.flags & IFS_OFS_EPHEMERAL_FIXTURE) &&
+        f->io.flush(f->io.context))
         status = IFS_OFS_IO_ERROR;
     if (!status) {
         uint8_t *r = f->scratch[6];
@@ -551,7 +557,8 @@ int ofs_end(OfsFs *f, int status) {
             ofs_checksum(f, r, 5);
             status = ofs_write_block(f, f->root, r);
         }
-        if (!status && f->io.flush(f->io.context))
+        if (!status && !(f->io.flags & IFS_OFS_EPHEMERAL_FIXTURE) &&
+        f->io.flush(f->io.context))
             status = IFS_OFS_IO_ERROR;
     }
     if (!status)
@@ -639,6 +646,8 @@ int ofs_format(OfsFs *f, const IfsOfsIoV3 *io, const IfsOfsFormatV3 *opts) {
     f->mutation = 0;
     ofs_invalidate(f);
     uint8_t *data = f->scratch[0];
+    /* Format always uses full durability: ephemeral mode is admitted only
+     * during the separate Test Media population mount, never during mkfs. */
     /* Invalidate any old root and flush before replacing the boot area. */
     ofs_zero(data, b);
     ofs_setword(data, 0, 2);
