@@ -6,6 +6,7 @@
 #define OFS_MAX_BLOCK 32768u
 #define OFS_CACHE_BYTES 65536u
 #define OFS_MAX_NAME 107u
+#define OFS_APPEND_CACHE_SLOTS 16u
 typedef struct {
     uint32_t key, object, parent, chain, link, original, bytes, protection;
     int32_t type, object_type;
@@ -34,6 +35,11 @@ typedef struct {
     uint32_t *cache_dirty;
     size_t cache_dirty_count, cache_dirty_capacity;
     int mounted, mutation, failed, preserve_volume_date;
+    /* Cached append tails are valid only while this engine owns the mounted
+     * volume; unrelated mutations invalidate the cache. */
+    struct { uint32_t object, bytes; } append_checked[OFS_APPEND_CACHE_SLOTS];
+    uint32_t append_checked_count, append_checked_next;
+    int append_transaction;
     struct {
         uint64_t offset;
         uint32_t bytes;

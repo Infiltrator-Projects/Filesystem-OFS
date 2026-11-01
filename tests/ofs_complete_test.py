@@ -468,6 +468,38 @@ def unsigned_and_max_file(a):
         print('OFS-UNSIGNED-HIGH-KEY-64BIT-OFFSET-PASS',bs,hex(filekey),size,calls[0],flush=True)
 
 
+def interleaved_append(a,path):
+    # Eight independent file streams reproduce Test Media's interleaved
+    # growing writes. Validate actual bytes, bitmap and remount on DOS0.
+    h=fresh(a,path,512,0,32768)
+    names=[f'/Stream-{i:02d}'.encode() for i in range(8)]
+    for name in names:assert a.create(name)==0
+    original=space(a).free
+    for chunk in range(8):
+        for index,name in enumerate(names):
+            data=bytes([1+index,1+chunk])*8192
+            assert a.write(name,chunk*16384,data,len(data))==0,(index,chunk)
+        assert space(a).free<original
+    for index,name in enumerate(names):
+        expected=b''.join(bytes([1+index,1+chunk])*8192 for chunk in range(8))
+        assert a.data(name)==expected,name
+    first=space(a).free
+    a.check()
+    assert space(a).free==first
+    assert a.truncate(names[0],16384)==0
+    assert a.data(names[0])==bytes([1,1])*8192
+    assert space(a).free>first
+    a.check()
+    assert a.unmount()==0;h.close()
+    h=Host(path);assert a.mount(C.byref(h.io),None)==0
+    for index,name in enumerate(names):
+        expected=(bytes([1,1])*8192 if index==0 else
+                  b''.join(bytes([1+index,1+chunk])*8192 for chunk in range(8)))
+        assert a.data(name)==expected,name
+    a.check();assert a.unmount()==0;h.close()
+    print('OFS-INTERLEAVED-APPEND-COUNT-READBACK-PASS',flush=True)
+
+
 def main():
     p=argparse.ArgumentParser();p.add_argument('--module',type=Path,required=True)
     p.add_argument('--quick',action='store_true');p.add_argument('--sanitized',action='store_true');args=p.parse_args()
@@ -484,6 +516,7 @@ def main():
         corruption(a,path);faults(a,path);mutation_faults(a,path);geometry(a,path);unsigned_and_max_file(a)
         allocation_mount_safety(a,path);bitmap_extensions(a,path);variant_corruption(a,path);lnfs_full_promotion(a,path)
         full_directory_promotion(a,path)
+        interleaved_append(a,path)
     print('OFS-SO-COMPLETE-BOUNDARY-FAILURE-SUITE-PASS')
 
 if __name__=='__main__':main()

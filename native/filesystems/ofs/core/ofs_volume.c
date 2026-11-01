@@ -178,6 +178,8 @@ void ofs_release(OfsFs *f) {
     f->bitmap_keys = 0;
     f->system_keys = 0;
     f->system_count = 0;
+    f->append_checked_count = f->append_checked_next = 0;
+    f->append_transaction = 0;
     f->mounted = 0;
     ofs_invalidate(f);
 }
@@ -263,6 +265,8 @@ int ofs_probe(OfsFs *f, const IfsOfsIoV3 *io, const IfsOfsMountV3 *opts) {
     f->mounted = 0;
     f->mutation = 0;
     f->failed = 0;
+    f->append_checked_count = f->append_checked_next = 0;
+    f->append_transaction = 0;
     for (uint32_t b = requested ? requested : 512u; b <= OFS_MAX_BLOCK; b <<= 1) {
         if (io->volume_bytes % b || io->volume_bytes / b > UINT32_MAX) {
             if (requested)
@@ -429,10 +433,12 @@ int ofs_bitmap_set(OfsFs *f, uint32_t block, int free_bit) {
              mask = UINT32_C(1) << (bit % 32u), value = ofs_word(b, at);
     if (((value & mask) != 0) == (free_bit != 0))
         return IFS_OFS_CORRUPT;
+    if (free_bit && f->used_blocks == 0)
+        return IFS_OFS_CORRUPT;
     ofs_setword(b, at, free_bit ? value | mask : value & ~mask);
     ofs_checksum(f, b, 0);
     r = ofs_write_block(f, key, b);
-    if (!r && f->variant == 6u) {
+    if (!r) {
         if (free_bit)
             --f->used_blocks;
         else
@@ -478,8 +484,7 @@ int ofs_allocate(OfsFs *f, uint32_t *key) {
             r = ofs_write_block(f, bm, b);
             if (r)
                 return r;
-            if (f->variant == 6u)
-                ++f->used_blocks;
+            ++f->used_blocks;
             *key = (uint32_t)candidate;
             f->alloc_hint = *key + 1u < f->blocks ? *key + 1u : f->reserved;
             return 0;
@@ -505,6 +510,8 @@ int ofs_begin(OfsFs *f) {
     f->mutation = 1;
     f->preserve_volume_date = 0;
     f->cache_dirty_count = 0;
+    if (!f->append_transaction)
+        f->append_checked_count = f->append_checked_next = 0;
     status = ofs_write_block(f, f->root, r);
     if (!status && f->io.flush(f->io.context))
         status = IFS_OFS_IO_ERROR;
@@ -565,7 +572,17 @@ int ofs_space(OfsFs *f, IfsOfsSpaceV3 *out) {
     if (!f->mounted || !out)
         return IFS_OFS_INVALID;
     uint64_t free_count = 0;
-    for (uint32_t i = 0; i < f->bitmap_count; ++i) {
+    /* A writable mount has already verified every owner and bitmap. Its
+     * allocation counter is maintained on each native mutation; repeated
+     * whole-bitmap scans turn ordinary appends into huge SD-card reads.
+     * Read-only/dirty mounts still verify the actual disk bitmap. */
+    if (!(f->io.flags & (IFS_OFS_READ_ONLY | IFS_OFS_ALLOW_DIRTY)) &&
+        f->bitmap_valid && !f->mutation && !f->failed) {
+        const uint64_t total = (uint64_t)f->blocks - f->reserved;
+        if (f->used_blocks > total)
+            return IFS_OFS_CORRUPT;
+        free_count = total - f->used_blocks;
+    } else for (uint32_t i = 0; i < f->bitmap_count; ++i) {
         uint32_t key;
         int r = ofs_bitmap_key(f, i, &key);
         if (r)

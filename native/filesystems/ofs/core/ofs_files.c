@@ -24,10 +24,49 @@ int ofs_write_checked(OfsFs *f, OfsNode *n, uint32_t at, const void *data, uint3
         return IFS_OFS_INVALID;
     if (n->protection & 4u) return IFS_OFS_ACCESS;
     if (!bytes) return 0;
-    int r = ofs_check_file(f, n);
+    /* Reuse checked append tails across interleaved file writes. Writable
+     * mount completed whole-volume verification; each committed append is
+     * maintained by the same checked engine. A non-append mutation makes
+     * every cached entry stale and forces the full validation again. */
+    const int append = at == n->bytes;
+    int cached = 0;
+    for (uint32_t i = 0; append && i < f->append_checked_count; ++i) {
+        if (f->append_checked[i].object == n->object &&
+            f->append_checked[i].bytes == n->bytes) {
+            cached = 1;
+            break;
+        }
+    }
+    int r = cached ? 0 : ofs_check_file(f, n);
     if (!r) r = growth_available(f, n->bytes, at + bytes);
-    if (!r) r = ofs_begin(f);
-    return r ? r : ofs_end(f, ofs_write_file(f, n, at, data, bytes));
+    if (!r) {
+        f->append_transaction = append;
+        r = ofs_begin(f);
+        f->append_transaction = 0;
+    }
+    if (!r) r = ofs_end(f, ofs_write_file(f, n, at, data, bytes));
+    if (r) {
+        f->append_checked_count = f->append_checked_next = 0;
+        return r;
+    }
+    if (append && n->bytes == at + bytes) {
+        uint32_t slot = f->append_checked_count;
+        for (uint32_t i = 0; i < f->append_checked_count; ++i) {
+            if (f->append_checked[i].object == n->object) {
+                slot = i;
+                break;
+            }
+        }
+        if (slot == f->append_checked_count) {
+            if (slot < OFS_APPEND_CACHE_SLOTS)
+                ++f->append_checked_count;
+            else
+                slot = (f->append_checked_next++) % OFS_APPEND_CACHE_SLOTS;
+        }
+        f->append_checked[slot].object = n->object;
+        f->append_checked[slot].bytes = n->bytes;
+    }
+    return 0;
 }
 int ofs_resize_checked(OfsFs *f, OfsNode *n, uint32_t bytes) {
     if (!n || n->object_type != IFS_OFS_FILE) return IFS_OFS_INVALID;
