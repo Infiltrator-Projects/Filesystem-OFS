@@ -39,6 +39,10 @@ typedef struct {
      * validate touched blocks and preserve the established invariants.
      * Read-only/dirty mounts never set this trust bit. */
     int writable_mount_verified;
+    /* Ordered normal writeback: a durable dirty marker already precedes
+     * outstanding non-durable block writes. Cleared only after an explicit
+     * data sync followed by a durable clean-marker sync. */
+    int writeback_pending;
     struct {
         uint64_t offset;
         uint32_t bytes;
@@ -73,6 +77,7 @@ void ofs_release(OfsFs *);
 int ofs_format(OfsFs *, const IfsOfsIoV3 *, const IfsOfsFormatV3 *);
 int ofs_begin(OfsFs *);
 int ofs_end(OfsFs *, int);
+int ofs_sync_pending(OfsFs *);
 int ofs_bitmap_key(OfsFs *, uint32_t, uint32_t *);
 int ofs_index_bitmaps(OfsFs *, int);
 int ofs_bitmap_free(OfsFs *, uint32_t, int *);
