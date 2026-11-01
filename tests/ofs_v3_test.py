@@ -302,7 +302,12 @@ def normal_directory_workload(api,path):
         assert api.unlink(f'/Documents/document-{i:05d}.txt'.encode())==0
     assert api.stat(b'/Documents/document-00000.txt',C.byref(Entry()))==2
     assert api.stat(b'/Documents/document-00001.txt',C.byref(Entry()))==0
-    api.check()
+    check=api.check()
+    space=Space()
+    assert api.space(C.byref(space))==0
+    assert space.free//512 == check.free,(
+        'cached normal filesystem free-space count diverged from real bitmap',
+        space.free//512,check.free)
     assert api.unmount()==0
     h.close()
     print('OFS-NORMAL-DIRECTORY-CREATE-DELETE-INTEGRITY-PASS',
@@ -335,7 +340,12 @@ def normal_writable_append_cost(api,path):
     assert ending<3*beginning+2*1024*1024,(
         'normal append still re-scans the growing file',beginning,ending)
     assert api.data(b'/Data/stream.bin')==data*64
-    api.check()
+    check=api.check()
+    space=Space()
+    assert api.space(C.byref(space))==0
+    assert space.free//512 == check.free,(
+        'cached normal filesystem free-space count diverged from real bitmap',
+        space.free//512,check.free)
     assert api.unmount()==0;h.close()
     print('OFS-NORMAL-DURABLE-APPEND-LINEAR-READS-PASS',
           beginning,ending,flush=True)
