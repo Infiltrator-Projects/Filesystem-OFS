@@ -439,7 +439,10 @@ int ofs_bitmap_set(OfsFs *f, uint32_t block, int free_bit) {
     ofs_setword(b, at, free_bit ? value | mask : value & ~mask);
     ofs_checksum(f, b, 0);
     r = ofs_write_block(f, key, b);
-    if (!r && f->variant == 6u) {
+    /* The initial writable-mount ownership audit supplied an exact used
+     * count for every DOS variant, not just DOS6. Update it for all variants
+     * so ordinary space preflights don't re-read all allocation bitmaps. */
+    if (!r) {
         if (free_bit)
             --f->used_blocks;
         else
@@ -485,8 +488,7 @@ int ofs_allocate(OfsFs *f, uint32_t *key) {
             r = ofs_write_block(f, bm, b);
             if (r)
                 return r;
-            if (f->variant == 6u)
-                ++f->used_blocks;
+            ++f->used_blocks;
             *key = (uint32_t)candidate;
             f->alloc_hint = *key + 1u < f->blocks ? *key + 1u : f->reserved;
             return 0;
@@ -583,6 +585,24 @@ int ofs_end(OfsFs *f, int status) {
 int ofs_space(OfsFs *f, IfsOfsSpaceV3 *out) {
     if (!f->mounted || !out)
         return IFS_OFS_INVALID;
+    /* ofs_probe() exhaustively audits the ownership bitmap and initialises
+     * used_blocks. Every successful allocator mutation updates that count.
+     * The old implementation re-read/scanned EVERY bitmap block for each
+     * create/write/free-space preflight, even on a healthy 2 GiB volume.
+     * A failed transaction revokes trust and falls back to bitmap scanning. */
+    if (f->writable_mount_verified && !f->failed &&
+        f->used_blocks <= f->blocks - f->reserved) {
+        *out = (IfsOfsSpaceV3){sizeof(*out),
+                               f->block_bytes,
+                               f->blocks,
+                               f->root,
+                               f->variant,
+                               (uint64_t)(f->blocks - f->reserved) * f->block_bytes,
+                               (uint64_t)(f->blocks - f->reserved - f->used_blocks) *
+                                   f->block_bytes,
+                               f->bitmap_valid};
+        return 0;
+    }
     uint64_t free_count = 0;
     for (uint32_t i = 0; i < f->bitmap_count; ++i) {
         uint32_t key;
