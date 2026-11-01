@@ -47,24 +47,37 @@ int ofs_equal(const void *p, const void *q, size_t n) {
     return 1;
 }
 int ofs_valid_block(const OfsFs *f, uint32_t k) { return k >= f->reserved && k < f->blocks; }
-void ofs_invalidate(OfsFs *f) { f->cache[0].valid = f->cache[1].valid = 0; }
+void ofs_invalidate(OfsFs *f) {
+    for (unsigned i = 0; i < 3u; ++i) f->cache[i].valid = 0;
+    f->metadata_cache_next = 0;
+}
+static int cached_block(const OfsFs *f, unsigned slot, uint64_t at) {
+    return f->cache[slot].valid && at >= f->cache[slot].offset &&
+        at - f->cache[slot].offset <= f->cache[slot].bytes &&
+        f->block_bytes <= f->cache[slot].bytes - (at - f->cache[slot].offset);
+}
 int ofs_read_block(OfsFs *f, uint32_t k, uint8_t *out, int data) {
     uint64_t at = (uint64_t)k * f->block_bytes;
-    unsigned slot = data ? 1u : 0u;
     if (!out || k >= f->blocks || at > f->io.volume_bytes ||
         f->block_bytes > f->io.volume_bytes - at)
         return IFS_OFS_CORRUPT;
-    if (f->cache[slot].valid && at >= f->cache[slot].offset &&
-        at - f->cache[slot].offset + f->block_bytes <= f->cache[slot].bytes) {
-        ofs_copy(out, f->cache[slot].data + (size_t)(at - f->cache[slot].offset), f->block_bytes);
+    /* Keep the bitmap and the active file header/extension in separate
+     * metadata windows. A single metadata slot causes 64 KiB read-ahead
+     * on every alternating bitmap/header lookup during 512-byte appends. */
+    const unsigned first = data ? 1u : 0u;
+    const unsigned last = data ? 1u : 2u;
+    for (unsigned slot = first; slot <= last; slot += 2u) {
+        if (!cached_block(f, slot, at)) continue;
+        ofs_copy(out, f->cache[slot].data +
+                 (size_t)(at - f->cache[slot].offset), f->block_bytes);
         return 0;
     }
+    unsigned slot = data ? 1u : ((f->metadata_cache_next++ & 1u) ? 2u : 0u);
     uint64_t base = at & ~(uint64_t)(OFS_CACHE_BYTES - 1u);
     uint64_t left = f->io.volume_bytes - base;
     uint32_t count = left > OFS_CACHE_BYTES ? OFS_CACHE_BYTES : (uint32_t)left;
     f->cache[slot].valid = 0;
-    /* A bad unrequested sector in speculative read-ahead must not hide a
-     * readable requested block. The exact read is the final authority. */
+    /* An unrelated bad speculative sector cannot mask the requested block. */
     if (f->io.read_at(f->io.context, base, f->cache[slot].data, count) == 0) {
         f->cache[slot].offset = base;
         f->cache[slot].bytes = count;
@@ -77,10 +90,25 @@ int ofs_read_block(OfsFs *f, uint32_t k, uint8_t *out, int data) {
 int ofs_write_block(OfsFs *f, uint32_t k, const uint8_t *b) {
     if ((f->io.flags & IFS_OFS_READ_ONLY) || !f->io.write_at || k >= f->blocks)
         return IFS_OFS_ACCESS;
-    ofs_invalidate(f);
-    if (f->io.write_at(f->io.context, (uint64_t)k * f->block_bytes, b, f->block_bytes) != 0) {
+    const uint64_t at = (uint64_t)k * f->block_bytes;
+    if (f->io.write_at(f->io.context, at, b, f->block_bytes) != 0) {
+        /* Never serve a cached write when the underlying I/O failed. */
+        ofs_invalidate(f);
         f->failed = 1;
         return IFS_OFS_IO_ERROR;
+    }
+    /* The successful 512-byte write is authoritative until the next flush.
+     * Keep unaffected read-ahead sectors and update any overlapping windows.
+     * Durability remains governed by the existing begin/end flush barriers. */
+    for (unsigned slot = 0; slot < 3u; ++slot) {
+        if (!f->cache[slot].valid) continue;
+        if (cached_block(f, slot, at)) {
+            ofs_copy(f->cache[slot].data + (size_t)(at - f->cache[slot].offset),
+                     b, f->block_bytes);
+        } else if (at < f->cache[slot].offset + f->cache[slot].bytes &&
+                   at + f->block_bytes > f->cache[slot].offset) {
+            f->cache[slot].valid = 0;
+        }
     }
     return 0;
 }

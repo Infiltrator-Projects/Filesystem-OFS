@@ -44,12 +44,13 @@ typedef struct {
      * Every metadata mutation invalidates these cursors. */
     OfsFileCursor read_cursors[OFS_APPEND_CACHE_SLOTS];
     uint32_t read_cursor_count, read_cursor_next;
+    uint32_t metadata_cache_next;
     struct {
         uint64_t offset;
         uint32_t bytes;
         int valid;
         uint8_t data[OFS_CACHE_BYTES];
-    } cache[2];
+    } cache[3]; /* two metadata read-ahead windows + one data window */
     /* Public operations own buffers 0..5. Bitmap/root helpers own 6; bitmap
      * updates and hard-link metadata resolution own 7, never concurrently. */
     uint8_t scratch[8][OFS_MAX_BLOCK];

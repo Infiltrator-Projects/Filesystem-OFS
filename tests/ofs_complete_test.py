@@ -496,12 +496,14 @@ def interleaved_append(a,path):
     assert space(a).free==first
     assert a.truncate(names[0],16384)==0
     assert a.data(names[0])==bytes([1,1])*8192
+    assert a.write(names[0],0,b'XYZ!',4)==0
+    assert a.data(names[0])==b'XYZ!'+(bytes([1,1])*8192)[4:]
     assert space(a).free>first
     a.check()
     assert a.unmount()==0;h.close()
     h=Host(path);assert a.mount(C.byref(h.io),None)==0
     for index,name in enumerate(names):
-        expected=(bytes([1,1])*8192 if index==0 else
+        expected=(b'XYZ!'+(bytes([1,1])*8192)[4:] if index==0 else
                   b''.join(bytes([1+index,1+chunk])*8192 for chunk in range(8)))
         assert a.data(name)==expected,name
     a.check();assert a.unmount()==0;h.close()
