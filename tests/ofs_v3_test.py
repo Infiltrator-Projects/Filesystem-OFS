@@ -107,10 +107,12 @@ class Host:
         assert path.is_file() and not path.is_symlink()
         self.fd=os.open(path,os.O_RDWR|os.O_NOFOLLOW)
         self.writes=0;self.fail_write=0;self.fail_flush=0;self.flushes=0
+        self.read_calls=0;self.read_bytes=0
         self.now=Date((date(2026,10,29)-date(1978,1,1)).days,12*60+34,56*50+7)
         libc=C.CDLL(None);libc.malloc.argtypes=[C.c_size_t];libc.malloc.restype=C.c_void_p
         libc.free.argtypes=[C.c_void_p]
         def read(_,at,out,n):
+            self.read_calls+=1;self.read_bytes+=n
             try:
                 b=os.pread(self.fd,n,at)
                 if len(b)!=n:return -1
@@ -275,6 +277,38 @@ def long_name_reader(api,path,bs):
     print('OFS-LNFS-LONG-NAME-COMMENT-INDEPENDENT-READER-PASS',bs,flush=True)
 
 
+def normal_writable_append_cost(api,path):
+    """Normal writes must not rescan the whole already verified file.
+
+    Test host read-byte complexity, not wall time or SD-card speed.
+    Default V3 durable mode is deliberately used (flags=0).
+    """
+    image(path,16*1024*1024)
+    h=Host(path)
+    opts=Format(C.sizeof(Format),512,2,0,b'NORMAL')
+    assert api.format(C.byref(h.io),C.byref(opts))==0
+    assert h.io.flags==0
+    assert api.mount(C.byref(h.io),None)==0
+    assert api.mkdir(b'/Data')==0
+    assert api.create(b'/Data/stream.bin')==0
+    data=bytes((i*17+5)&255 for i in range(8192))
+    cost=[]
+    for i in range(64):
+        prev=h.read_bytes
+        assert api.write(b'/Data/stream.bin',8192*i,data,len(data))==0
+        cost.append(h.read_bytes-prev)
+    assert h.flushes>=3*64,('normal crash-safe sync path changed',h.flushes)
+    beginning=sum(cost[8:16])
+    ending=sum(cost[-8:])
+    assert ending<3*beginning+2*1024*1024,(
+        'normal append still re-scans the growing file',beginning,ending)
+    assert api.data(b'/Data/stream.bin')==data*64
+    api.check()
+    assert api.unmount()==0;h.close()
+    print('OFS-NORMAL-DURABLE-APPEND-LINEAR-READS-PASS',
+          beginning,ending,flush=True)
+
+
 def disposable_fixture_bulk(api,path):
     """Keep production durability intact; qualify the disposable fast path."""
     image(path,16*1024*1024)
@@ -327,6 +361,7 @@ def main():
                     path.unlink()
                     print('OFS-SO-INDEPENDENT-ROUNDTRIP-PASS',bs,variant,foreign,flush=True)
             long_name_reader(api,Path(tmp)/'long-name.img',bs)
+        normal_writable_append_cost(api,Path(tmp)/'normal-append.img')
         disposable_fixture_bulk(api,Path(tmp)/'disposable-fixture.img')
     print('OFS-SO-V3-LIFECYCLE-INDEPENDENT-PASS')
 
