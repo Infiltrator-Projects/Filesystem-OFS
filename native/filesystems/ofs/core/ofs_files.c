@@ -30,10 +30,12 @@ int ofs_write_checked(OfsFs *f, OfsNode *n, uint32_t at, const void *data, uint3
      * every cached entry stale and forces the full validation again. */
     const int append = at == n->bytes;
     int cached = 0;
+    OfsFileCursor remembered = {0};
     for (uint32_t i = 0; append && i < f->append_checked_count; ++i) {
         if (f->append_checked[i].object == n->object &&
             f->append_checked[i].bytes == n->bytes) {
             cached = 1;
+            remembered = f->append_checked[i].tail;
             break;
         }
     }
@@ -44,7 +46,15 @@ int ofs_write_checked(OfsFs *f, OfsNode *n, uint32_t at, const void *data, uint3
         r = ofs_begin(f);
         f->append_transaction = 0;
     }
-    if (!r) r = ofs_end(f, ofs_write_file(f, n, at, data, bytes));
+    if (!r) {
+        /* Allocation and payload passes start at the verified old tail,
+         * not at the beginning of an ever-growing file. */
+        f->append_cursor_active = append;
+        f->append_growth_cursor = remembered;
+        f->append_write_cursor = remembered;
+        r = ofs_end(f, ofs_write_file(f, n, at, data, bytes));
+        f->append_cursor_active = 0;
+    }
     if (r) {
         f->append_checked_count = f->append_checked_next = 0;
         return r;
@@ -65,6 +75,7 @@ int ofs_write_checked(OfsFs *f, OfsNode *n, uint32_t at, const void *data, uint3
         }
         f->append_checked[slot].object = n->object;
         f->append_checked[slot].bytes = n->bytes;
+        f->append_checked[slot].tail = f->append_write_cursor;
     }
     return 0;
 }
@@ -233,7 +244,8 @@ static int set_size(OfsFs *f, OfsNode *n, uint32_t bytes) {
 }
 static int grow(OfsFs *f, OfsNode *n, uint32_t bytes) {
     uint32_t payload = f->block_bytes - 24u;
-    OfsFileCursor cursor = {0};
+    OfsFileCursor cursor = f->append_cursor_active
+        ? f->append_growth_cursor : (OfsFileCursor){0};
     cursor.owner = n->object;
     while (n->bytes < bytes) {
         uint32_t total = file_blocks(f, n->bytes), used = n->bytes % payload, previous = 0;
@@ -336,6 +348,8 @@ static int grow(OfsFs *f, OfsNode *n, uint32_t bytes) {
         if (r)
             return r;
     }
+    if (f->append_cursor_active)
+        f->append_growth_cursor = cursor;
     return 0;
 }
 static int shrink(OfsFs *f, OfsNode *n, uint32_t bytes) {
@@ -461,7 +475,8 @@ int ofs_write_file(OfsFs *f, OfsNode *n, uint32_t offset, const void *source, ui
             return r;
     }
     uint32_t payload = f->block_bytes - 24u, total = file_blocks(f, n->bytes), done = 0;
-    OfsFileCursor c = {0};
+    OfsFileCursor c = f->append_cursor_active
+        ? f->append_write_cursor : (OfsFileCursor){0};
     uint8_t *b = f->scratch[4];
     const uint8_t *src = source;
     while (done < count) {
@@ -482,5 +497,7 @@ int ofs_write_file(OfsFs *f, OfsNode *n, uint32_t offset, const void *source, ui
             return r;
         done += part;
     }
+    if (f->append_cursor_active)
+        f->append_write_cursor = c;
     return changed(f, n);
 }

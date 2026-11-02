@@ -37,9 +37,12 @@ typedef struct {
     int mounted, mutation, failed, preserve_volume_date;
     /* Cached append tails are valid only while this engine owns the mounted
      * volume; unrelated mutations invalidate the cache. */
-    struct { uint32_t object, bytes; } append_checked[OFS_APPEND_CACHE_SLOTS];
+    /* A checked sequential append can reuse the last validated extension
+     * header between calls. The actual tail header is reread and verified. */
+    struct { uint32_t object, bytes; OfsFileCursor tail; } append_checked[OFS_APPEND_CACHE_SLOTS];
     uint32_t append_checked_count, append_checked_next;
-    int append_transaction;
+    int append_transaction, append_cursor_active;
+    OfsFileCursor append_growth_cursor, append_write_cursor;
     /* Sequential public reads retain extension-chain location between calls.
      * Every metadata mutation invalidates these cursors. */
     OfsFileCursor read_cursors[OFS_APPEND_CACHE_SLOTS];

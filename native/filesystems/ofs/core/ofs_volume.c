@@ -208,6 +208,7 @@ void ofs_release(OfsFs *f) {
     f->system_count = 0;
     f->append_checked_count = f->append_checked_next = 0;
     f->append_transaction = 0;
+    f->append_cursor_active = 0;
     f->read_cursor_count = f->read_cursor_next = 0;
     f->mounted = 0;
     ofs_invalidate(f);
@@ -296,6 +297,7 @@ int ofs_probe(OfsFs *f, const IfsOfsIoV3 *io, const IfsOfsMountV3 *opts) {
     f->failed = 0;
     f->append_checked_count = f->append_checked_next = 0;
     f->append_transaction = 0;
+    f->append_cursor_active = 0;
     f->read_cursor_count = f->read_cursor_next = 0;
     for (uint32_t b = requested ? requested : 512u; b <= OFS_MAX_BLOCK; b <<= 1) {
         if (io->volume_bytes % b || io->volume_bytes / b > UINT32_MAX) {

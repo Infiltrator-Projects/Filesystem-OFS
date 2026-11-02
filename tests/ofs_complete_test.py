@@ -510,6 +510,34 @@ def interleaved_append(a,path):
     print('OFS-INTERLEAVED-APPEND-COUNT-READBACK-PASS',flush=True)
 
 
+def append_extension_read_scaling(a,path):
+    # Grow one file across hundreds of 512-byte OFS extension headers.
+    # The bytes per call never change: read work must remain bounded.
+    h=fresh(a,path,512,0,131072)
+    target=b'/long-append'
+    assert a.create(target)==0
+    payload=bytes((i*7+3)&255 for i in range(488*128))
+    counts=[]
+    for chunk in range(256):
+        before=h.reads
+        at=chunk*len(payload)
+        status=a.write(target,at,payload,len(payload))
+        assert status==0, ('long append',chunk,status)
+        counts.append(h.reads-before)
+    early=sum(counts[8:24])//16
+    late=sum(counts[-16:])//16
+    assert late<=early+180, ('quadratic OFS extension walks',early,late)
+    assert a.meta(target).bytes==256*len(payload)
+    out=C.create_string_buffer(len(payload))
+    for chunk in (0,127,255):
+        assert a.read(target,chunk*len(payload),out,len(payload))==0
+        assert out.raw==payload, ('append sample',chunk)
+    a.check()
+    assert a.unmount()==0
+    h.close()
+    print('OFS-APPEND-EXTENSION-READ-SCALING-PASS',early,late,flush=True)
+
+
 def sd_card_format_geometry(a,path):
     # 2 GiB / 512 bytes is the exact /dev/mmcblk0p11 Test Media geometry.
     # A sparse regular file exercises the real OFS.so formatter and its
@@ -548,6 +576,7 @@ def main():
         allocation_mount_safety(a,path);bitmap_extensions(a,path);variant_corruption(a,path);lnfs_full_promotion(a,path)
         full_directory_promotion(a,path)
         interleaved_append(a,path)
+        append_extension_read_scaling(a,path)
         sd_card_format_geometry(a,path)
     print('OFS-SO-COMPLETE-BOUNDARY-FAILURE-SUITE-PASS')
 
