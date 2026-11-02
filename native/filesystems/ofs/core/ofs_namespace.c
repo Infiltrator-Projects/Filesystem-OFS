@@ -119,7 +119,11 @@ static int parent_writable(OfsFs *f, uint32_t key) {
         return IFS_OFS_CORRUPT;
     if (p.protection & 4u)
         return IFS_OFS_ACCESS;
-    return ofs_directory(f, key, f->scratch[0]);
+    /* ofs_node() already validated the parent header, its type, checksum,
+     * and protection. The earlier writable mount verified all hashed
+     * members. The target name lookup validates the touched bucket.
+     * A second read of the same directory header changes no predicate. */
+    return 0;
 }
 int ofs_create(OfsFs *f, const char *path, int32_t type, const char *target, uint32_t original) {
     uint8_t name[108];

@@ -332,21 +332,26 @@ def normal_directory_workload(api,path):
     assert api.mount(C.byref(h.io),None)==0
     assert api.mkdir(b'/Documents')==0
     spans=[]
-    for i in range(256):
+    for i in range(768):
         prev=h.read_bytes
         assert api.create(f'/Documents/document-{i:05d}.txt'.encode())==0
         spans.append(h.read_bytes-prev)
-    early=sum(spans[32:64])
-    late=sum(spans[224:256])
-    # A full parent-directory scan on every creation grows quadratically.
-    # Hash-bucket collision costs may legitimately grow; allow a generous
-    # multiple while detecting the catastrophic all-entries rescan.
+    # The newer read-ahead/write-through cache can satisfy every operation
+    # in the first 64 entries without issuing one host read. Comparing the
+    # late 64 KiB window refills against that zero baseline is not a
+    # directory-complexity test. Compare equally large nonempty windows
+    # after directory metadata spans several read-ahead windows, forcing
+    # actual hash-chain traversal throughout both periods.
+    early=sum(spans[256:320])
+    late=sum(spans[704:768])
+    assert early>0,('baseline never exercised metadata read-ahead',early)
     assert late<6*early+8*1024*1024,(
         'normal create repeatedly rescans the whole directory',early,late)
     for i in range(0,256,2):
         assert api.unlink(f'/Documents/document-{i:05d}.txt'.encode())==0
     assert api.stat(b'/Documents/document-00000.txt',C.byref(Entry()))==2
     assert api.stat(b'/Documents/document-00001.txt',C.byref(Entry()))==0
+    assert api.stat(b'/Documents/document-00767.txt',C.byref(Entry()))==0
     check=api.check()
     space=Space()
     assert api.space(C.byref(space))==0
