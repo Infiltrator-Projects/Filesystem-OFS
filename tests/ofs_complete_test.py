@@ -510,6 +510,27 @@ def interleaved_append(a,path):
     print('OFS-INTERLEAVED-APPEND-COUNT-READBACK-PASS',flush=True)
 
 
+def sd_card_format_geometry(a,path):
+    # 2 GiB / 512 bytes is the exact /dev/mmcblk0p11 Test Media geometry.
+    # A sparse regular file exercises the real OFS.so formatter and its
+    # flush callbacks without touching a user's physical SD card.
+    image(path,2*1024*1024*1024)
+    h=Host(path)
+    fmt=Format(C.sizeof(Format),512,2,0,b'LD_OFS')
+    status=a.format(C.byref(h.io),C.byref(fmt))
+    assert status==0, ('2-GiB-DOS0-format',status,'writes',h.writes,'flushes',h.flushes)
+    assert h.flushes>=3, ('missing-format-durability',h.flushes)
+    assert a.mount(C.byref(h.io),None)==0, '2-GiB-DOS0-mount'
+    assert a.meta(b'/').name==b'LD_OFS'
+    assert a.create(b'/test')==0
+    assert a.write(b'/test',0,b'full-geometry-check',19)==0
+    assert a.data(b'/test')==b'full-geometry-check'
+    a.check()
+    assert a.unmount()==0
+    h.close()
+    print('OFS-2GIB-512B-DOS0-FORMAT-AND-REMOUNT-PASS',flush=True)
+
+
 def main():
     p=argparse.ArgumentParser();p.add_argument('--module',type=Path,required=True)
     p.add_argument('--quick',action='store_true');p.add_argument('--sanitized',action='store_true');args=p.parse_args()
@@ -527,6 +548,7 @@ def main():
         allocation_mount_safety(a,path);bitmap_extensions(a,path);variant_corruption(a,path);lnfs_full_promotion(a,path)
         full_directory_promotion(a,path)
         interleaved_append(a,path)
+        sd_card_format_geometry(a,path)
     print('OFS-SO-COMPLETE-BOUNDARY-FAILURE-SUITE-PASS')
 
 if __name__=='__main__':main()
