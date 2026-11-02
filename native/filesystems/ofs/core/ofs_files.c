@@ -242,7 +242,10 @@ static int set_size(OfsFs *f, OfsNode *n, uint32_t bytes) {
         n->bytes = bytes;
     return r;
 }
-static int grow(OfsFs *f, OfsNode *n, uint32_t bytes) {
+/* Optional direct payload is only for an exact EOF append. Truncate and
+ * non-append extension still zero-fill all newly exposed bytes. */
+static int grow(OfsFs *f, OfsNode *n, uint32_t bytes,
+                const uint8_t *append_data, uint32_t append_start) {
     uint32_t payload = f->block_bytes - 24u;
     OfsFileCursor cursor = f->append_cursor_active
         ? f->append_growth_cursor : (OfsFileCursor){0};
@@ -263,7 +266,11 @@ static int grow(OfsFs *f, OfsNode *n, uint32_t bytes) {
             uint32_t add = payload - used;
             if (add > bytes - n->bytes)
                 add = bytes - n->bytes;
-            ofs_zero(data + 24u + used, add);
+            if (append_data)
+                ofs_copy(data + 24u + used,
+                         append_data + (size_t)(n->bytes - append_start), add);
+            else
+                ofs_zero(data + 24u + used, add);
             ofs_setword(data, 3, used + add);
             ofs_checksum(f, data, 5);
             r = ofs_write_block(f, previous, data);
@@ -317,6 +324,9 @@ static int grow(OfsFs *f, OfsNode *n, uint32_t bytes) {
         ofs_setword(data, 1, n->object);
         ofs_setword(data, 2, total + 1u);
         ofs_setword(data, 3, add);
+        if (append_data)
+            ofs_copy(data + 24u,
+                     append_data + (size_t)(n->bytes - append_start), add);
         ofs_checksum(f, data, 5);
         r = ofs_write_block(f, key, data);
         if (r)
@@ -457,7 +467,7 @@ int ofs_resize(OfsFs *f, OfsNode *n, uint32_t bytes) {
         return IFS_OFS_ACCESS;
     if (!f->mutation)
         return IFS_OFS_INVALID;
-    int r = bytes > n->bytes ? grow(f, n, bytes) : bytes < n->bytes ? shrink(f, n, bytes) : 0;
+    int r = bytes > n->bytes ? grow(f, n, bytes, NULL, 0u) : bytes < n->bytes ? shrink(f, n, bytes) : 0;
     return r ? r : changed(f, n);
 }
 int ofs_write_file(OfsFs *f, OfsNode *n, uint32_t offset, const void *source, uint32_t count) {
@@ -469,10 +479,23 @@ int ofs_write_file(OfsFs *f, OfsNode *n, uint32_t offset, const void *source, ui
         return 0;
     uint32_t end = offset + count;
     int r = 0;
+    /* A pure append has no old byte range to preserve or sparse hole to
+     * zero. Store the real payload as each new data block is allocated;
+     * the old two-pass path wrote zero data, read it back, then overwrote it
+     * (an extra data read/write per 488-byte block on classic DOS0). */
+    const int direct_append = offset == n->bytes && end > n->bytes;
     if (end > n->bytes) {
-        r = grow(f, n, end);
+        r = grow(f, n, end, direct_append ? source : NULL, offset);
         if (r)
             return r;
+    }
+    if (direct_append) {
+        /* The new tail comes from grow's checked extension cursor. Preserve
+         * it for the next public append instead of recycling the OLD tail
+         * and silently reintroducing repeated prefix traversals. */
+        if (f->append_cursor_active)
+            f->append_write_cursor = f->append_growth_cursor;
+        return changed(f, n);
     }
     uint32_t payload = f->block_bytes - 24u, total = file_blocks(f, n->bytes), done = 0;
     OfsFileCursor c = f->append_cursor_active

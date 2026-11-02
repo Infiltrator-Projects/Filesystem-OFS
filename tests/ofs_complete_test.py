@@ -566,6 +566,38 @@ def large_directory_churn(a,path):
     print('OFS-LARGE-DIRECTORY-CHURN-REMOUNT-PASS',flush=True)
 
 
+def direct_append_single_write(a,path):
+    # Test Media's 512-byte DOS0 blocks contain 488 bytes of file data.
+    # A pure EOF append must not write zero-filled new data blocks and
+    # immediately reread and overwrite them with the supplied payload.
+    h=fresh(a,path,512,0,4096)
+    target=b'/direct'
+    assert a.create(target)==0
+    blocks=256
+    payload=bytes((i*37+13)&255 for i in range(blocks*488))
+    writes=h.writes
+    assert a.write(target,0,payload,len(payload))==0
+    new_writes=h.writes-writes
+    # One bitmap write, one data write, one pointer table write, a prior
+    # data-next update, and one header-size write per new block; allow
+    # overhead for extensions, changed metadata and commit barriers.
+    assert new_writes <= blocks*5+40, ('duplicate append data block writes',new_writes,blocks)
+    assert a.data(target)==payload
+    # A nonappend overwrite and an append following that overwrite must
+    # not reuse stale append metadata or skip validation.
+    assert a.write(target,488*7+37,b'PATCH',5)==0
+    expected=payload[:488*7+37]+b'PATCH'+payload[488*7+42:]
+    assert a.data(target)==expected
+    assert a.write(target,len(expected),b'APPENDED',8)==0
+    expected+=b'APPENDED'
+    assert a.data(target)==expected
+    a.check();assert a.unmount()==0;h.close()
+    h=Host(path);assert a.mount(C.byref(h.io),None)==0
+    assert a.data(target)==expected
+    a.check();assert a.unmount()==0;h.close()
+    print('OFS-DIRECT-APPEND-SINGLE-DATA-WRITE-REMOUNT-PASS',new_writes,flush=True)
+
+
 def sd_card_format_geometry(a,path):
     # 2 GiB / 512 bytes is the exact /dev/mmcblk0p11 Test Media geometry.
     # A sparse regular file exercises the real OFS.so formatter and its
@@ -606,6 +638,7 @@ def main():
         interleaved_append(a,path)
         append_extension_read_scaling(a,path)
         large_directory_churn(a,path)
+        direct_append_single_write(a,path)
         sd_card_format_geometry(a,path)
     print('OFS-SO-COMPLETE-BOUNDARY-FAILURE-SUITE-PASS')
 
