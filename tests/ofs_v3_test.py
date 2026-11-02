@@ -106,12 +106,12 @@ class Host:
     def __init__(self,path):
         assert path.is_file() and not path.is_symlink()
         self.fd=os.open(path,os.O_RDWR|os.O_NOFOLLOW)
-        self.writes=0;self.reads=0;self.fail_write=0;self.fail_flush=0;self.flushes=0
+        self.writes=0;self.reads=0;self.read_bytes=0;self.fail_write=0;self.fail_flush=0;self.flushes=0
         self.now=Date((date(2026,10,29)-date(1978,1,1)).days,12*60+34,56*50+7)
         libc=C.CDLL(None);libc.malloc.argtypes=[C.c_size_t];libc.malloc.restype=C.c_void_p
         libc.free.argtypes=[C.c_void_p]
         def read(_,at,out,n):
-            self.reads+=1
+            self.reads+=1; self.read_bytes+=n
             try:
                 b=os.pread(self.fd,n,at)
                 if len(b)!=n:return -1
