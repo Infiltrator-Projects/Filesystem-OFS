@@ -146,7 +146,12 @@ int ofs_clock(OfsFs *f, IfsOfsDate *d) {
 }
 static int io_valid(const IfsOfsIoV3 *io) {
     return io && io->structure_bytes == sizeof(*io) && io->read_at && io->volume_bytes >= 8192u &&
-           !(io->flags & ~(IFS_OFS_READ_ONLY | IFS_OFS_ALLOW_DIRTY)) &&
+           !(io->flags & ~(IFS_OFS_READ_ONLY | IFS_OFS_ALLOW_DIRTY |
+                             IFS_OFS_EPHEMERAL_FIXTURE | IFS_OFS_ORDERED_WRITEBACK)) &&
+           !(io->flags & IFS_OFS_EPHEMERAL_FIXTURE &&
+             io->flags & IFS_OFS_ORDERED_WRITEBACK) &&
+           !(io->flags & IFS_OFS_READ_ONLY &&
+             io->flags & (IFS_OFS_EPHEMERAL_FIXTURE | IFS_OFS_ORDERED_WRITEBACK)) &&
            ((io->flags & IFS_OFS_READ_ONLY) ||
             (io->write_at && io->flush && io->allocate && io->release));
 }
@@ -550,7 +555,8 @@ int ofs_begin(OfsFs *f) {
     if (!f->append_transaction)
         f->append_checked_count = f->append_checked_next = 0;
     status = ofs_write_block(f, f->root, r);
-    if (!status && f->io.flush(f->io.context))
+    if (!status && !(f->io.flags & IFS_OFS_EPHEMERAL_FIXTURE) &&
+        f->io.flush(f->io.context))
         status = IFS_OFS_IO_ERROR;
     if (status)
         f->failed = 1;
@@ -583,7 +589,8 @@ int ofs_end(OfsFs *f, int status) {
     status = ofs_cache_commit(f);
     if (!status && !f->preserve_volume_date)
         status = ofs_touch_root(f, 0);
-    if (!status && f->io.flush(f->io.context))
+    if (!status && !(f->io.flags & IFS_OFS_EPHEMERAL_FIXTURE) &&
+        f->io.flush(f->io.context))
         status = IFS_OFS_IO_ERROR;
     if (!status) {
         uint8_t *r = f->scratch[6];
@@ -595,7 +602,8 @@ int ofs_end(OfsFs *f, int status) {
             ofs_checksum(f, r, 5);
             status = ofs_write_block(f, f->root, r);
         }
-        if (!status && f->io.flush(f->io.context))
+        if (!status && !(f->io.flags & IFS_OFS_EPHEMERAL_FIXTURE) &&
+            f->io.flush(f->io.context))
             status = IFS_OFS_IO_ERROR;
     }
     if (!status)
