@@ -276,6 +276,163 @@ def long_name_reader(api,path,bs):
     print('OFS-LNFS-LONG-NAME-COMMENT-INDEPENDENT-READER-PASS',bs,flush=True)
 
 
+def normal_ordered_writeback(api,path):
+    """Normal buffered writes sync only on fsync/unmount, not every syscall."""
+    image(path,16*1024*1024)
+    h=Host(path)
+    opts=Format(C.sizeof(Format),512,2,0,b'WRITEBACK')
+    assert api.format(C.byref(h.io),C.byref(opts))==0
+    h.io.flags=8  # IFS_OFS_ORDERED_WRITEBACK
+    assert api.mount(C.byref(h.io),None)==0
+    initial=h.flushes
+    assert api.mkdir(b'/Documents')==0
+    assert h.flushes==initial+1,('first ordinary write did not sync dirty marker',initial,h.flushes)
+    for i in range(128):
+        assert api.create(f'/Documents/document-{i:05d}'.encode())==0
+    assert api.create(b'/Documents/report.bin')==0
+    data=bytes((i*3+5)&255 for i in range(8192))
+    for i in range(16):
+        assert api.write(b'/Documents/report.bin',8192*i,data,len(data))==0
+    assert h.flushes==initial+1,('ordinary write unexpectedly synced every mutation',h.flushes)
+    check=api.check()
+    info=Space();assert api.space(C.byref(info))==0
+    assert info.free//512==check.free
+    assert api.flush()==0
+    assert h.flushes==initial+3,('ordered two-phase flush missing',h.flushes-initial)
+    assert api.unmount()==0;h.close()
+    h=Host(path);h.io.flags=8
+    assert api.mount(C.byref(h.io),None)==0
+    assert api.data(b'/Documents/report.bin')==data*16
+    api.check();assert api.unmount()==0;h.close()
+    # A failed first data barrier must NEVER acknowledge a clean filesystem.
+    image(path,16*1024*1024)
+    h=Host(path);h.io.flags=0
+    assert api.format(C.byref(h.io),C.byref(opts))==0
+    h.io.flags=8
+    assert api.mount(C.byref(h.io),None)==0
+    assert api.mkdir(b'/Pending')==0
+    h.fail_flush=h.flushes+1
+    assert api.flush()!=0
+    h.fail_flush=0
+    assert api.unmount()!=0
+    h.close()
+    h=Host(path);h.io.flags=8
+    assert api.mount(C.byref(h.io),None)!=0, 'failed fsync exposed falsely clean volume'
+    h.close()
+    print('OFS-NORMAL-ORDERED-WRITEBACK-DURABILITY-AND-CRASH-FAIL-CLOSED-PASS',flush=True)
+
+
+def normal_directory_workload(api,path):
+    """Exercise real ordinary creates/deletes, never disposable fixture mode."""
+    image(path,16*1024*1024)
+    h=Host(path)
+    opts=Format(C.sizeof(Format),512,2,0,b'NORMALDIR')
+    assert api.format(C.byref(h.io),C.byref(opts))==0
+    assert h.io.flags==0
+    assert api.mount(C.byref(h.io),None)==0
+    assert api.mkdir(b'/Documents')==0
+    spans=[]
+    for i in range(256):
+        prev=h.read_bytes
+        assert api.create(f'/Documents/document-{i:05d}.txt'.encode())==0
+        spans.append(h.read_bytes-prev)
+    early=sum(spans[32:64])
+    late=sum(spans[224:256])
+    # A full parent-directory scan on every creation grows quadratically.
+    # Hash-bucket collision costs may legitimately grow; allow a generous
+    # multiple while detecting the catastrophic all-entries rescan.
+    assert late<6*early+8*1024*1024,(
+        'normal create repeatedly rescans the whole directory',early,late)
+    for i in range(0,256,2):
+        assert api.unlink(f'/Documents/document-{i:05d}.txt'.encode())==0
+    assert api.stat(b'/Documents/document-00000.txt',C.byref(Entry()))==2
+    assert api.stat(b'/Documents/document-00001.txt',C.byref(Entry()))==0
+    check=api.check()
+    space=Space()
+    assert api.space(C.byref(space))==0
+    assert space.free//512 == check.free,(
+        'cached normal filesystem free-space count diverged from real bitmap',
+        space.free//512,check.free)
+    assert api.unmount()==0
+    h.close()
+    print('OFS-NORMAL-DIRECTORY-CREATE-DELETE-INTEGRITY-PASS',
+          early,late,flush=True)
+
+
+def normal_writable_append_cost(api,path):
+    """Normal writes must not rescan the whole already verified file.
+
+    Test host read-byte complexity, not wall time or SD-card speed.
+    Default V3 durable mode is deliberately used (flags=0).
+    """
+    image(path,16*1024*1024)
+    h=Host(path)
+    opts=Format(C.sizeof(Format),512,2,0,b'NORMAL')
+    assert api.format(C.byref(h.io),C.byref(opts))==0
+    assert h.io.flags==0
+    assert api.mount(C.byref(h.io),None)==0
+    assert api.mkdir(b'/Data')==0
+    assert api.create(b'/Data/stream.bin')==0
+    data=bytes((i*17+5)&255 for i in range(8192))
+    cost=[]
+    for i in range(64):
+        prev=h.read_bytes
+        assert api.write(b'/Data/stream.bin',8192*i,data,len(data))==0
+        cost.append(h.read_bytes-prev)
+    assert h.flushes>=3*64,('normal crash-safe sync path changed',h.flushes)
+    beginning=sum(cost[8:16])
+    ending=sum(cost[-8:])
+    assert ending<3*beginning+2*1024*1024,(
+        'normal append still re-scans the growing file',beginning,ending)
+    assert api.data(b'/Data/stream.bin')==data*64
+    check=api.check()
+    space=Space()
+    assert api.space(C.byref(space))==0
+    assert space.free//512 == check.free,(
+        'cached normal filesystem free-space count diverged from real bitmap',
+        space.free//512,check.free)
+    assert api.unmount()==0;h.close()
+    print('OFS-NORMAL-DURABLE-APPEND-LINEAR-READS-PASS',
+          beginning,ending,flush=True)
+
+
+def disposable_fixture_bulk(api,path):
+    """Keep production durability intact; qualify the disposable fast path."""
+    image(path,16*1024*1024)
+    h=Host(path)
+    opts=Format(C.sizeof(Format),512,2,0,b'LD_OFS')
+    assert api.format(C.byref(h.io),C.byref(opts))==0
+    durable=h.flushes
+    assert durable>=2
+    h.io.flags=4  # IFS_OFS_EPHEMERAL_FIXTURE; never set on user data
+    assert api.mount(C.byref(h.io),None)==0
+    assert api.mkdir(b'/Defragmenter-TestData')==0
+    assert api.mkdir(b'/Defragmenter-TestData/directory')==0
+    for i in range(160):
+        entry=f'/Defragmenter-TestData/directory/entry-{i:05d}'.encode()
+        assert api.create(entry)==0
+    for i in range(0,160,2):
+        entry=f'/Defragmenter-TestData/directory/entry-{i:05d}'.encode()
+        assert api.unlink(entry)==0
+    assert api.create(b'/Defragmenter-TestData/payload.bin')==0
+    payload=bytes((i*37+7)&255 for i in range(65536))
+    for offset in range(0,1024*1024,65536):
+        assert api.write(b'/Defragmenter-TestData/payload.bin',offset,
+                         payload,len(payload))==0
+    assert h.flushes==durable,('fixture issued intermediate fsync',h.flushes,durable)
+    api.check()
+    assert api.unmount()==0
+    assert h.flushes==durable+1,('fixture omitted final durability barrier',h.flushes)
+    h.io.flags=0
+    assert api.mount(C.byref(h.io),None)==0
+    assert api.data(b'/Defragmenter-TestData/payload.bin')==payload*16
+    api.check()
+    assert api.unmount()==0
+    assert h.flushes>durable+1
+    h.close()
+    print('OFS-DISPOSABLE-BULK-DURABLE-FINAL-VERIFY-PASS',flush=True)
+
+
 def main():
     p=argparse.ArgumentParser();p.add_argument('--module',type=Path,required=True)
     p.add_argument('--oracle',type=Path,required=True);p.add_argument('--quick',action='store_true')
@@ -291,6 +448,10 @@ def main():
                     path.unlink()
                     print('OFS-SO-INDEPENDENT-ROUNDTRIP-PASS',bs,variant,foreign,flush=True)
             long_name_reader(api,Path(tmp)/'long-name.img',bs)
+        normal_ordered_writeback(api,Path(tmp)/'normal-writeback.img')
+        normal_directory_workload(api,Path(tmp)/'normal-directory.img')
+        normal_writable_append_cost(api,Path(tmp)/'normal-append.img')
+        disposable_fixture_bulk(api,Path(tmp)/'disposable-fixture.img')
     print('OFS-SO-V3-LIFECYCLE-INDEPENDENT-PASS')
 
 
