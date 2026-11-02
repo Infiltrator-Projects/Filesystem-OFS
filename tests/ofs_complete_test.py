@@ -181,7 +181,27 @@ def many_entries(a,path,variant,count=600):
         if i==count:assert r==1
         else:assert r==0;names.add(e.name)
     assert len(names)==count
+    # Repeated requested indices must reuse the checked cursor. Querying a
+    # distant index may traverse many entries once; its immediate successor
+    # must not begin again at index zero.
+    item=Entry()
+    assert a.directory_entry(b'/Many',count//2,C.byref(item))==0
+    reads=h.reads
+    assert a.directory_entry(b'/Many',count//2+1,C.byref(item))==0
+    assert h.reads-reads<=12, ('quadratic V3 directory index lookup',h.reads-reads)
+    # Rewind then advance again: stale cache position must not skip entries.
+    rewind=Entry();assert a.directory_entry(b'/Many',0,C.byref(rewind))==0
+    assert rewind.name in names
+    assert a.directory_entry(b'/Many',1,C.byref(rewind))==0
+    assert rewind.name in names
     assert a.rename(f'/Many/file-{count-1:04}'.encode(),b'/Outside')==0
+    after=set()
+    for i in range(count):
+        e=Entry();rc=a.directory_entry(b'/Many',i,C.byref(e))
+        if i==count-1:assert rc==1
+        else:assert rc==0;after.add(e.name)
+    assert after==names-{f'file-{count-1:04}'.encode()},('stale directory cursor',variant)
+
     assert a.set_comment(b'/Many/file-0001',b'x'*79)==0
     a.check()
     for i in range(count):

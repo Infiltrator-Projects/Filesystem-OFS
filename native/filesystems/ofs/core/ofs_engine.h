@@ -47,6 +47,12 @@ typedef struct {
      * Every metadata mutation invalidates these cursors. */
     OfsFileCursor read_cursors[OFS_APPEND_CACHE_SLOTS];
     uint32_t read_cursor_count, read_cursor_next;
+    /* V3 indexed directory enumeration is commonly called with successive
+     * indices. Keep the verified traversal position across those calls;
+     * invalidate before every mutation and media/cache invalidation. */
+    OfsDirCursor enumeration_cursor;
+    uint32_t enumeration_directory, enumeration_next_index;
+    int enumeration_valid;
     uint32_t metadata_cache_next;
     struct {
         uint64_t offset;

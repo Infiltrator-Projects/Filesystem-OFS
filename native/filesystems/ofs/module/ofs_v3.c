@@ -42,12 +42,29 @@ static int nth(const char *path, uint32_t index, IfsOfsEntryV3 *out) {
     if (dir.object_type != IFS_OFS_ROOT && dir.object_type != IFS_OFS_DIRECTORY)
         return IFS_OFS_INVALID;
     OfsDirCursor c = {0};
-    for (uint64_t i = 0; i <= (uint64_t)index; ++i) {
-        r = ofs_next(f, dir.object, &c, &n);
-        if (r)
-            return r;
+    uint64_t first = 0;
+    if (f->enumeration_valid && f->enumeration_directory == dir.object &&
+        index >= f->enumeration_next_index) {
+        c = f->enumeration_cursor;
+        first = f->enumeration_next_index;
     }
-    return ofs_entry(f, &n, out);
+    for (uint64_t i = first; i <= (uint64_t)index; ++i) {
+        r = ofs_next(f, dir.object, &c, &n);
+        if (r) {
+            f->enumeration_valid = 0;
+            return r;
+        }
+    }
+    r = ofs_entry(f, &n, out);
+    if (r || index == UINT32_MAX) {
+        f->enumeration_valid = 0;
+        return r;
+    }
+    f->enumeration_cursor = c;
+    f->enumeration_directory = dir.object;
+    f->enumeration_next_index = index + 1u;
+    f->enumeration_valid = 1;
+    return 0;
 }
 static int create_file(const char *p) { return ofs_create(&ifs_ofs_active, p, IFS_OFS_FILE, 0, 0); }
 static int mkdir_path(const char *p) {

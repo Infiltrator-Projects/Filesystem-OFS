@@ -50,6 +50,7 @@ int ofs_valid_block(const OfsFs *f, uint32_t k) { return k >= f->reserved && k <
 void ofs_invalidate(OfsFs *f) {
     for (unsigned i = 0; i < 3u; ++i) f->cache[i].valid = 0;
     f->metadata_cache_next = 0;
+    f->enumeration_valid = 0;
 }
 static int cached_block(const OfsFs *f, unsigned slot, uint64_t at) {
     return f->cache[slot].valid && at >= f->cache[slot].offset &&
@@ -210,6 +211,7 @@ void ofs_release(OfsFs *f) {
     f->append_transaction = 0;
     f->append_cursor_active = 0;
     f->read_cursor_count = f->read_cursor_next = 0;
+    f->enumeration_valid = 0;
     f->mounted = 0;
     ofs_invalidate(f);
 }
@@ -299,6 +301,7 @@ int ofs_probe(OfsFs *f, const IfsOfsIoV3 *io, const IfsOfsMountV3 *opts) {
     f->append_transaction = 0;
     f->append_cursor_active = 0;
     f->read_cursor_count = f->read_cursor_next = 0;
+    f->enumeration_valid = 0;
     for (uint32_t b = requested ? requested : 512u; b <= OFS_MAX_BLOCK; b <<= 1) {
         if (io->volume_bytes % b || io->volume_bytes / b > UINT32_MAX) {
             if (requested)
@@ -543,6 +546,7 @@ int ofs_begin(OfsFs *f) {
     f->preserve_volume_date = 0;
     f->cache_dirty_count = 0;
     f->read_cursor_count = f->read_cursor_next = 0;
+    f->enumeration_valid = 0;
     if (!f->append_transaction)
         f->append_checked_count = f->append_checked_next = 0;
     status = ofs_write_block(f, f->root, r);
