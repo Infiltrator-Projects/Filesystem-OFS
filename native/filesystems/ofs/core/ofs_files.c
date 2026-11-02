@@ -276,9 +276,12 @@ static int grow(OfsFs *f, OfsNode *n, uint32_t bytes,
             r = ofs_write_block(f, previous, data);
             if (r)
                 return r;
-            r = set_size(f, n, n->bytes + add);
-            if (r)
-                return r;
+            /* The volume is durably marked dirty for this transaction.
+             * Keep intermediate size in the in-memory node; do not rewrite
+             * and checksum the same file header for every 488-byte piece.
+             * changed() publishes the final size with its metadata write
+             * before ofs_end() flushes and marks the bitmap clean. */
+            n->bytes += add;
             continue;
         }
         uint32_t list = n->object, within = total % f->hash_size;
@@ -354,9 +357,7 @@ static int grow(OfsFs *f, OfsNode *n, uint32_t bytes,
             if (r)
                 return r;
         }
-        r = set_size(f, n, n->bytes + add);
-        if (r)
-            return r;
+        n->bytes += add;
     }
     if (f->append_cursor_active)
         f->append_growth_cursor = cursor;
@@ -446,6 +447,10 @@ static int changed(OfsFs *f, OfsNode *n) {
     if (r)
         return r;
     ofs_put32(b + f->block_bytes - 192u, ofs_be32(b + f->block_bytes - 192u) & ~16u);
+    /* All successful file growth paths converge here. Commit the final
+     * length alongside metadata; shrinking keeps its own early size write
+     * because it frees old blocks afterward. */
+    ofs_put32(b + f->block_bytes - 188u, n->bytes);
     IfsOfsDate now;
     r = ofs_clock(f, &now);
     if (r == 0)

@@ -618,6 +618,78 @@ def direct_append_single_write(a,path):
     print('OFS-DIRECT-APPEND-SINGLE-DATA-WRITE-REMOUNT-PASS',new_writes,flush=True)
 
 
+def append_size_commit_batched(a,path):
+    # A durable dirty marker is written before mutation and the final file
+    # size is committed before the clean marker. No journal/rollback is
+    # claimed: failure must be reported, never silently accepted.
+    blocks=288
+    payload=bytes((i*11+19)&255 for i in range(488*blocks))
+    h=fresh(a,path,512,0,4096)
+    target=b'/batched'
+    assert a.create(target)==0
+    starting=h.writes
+    assert a.write(target,0,payload,len(payload))==0
+    writes=h.writes-starting
+    # Each new data block needs allocation, payload, and pointer linkage
+    # (including the preceding block's next pointer). Per-block file-size
+    # rewrites would add approximately one extra write per data block.
+    assert writes<=blocks*4+45, ('per-block file-header rewrite',writes,blocks)
+    assert a.data(target)==payload
+    a.check()
+    assert a.unmount()==0;h.close()
+    h=Host(path)
+    assert a.mount(C.byref(h.io),None)==0
+    assert a.meta(target).bytes==len(payload) and a.data(target)==payload
+    assert a.unmount()==0;h.close()
+
+    # Sparse/nonappend extensions must preserve zero-fill; they also use
+    # the new final-size commit, without direct-append payload shortcuts.
+    h=fresh(a,path,512,0,4096)
+    assert a.create(target)==0
+    assert a.write(target,0,b'HEAD',4)==0
+    assert a.write(target,4+488*32,b'TAIL',4)==0
+    assert a.data(target)==b'HEAD'+bytes(488*32)+b'TAIL'
+    assert a.truncate(target,4+488*48+4)==0
+    assert a.data(target)==b'HEAD'+bytes(488*32)+b'TAIL'+bytes(488*16)
+    a.check();assert a.unmount()==0;h.close()
+
+    # Inject I/O faults at representative data, bitmap, extension and final
+    # metadata positions. The same user-visible write must fail closed.
+    h=fresh(a,path,512,0,4096)
+    assert a.create(target)==0
+    assert a.unmount()==0;h.close()
+    before=path.read_bytes()
+    h=Host(path);assert a.mount(C.byref(h.io),None)==0
+    start=h.writes
+    assert a.write(target,0,payload,len(payload))==0
+    count=h.writes-start
+    assert a.unmount()==0;h.close()
+    for nth in sorted({1,4,50,count//2,count-3,count}):
+        path.write_bytes(before)
+        h=Host(path);assert a.mount(C.byref(h.io),None)==0
+        h.fail_write=nth
+        assert a.write(target,0,payload,len(payload))==-2, ('write-fault',nth)
+        h.fail_write=0
+        assert a.unmount()==0
+        h.close()
+        h=Host(path)
+        status=a.mount(C.byref(h.io),None)
+        if status==0:
+            # Only a fully valid clean pretransaction volume may remount
+            # normally. The write returned failure, so do not accept a
+            # silently visible partial new file.
+            assert a.data(target)==b'', ('silent partial append',nth)
+            a.check()
+        else:
+            assert status==-3, ('unexpected mount result',nth,status)
+            h.io.flags=2
+            assert a.mount(C.byref(h.io),None)==0
+            check=Check()
+            assert a.verify(C.byref(check))==-3, ('dirty failure not detected',nth)
+        assert a.unmount()==0;h.close()
+    print('OFS-BATCHED-APPEND-SIZE-METADATA-FAILURE-PASS',writes,count,flush=True)
+
+
 def sd_card_format_geometry(a,path):
     # 2 GiB / 512 bytes is the exact /dev/mmcblk0p11 Test Media geometry.
     # A sparse regular file exercises the real OFS.so formatter and its
@@ -659,6 +731,7 @@ def main():
         append_extension_read_scaling(a,path)
         large_directory_churn(a,path)
         direct_append_single_write(a,path)
+        append_size_commit_batched(a,path)
         sd_card_format_geometry(a,path)
     print('OFS-SO-COMPLETE-BOUNDARY-FAILURE-SUITE-PASS')
 
