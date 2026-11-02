@@ -538,6 +538,34 @@ def append_extension_read_scaling(a,path):
     print('OFS-APPEND-EXTENSION-READ-SCALING-PASS',early,late,flush=True)
 
 
+def large_directory_churn(a,path):
+    # Test Media's 8192-entry OFS directory exposed repeated whole-directory
+    # validation before every creation and deletion. Exercise the actual
+    # public SO creator and deleted/reused hash chains with sustained churn.
+    h=fresh(a,path,512,0,8192)
+    d=b'/Large'
+    assert a.mkdir(d)==0
+    for i in range(1024):
+        assert a.create(d+f'/entry-{i:05d}'.encode())==0, i
+    for i in range(0,1024,2):
+        assert a.unlink(d+f'/entry-{i:05d}'.encode())==0, i
+    for i in range(1024,1536):
+        assert a.create(d+f'/entry-{i:05d}'.encode())==0, i
+    for i in (1,333,777,1025,1535):
+        assert a.meta(d+f'/entry-{i:05d}'.encode()).type==-3, i
+    assert a.stat(d+b'/entry-00002',C.byref(Entry()))==2
+    a.check();assert a.unmount()==0;h.close()
+    h=Host(path);assert a.mount(C.byref(h.io),None)==0
+    a.check()
+    for i in range(1,1024,2):
+        assert a.unlink(d+f'/entry-{i:05d}'.encode())==0, i
+    for i in range(1024,1536):
+        assert a.unlink(d+f'/entry-{i:05d}'.encode())==0, i
+    assert a.unlink(d)==0
+    a.check();assert a.unmount()==0;h.close()
+    print('OFS-LARGE-DIRECTORY-CHURN-REMOUNT-PASS',flush=True)
+
+
 def sd_card_format_geometry(a,path):
     # 2 GiB / 512 bytes is the exact /dev/mmcblk0p11 Test Media geometry.
     # A sparse regular file exercises the real OFS.so formatter and its
@@ -577,6 +605,7 @@ def main():
         full_directory_promotion(a,path)
         interleaved_append(a,path)
         append_extension_read_scaling(a,path)
+        large_directory_churn(a,path)
         sd_card_format_geometry(a,path)
     print('OFS-SO-COMPLETE-BOUNDARY-FAILURE-SUITE-PASS')
 

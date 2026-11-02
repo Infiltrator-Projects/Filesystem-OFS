@@ -98,13 +98,28 @@ static int available(OfsFs *f, uint64_t needed) {
     return needed <= s.free_bytes / f->block_bytes ? 0 : IFS_OFS_NO_SPACE;
 }
 static int parent_writable(OfsFs *f, uint32_t key) {
+    /* The writable mount has already independently checked every directory
+     * member and bitmap owner (ofs_probe -> ofs_verify). Rewalking every
+     * entry, then re-looking-up each entry, before every create/unlink/rename
+     * makes Test Media's 8192-entry directory effectively cubic.
+     *
+     * Check current parent metadata and structure on every mutation; the
+     * operation's name lookup still validates its complete hash chain.
+     * Directory removal and link promotion retain the full walk, while
+     * explicit verify and every writable remount verify all ownership.
+     */
+    if (!f->mounted || !f->bitmap_valid || f->mutation || f->failed ||
+        (f->io.flags & (IFS_OFS_READ_ONLY | IFS_OFS_ALLOW_DIRTY)))
+        return IFS_OFS_ACCESS;
     OfsNode p;
     int r = ofs_node(f, key, &p, f->scratch[1]);
     if (r)
         return r;
+    if (p.type != IFS_OFS_ROOT && p.type != IFS_OFS_DIRECTORY)
+        return IFS_OFS_CORRUPT;
     if (p.protection & 4u)
         return IFS_OFS_ACCESS;
-    return directory_validate(f, key, 0);
+    return ofs_directory(f, key, f->scratch[0]);
 }
 int ofs_create(OfsFs *f, const char *path, int32_t type, const char *target, uint32_t original) {
     uint8_t name[108];
