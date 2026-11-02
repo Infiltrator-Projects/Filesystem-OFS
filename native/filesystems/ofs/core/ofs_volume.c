@@ -213,6 +213,7 @@ void ofs_release(OfsFs *f) {
     f->system_keys = 0;
     f->system_count = 0;
     f->append_checked_count = f->append_checked_next = 0;
+    f->writeback_pending = 0;
     f->append_transaction = 0;
     f->append_cursor_active = 0;
     f->read_cursor_count = f->read_cursor_next = 0;
@@ -303,6 +304,7 @@ int ofs_probe(OfsFs *f, const IfsOfsIoV3 *io, const IfsOfsMountV3 *opts) {
     f->mutation = 0;
     f->failed = 0;
     f->append_checked_count = f->append_checked_next = 0;
+    f->writeback_pending = 0;
     f->append_transaction = 0;
     f->append_cursor_active = 0;
     f->read_cursor_count = f->read_cursor_next = 0;
@@ -537,9 +539,21 @@ int ofs_allocate(OfsFs *f, uint32_t *key) {
     return IFS_OFS_NO_SPACE;
 }
 int ofs_begin(OfsFs *f) {
-    if (!f->mounted || f->mutation || !f->bitmap_valid ||
+    if (!f->mounted || f->mutation || !f->bitmap_valid || f->failed ||
         (f->io.flags & (IFS_OFS_READ_ONLY | IFS_OFS_ALLOW_DIRTY)))
         return IFS_OFS_ACCESS;
+    if ((f->io.flags & IFS_OFS_ORDERED_WRITEBACK) && f->writeback_pending) {
+        /* Existing durable dirty marker: do not need another root sync. */
+        f->bitmap_valid = 0;
+        f->mutation = 1;
+        f->preserve_volume_date = 0;
+        f->cache_dirty_count = 0;
+        f->read_cursor_count = f->read_cursor_next = 0;
+        f->enumeration_valid = 0;
+        if (!f->append_transaction)
+            f->append_checked_count = f->append_checked_next = 0;
+        return 0;
+    }
     uint8_t *r = f->scratch[6];
     int status = ofs_metadata(f, f->root, r);
     if (status)
@@ -558,6 +572,8 @@ int ofs_begin(OfsFs *f) {
     if (!status && !(f->io.flags & IFS_OFS_EPHEMERAL_FIXTURE) &&
         f->io.flush(f->io.context))
         status = IFS_OFS_IO_ERROR;
+    if (!status && (f->io.flags & IFS_OFS_ORDERED_WRITEBACK))
+        f->writeback_pending = 1;
     if (status)
         f->failed = 1;
     return status;
@@ -583,12 +599,19 @@ int ofs_end(OfsFs *f, int status) {
     if (!f->mutation)
         return status;
     if (status || f->failed) {
+        f->failed = 1;
         f->mutation = 0;
         return status ? status : IFS_OFS_IO_ERROR;
     }
     status = ofs_cache_commit(f);
     if (!status && !f->preserve_volume_date)
         status = ofs_touch_root(f, 0);
+    if (!status && (f->io.flags & IFS_OFS_ORDERED_WRITEBACK)) {
+        /* Writes remain buffered; only fsync may mark the root clean. */
+        f->bitmap_valid = 1;
+        f->mutation = 0;
+        return 0;
+    }
     if (!status && !(f->io.flags & IFS_OFS_EPHEMERAL_FIXTURE) &&
         f->io.flush(f->io.context))
         status = IFS_OFS_IO_ERROR;
@@ -612,6 +635,37 @@ int ofs_end(OfsFs *f, int status) {
         f->failed = 1;
     f->mutation = 0;
     return status;
+}
+/* After the first durable dirty-marker write, complete all data writes
+ * before persisting a clean marker in a second durability barrier. A failed
+ * barrier leaves the volume dirty and prevents further normal writes. */
+int ofs_sync_pending(OfsFs *f) {
+    if (!f || !f->mounted || f->mutation)
+        return IFS_OFS_INVALID;
+    if (f->io.flags & IFS_OFS_READ_ONLY)
+        return 0;
+    if (f->failed || !f->bitmap_valid)
+        return IFS_OFS_IO_ERROR;
+    if (!f->writeback_pending)
+        return f->io.flush(f->io.context) == 0 ? 0 : IFS_OFS_IO_ERROR;
+    if (f->io.flush(f->io.context))
+        goto failed;
+    uint8_t *root = f->scratch[6];
+    if (ofs_metadata(f, f->root, root))
+        goto failed;
+    if (f->variant == 6u)
+        ofs_put32(root + f->block_bytes - 44u, f->used_blocks);
+    ofs_put32(root + f->block_bytes - 200u, f->orphans ? 0u : UINT32_MAX);
+    ofs_checksum(f, root, 5);
+    if (ofs_write_block(f, f->root, root))
+        goto failed;
+    if (f->io.flush(f->io.context))
+        goto failed;
+    f->writeback_pending = 0;
+    return 0;
+failed:
+    f->failed = 1;
+    return IFS_OFS_IO_ERROR;
 }
 int ofs_space(OfsFs *f, IfsOfsSpaceV3 *out) {
     if (!f->mounted || !out)

@@ -35,6 +35,7 @@ typedef struct {
     uint32_t *cache_dirty;
     size_t cache_dirty_count, cache_dirty_capacity;
     int mounted, mutation, failed, preserve_volume_date;
+    int writeback_pending; /* Persisted dirty marker across buffered transactions */
     /* Cached append tails are valid only while this engine owns the mounted
      * volume; unrelated mutations invalidate the cache. */
     /* A checked sequential append can reuse the last validated extension
@@ -88,6 +89,7 @@ void ofs_release(OfsFs *);
 int ofs_format(OfsFs *, const IfsOfsIoV3 *, const IfsOfsFormatV3 *);
 int ofs_begin(OfsFs *);
 int ofs_end(OfsFs *, int);
+int ofs_sync_pending(OfsFs *);
 int ofs_bitmap_key(OfsFs *, uint32_t, uint32_t *);
 int ofs_index_bitmaps(OfsFs *, int);
 int ofs_bitmap_free(OfsFs *, uint32_t, int *);
