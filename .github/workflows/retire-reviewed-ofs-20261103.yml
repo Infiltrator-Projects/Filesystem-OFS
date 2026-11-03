@@ -1,0 +1,67 @@
+name: Retire reviewed OFS branches with preserved source
+on:
+  push:
+    branches:
+      - fix/ephemeral-ofs-fixture-bulk-20261102
+    paths:
+      - .github/workflows/retire-reviewed-ofs-20261103.yml
+
+permissions:
+  contents: write
+
+jobs:
+  archive-and-retire:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Preserve reviewed experimental commit and retire verified branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "Infiltrator-Projects/Filesystem-OFS"
+          expected_main="743444f1cc1f227bf63a8ecdb6e4ec194ac67c38"
+          expected_experimental_parent="9510ed6269eb6764e8dccdce9a332c32ce9c64f9"
+          experimental="fix/ephemeral-ofs-fixture-bulk-20261102"
+          integration="integration/legacy-ofs-20261102"
+          archive="archive-20261103/ofs-experimental-9510ed6269eb"
+          get_branch_sha() {
+            gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$1" --jq '.object.sha'
+          }
+          actual_main="$(get_branch_sha main)"
+          actual_integration="$(get_branch_sha "$integration")"
+          actual_experimental="$(get_branch_sha "$experimental")"
+          workflow_parent="$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA" --jq '.parents[0].sha')"
+          if [[ "$actual_main" != "$expected_main" ||
+                "$actual_integration" != "$expected_main" ||
+                "$actual_experimental" != "$GITHUB_SHA" ||
+                "$workflow_parent" != "$expected_experimental_parent" ]]; then
+            echo "Ref or history changed since review; refusing deletion" >&2
+            exit 1
+          fi
+          tag_url="repos/$GITHUB_REPOSITORY/git/ref/tags/$archive"
+          if existing="$(gh api "$tag_url" --jq '.object.sha' 2>/dev/null)"; then
+            test "$existing" = "$expected_experimental_parent"
+          else
+            gh api -X POST "repos/$GITHUB_REPOSITORY/git/refs" \
+              -f "ref=refs/tags/$archive" \
+              -f "sha=$expected_experimental_parent" >/dev/null
+          fi
+          test "$(gh api "$tag_url" --jq '.object.sha')" = "$expected_experimental_parent"
+          test "$(get_branch_sha main)" = "$expected_main"
+          test "$(get_branch_sha "$integration")" = "$expected_main"
+          gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/heads/$integration" >/dev/null
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$integration" >/dev/null 2>&1; then
+            echo "Integration branch still present" >&2
+            exit 1
+          fi
+          test "$(get_branch_sha main)" = "$expected_main"
+          test "$(get_branch_sha "$experimental")" = "$GITHUB_SHA"
+          gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/heads/$experimental" >/dev/null
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$experimental" >/dev/null 2>&1; then
+            echo "Experimental branch still present" >&2
+            exit 1
+          fi
+          test "$(get_branch_sha main)" = "$expected_main"
+          test "$(gh api "$tag_url" --jq '.object.sha')" = "$expected_experimental_parent"
+          echo "OFS cleaned: only main branch retained, exact old commit archived at $archive"
