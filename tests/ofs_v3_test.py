@@ -322,6 +322,37 @@ def normal_ordered_writeback(api,path):
     print('OFS-NORMAL-ORDERED-WRITEBACK-DURABILITY-AND-CRASH-FAIL-CLOSED-PASS',flush=True)
 
 
+def overwrite_read_scaling(api, path):
+    image(path, 8 * 1024 * 1024)
+    h = Host(path)
+    opts = Format(C.sizeof(Format), 512, 2, 0, b'OVERWRITE')
+    assert api.format(C.byref(h.io), C.byref(opts)) == 0
+    h.io.flags = 8  # IFS_OFS_ORDERED_WRITEBACK
+    assert api.mount(C.byref(h.io), None) == 0
+    target = b'/database'
+    expected = bytearray(b'x' * (1024 * 1024))
+    assert api.create(target) == 0
+    assert api.write(target, 0, bytes(expected), len(expected)) == 0
+    # Rewind, cross extension tables and revisit the beginning. A verified
+    # existing chain should not reread its entire payload for each overwrite.
+    for index, at in enumerate((0, 4096, 32768, 700000, 704096, 1024)):
+        payload = bytes([index]) * 4096
+        before = h.read_bytes
+        assert api.write(target, at, payload, len(payload)) == 0
+        assert h.read_bytes - before < len(expected) // 2, (
+            'small overwrite reread the file', at, h.read_bytes - before)
+        expected[at:at + len(payload)] = payload
+    assert api.unmount() == 0
+    h.close()
+    h = Host(path)
+    assert api.mount(C.byref(h.io), None) == 0
+    assert api.data(target) == expected
+    api.check()
+    assert api.unmount() == 0
+    h.close()
+    print('OFS-OVERWRITE-READ-SCALING-AND-REMOUNT-PASS', flush=True)
+
+
 def normal_directory_workload(api,path):
     """Exercise real ordinary creates/deletes, never disposable fixture mode."""
     image(path,16*1024*1024)
@@ -454,6 +485,7 @@ def main():
                     print('OFS-SO-INDEPENDENT-ROUNDTRIP-PASS',bs,variant,foreign,flush=True)
             long_name_reader(api,Path(tmp)/'long-name.img',bs)
         normal_ordered_writeback(api,Path(tmp)/'normal-writeback.img')
+        overwrite_read_scaling(api, Path(tmp) / 'overwrite-scaling.img')
         normal_directory_workload(api,Path(tmp)/'normal-directory.img')
         normal_writable_append_cost(api,Path(tmp)/'normal-append.img')
         disposable_fixture_bulk(api,Path(tmp)/'disposable-fixture.img')

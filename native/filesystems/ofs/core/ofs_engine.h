@@ -36,14 +36,12 @@ typedef struct {
     size_t cache_dirty_count, cache_dirty_capacity;
     int mounted, mutation, failed, preserve_volume_date;
     int writeback_pending; /* Persisted dirty marker across buffered transactions */
-    /* Cached append tails are valid only while this engine owns the mounted
-     * volume; unrelated mutations invalidate the cache. */
-    /* A checked sequential append can reuse the last validated extension
-     * header between calls. The actual tail header is reread and verified. */
-    struct { uint32_t object, bytes; OfsFileCursor tail; } append_checked[OFS_APPEND_CACHE_SLOTS];
-    uint32_t append_checked_count, append_checked_next;
-    int append_transaction, append_cursor_active;
-    OfsFileCursor append_growth_cursor, append_write_cursor;
+    /* Checked file chains are valid only while this engine owns the mount.
+     * Structural mutations outside checked writes invalidate the cache. */
+    struct { uint32_t object, bytes; OfsFileCursor cursor; } checked_writes[OFS_APPEND_CACHE_SLOTS];
+    uint32_t checked_write_count, checked_write_next;
+    int keep_checked_writes, write_cursor_active;
+    OfsFileCursor append_growth_cursor, write_cursor;
     /* Sequential public reads retain extension-chain location between calls.
      * Every metadata mutation invalidates these cursors. */
     OfsFileCursor read_cursors[OFS_APPEND_CACHE_SLOTS];
@@ -79,6 +77,7 @@ void ofs_zero(void *, size_t);
 void ofs_copy(void *, const void *, size_t);
 int ofs_equal(const void *, const void *, size_t);
 int ofs_valid_block(const OfsFs *, uint32_t);
+enum { OFS_READ_METADATA = 0, OFS_READ_DATA, OFS_READ_METADATA_EXACT };
 int ofs_read_block(OfsFs *, uint32_t, uint8_t *, int);
 int ofs_write_block(OfsFs *, uint32_t, const uint8_t *);
 int ofs_metadata(OfsFs *, uint32_t, uint8_t *);

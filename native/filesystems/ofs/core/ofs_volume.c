@@ -57,7 +57,8 @@ static int cached_block(const OfsFs *f, unsigned slot, uint64_t at) {
         at - f->cache[slot].offset <= f->cache[slot].bytes &&
         f->block_bytes <= f->cache[slot].bytes - (at - f->cache[slot].offset);
 }
-int ofs_read_block(OfsFs *f, uint32_t k, uint8_t *out, int data) {
+int ofs_read_block(OfsFs *f, uint32_t k, uint8_t *out, int mode) {
+    const int data = mode == OFS_READ_DATA;
     uint64_t at = (uint64_t)k * f->block_bytes;
     if (!out || k >= f->blocks || at > f->io.volume_bytes ||
         f->block_bytes > f->io.volume_bytes - at)
@@ -73,6 +74,8 @@ int ofs_read_block(OfsFs *f, uint32_t k, uint8_t *out, int data) {
                  (size_t)(at - f->cache[slot].offset), f->block_bytes);
         return 0;
     }
+    if (mode == OFS_READ_METADATA_EXACT)
+        return f->io.read_at(f->io.context, at, out, f->block_bytes) == 0 ? 0 : IFS_OFS_IO_ERROR;
     unsigned slot = data ? 1u : ((f->metadata_cache_next++ & 1u) ? 2u : 0u);
     uint64_t base = at & ~(uint64_t)(OFS_CACHE_BYTES - 1u);
     uint64_t left = f->io.volume_bytes - base;
@@ -212,10 +215,10 @@ void ofs_release(OfsFs *f) {
     f->bitmap_keys = 0;
     f->system_keys = 0;
     f->system_count = 0;
-    f->append_checked_count = f->append_checked_next = 0;
+    f->checked_write_count = f->checked_write_next = 0;
     f->writeback_pending = 0;
-    f->append_transaction = 0;
-    f->append_cursor_active = 0;
+    f->keep_checked_writes = 0;
+    f->write_cursor_active = 0;
     f->read_cursor_count = f->read_cursor_next = 0;
     f->enumeration_valid = 0;
     f->mounted = 0;
@@ -303,10 +306,10 @@ int ofs_probe(OfsFs *f, const IfsOfsIoV3 *io, const IfsOfsMountV3 *opts) {
     f->mounted = 0;
     f->mutation = 0;
     f->failed = 0;
-    f->append_checked_count = f->append_checked_next = 0;
+    f->checked_write_count = f->checked_write_next = 0;
     f->writeback_pending = 0;
-    f->append_transaction = 0;
-    f->append_cursor_active = 0;
+    f->keep_checked_writes = 0;
+    f->write_cursor_active = 0;
     f->read_cursor_count = f->read_cursor_next = 0;
     f->enumeration_valid = 0;
     for (uint32_t b = requested ? requested : 512u; b <= OFS_MAX_BLOCK; b <<= 1) {
@@ -550,8 +553,8 @@ int ofs_begin(OfsFs *f) {
         f->cache_dirty_count = 0;
         f->read_cursor_count = f->read_cursor_next = 0;
         f->enumeration_valid = 0;
-        if (!f->append_transaction)
-            f->append_checked_count = f->append_checked_next = 0;
+        if (!f->keep_checked_writes)
+            f->checked_write_count = f->checked_write_next = 0;
         return 0;
     }
     uint8_t *r = f->scratch[6];
@@ -566,8 +569,8 @@ int ofs_begin(OfsFs *f) {
     f->cache_dirty_count = 0;
     f->read_cursor_count = f->read_cursor_next = 0;
     f->enumeration_valid = 0;
-    if (!f->append_transaction)
-        f->append_checked_count = f->append_checked_next = 0;
+    if (!f->keep_checked_writes)
+        f->checked_write_count = f->checked_write_next = 0;
     status = ofs_write_block(f, f->root, r);
     if (!status && !(f->io.flags & IFS_OFS_EPHEMERAL_FIXTURE) &&
         f->io.flush(f->io.context))

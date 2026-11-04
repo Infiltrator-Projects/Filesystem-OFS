@@ -98,6 +98,9 @@ The earlier [DOS0 platform completion matrix](docs/OFS_DOS0_COMPLETION_MATRIX.md
 retains those outstanding platform gates.
 
 Writable mounts verify ownership and allocation before enabling writes.
+Once a file chain has been checked, consecutive overwrites validate the
+changed range and its neighboring links. A cache miss still checks the
+whole chain before changing the file.
 Explicit dirty mounts allow inspection/recovery until a successful recovery
 scan. Writes follow OFS's bitmap-valid protocol. Failed writes/flushes are reported;
 there is no journal or atomic rollback promise. Recovery rebuilds allocation
