@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import shutil
 import struct
+import subprocess
 import tempfile
 from ofs_v3_test import Api, Host, Format, Mount, Entry, Space, Check, Date, Io, READ, image
 
@@ -711,12 +712,34 @@ def sd_card_format_geometry(a,path):
     print('OFS-2GIB-512B-DOS0-FORMAT-AND-REMOUNT-PASS',flush=True)
 
 
+def fixture_directory(quick):
+    prefix = 'ofs-complete-'
+    if quick:
+        # PGO and package checks use disposable images and inject failures in
+        # the host callbacks. Keep the same workload without forcing the
+        # installer's backing disk to commit every fixture flush.
+        parent = Path('/dev/shm')
+        try:
+            space = os.statvfs(parent)
+            # The largest sparse fixture uses about 17 MiB of allocated pages.
+            if space.f_bavail * space.f_frsize >= 32 * 1024 * 1024:
+                kind = subprocess.check_output(
+                    ['stat', '-f', '-c', '%T', parent], text=True,
+                    stderr=subprocess.DEVNULL).strip()
+                if kind == 'tmpfs':
+                    return tempfile.TemporaryDirectory(prefix=prefix, dir=parent)
+        except (OSError, subprocess.CalledProcessError):
+            pass
+    return tempfile.TemporaryDirectory(prefix=prefix)
+
+
 def main():
     p=argparse.ArgumentParser();p.add_argument('--module',type=Path,required=True)
     p.add_argument('--quick',action='store_true');p.add_argument('--sanitized',action='store_true');args=p.parse_args()
     a=Api(args.module.resolve())
-    with tempfile.TemporaryDirectory(prefix='ofs-complete-') as tmp:
+    with fixture_directory(args.quick) as tmp:
         path=Path(tmp)/'regular.img'
+        print('OFS test image:', path, flush=True)
         for bs in ((512,) if args.quick else SIZES):
             for variant in (0,2,4,6):
                 metadata(a,path,bs,variant)

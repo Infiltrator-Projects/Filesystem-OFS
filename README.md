@@ -48,8 +48,13 @@ installer, and separately qualified `ofs-linux-6.12.107.ko`. The DEB owns
 `/System/Filesystems/OFS.so`. The native profile
 uses `-O3 -march=native -mtune=native -flto=auto` with measured two-pass PGO;
 AVX/AMX instructions are disabled for firmware compatibility. Build records
-include flags, profile and the installed module's SHA256. The RUN can build a
-package without installing it:
+include flags, profile and the installed module's SHA256. Installer tests use
+private RAM-backed images when `/dev/shm` has at least 32 MiB free. The images
+exercise the same workloads and injected I/O failures. Hosts without that
+space use the normal temporary directory, which the full `make check` suite
+also uses.
+
+The RUN can build a package without installing it.
 
 ```sh
 bash filesystem-ofs-0.1.1-native-installer.run --build-only --output ./native-package
