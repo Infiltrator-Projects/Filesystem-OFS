@@ -19,6 +19,7 @@ typedef struct {
     size_t object_count, object_capacity, alias_count, alias_capacity;
     Frame *frames;
     size_t depth, frame_capacity;
+    int verify_data;
 } Check;
 static int bit(const uint8_t *p, uint32_t key) { return (p[key / 8u] >> (key % 8u)) & 1u; }
 static int mark(uint8_t *p, uint32_t key) {
@@ -117,31 +118,46 @@ static int process_object(Check *c, uint32_t key) {
         c->frames[c->depth++] = (Frame){key, {0}};
         return 0;
     }
-    uint32_t payload = f->block_bytes - 24u, total = n.bytes ? (n.bytes - 1u) / payload + 1u : 0,
-             next = 0;
+    uint32_t payload = f->block_bytes - 24u, total = n.bytes ? (n.bytes - 1u) / payload + 1u : 0;
     if (!total)
         return ofs_check_file(f, &n);
-    OfsFileCursor cursor = {0};
-    uint8_t *data = f->scratch[4];
-    for (uint32_t i = 0; i < total; ++i) {
-        uint32_t block;
-        r = ofs_pointer(f, key, i, total, &cursor, &block);
+    if (total > f->blocks - f->reserved - 1u)
+        return bad(c, key, IFS_OFS_CORRUPT);
+    uint32_t list = key, next_data = 0;
+    uint8_t *table = f->scratch[3], *data = f->scratch[4];
+    /* Verify each pointer table once. Claiming the keys proves allocation
+     * ownership without reading file contents during a Linux mount. */
+    for (uint32_t i = 0; i < total;) {
+        r = ofs_file_table(f, key, list, table, OFS_READ_METADATA_EXACT);
         if (r)
-            return bad(c, key, r);
-        if (i && i % f->hash_size == 0) {
-            r = reference(c, cursor.list);
+            return bad(c, list, r);
+        if (i) {
+            r = reference(c, list);
             if (r)
                 return r;
         }
-        if (i && block != next)
-            return bad(c, block, IFS_OFS_CORRUPT);
-        r = reference(c, block);
-        if (r)
-            return r;
-        r = ofs_data(f, key, n.bytes, i, block, data);
-        if (r)
-            return bad(c, block, r);
-        next = ofs_word(data, 4);
+        uint32_t count = total - i < f->hash_size ? total - i : f->hash_size;
+        uint32_t next_list = ofs_be32(table + f->block_bytes - 8u);
+        if (ofs_word(table, 2) != count ||
+            (i + count == total ? next_list != 0 : !ofs_valid_block(f, next_list)))
+            return bad(c, list, IFS_OFS_CORRUPT);
+        for (uint32_t j = 0; j < count; ++j, ++i) {
+            uint32_t block = ofs_word(table, 6u + f->hash_size - 1u - j);
+            if (!ofs_valid_block(f, block) || (!i && ofs_word(table, 4) != block))
+                return bad(c, list, IFS_OFS_CORRUPT);
+            if (c->verify_data && i && block != next_data)
+                return bad(c, block, IFS_OFS_CORRUPT);
+            r = reference(c, block);
+            if (r)
+                return r;
+            if (c->verify_data) {
+                r = ofs_data(f, key, n.bytes, i, block, data);
+                if (r)
+                    return bad(c, block, r);
+                next_data = ofs_word(data, 4);
+            }
+        }
+        list = next_list;
     }
     return 0;
 }
@@ -289,7 +305,8 @@ static int rebuild(Check *c) {
     f->used_blocks = (uint32_t)c->report->referenced_blocks;
     return ofs_end(f, 0);
 }
-int ofs_verify(OfsFs *f, IfsOfsCheckV3 *report, int repair) {
+int ofs_verify(OfsFs *f, IfsOfsCheckV3 *report, enum OfsVerifyMode mode) {
+    const int repair = mode == OFS_VERIFY_REPAIR;
     if (!f->mounted || !report)
         return IFS_OFS_INVALID;
     ofs_zero(report, sizeof(*report));
@@ -306,6 +323,7 @@ int ofs_verify(OfsFs *f, IfsOfsCheckV3 *report, int repair) {
     Check c = {0};
     c.fs = f;
     c.report = report;
+    c.verify_data = mode != OFS_VERIFY_ALLOCATION;
     c.map_bytes = ((size_t)f->blocks + 7u) / 8u;
     if (c.map_bytes > SIZE_MAX / 4u)
         return IFS_OFS_NO_MEMORY;

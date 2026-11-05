@@ -75,28 +75,7 @@ static int read_file(const char *p, uint32_t at, void *b, uint32_t n) {
     OfsNode file;
     int r = ofs_path(f, p, 1, &file);
     if (r) return r;
-    /* Read-only V3 calls frequently arrive as small adjacent chunks. Reusing
-     * the checked extension-chain cursor avoids starting at the file header
-     * for every 15 KiB verification read. Indexed entries are invalidated at
-     * all mutation boundaries, and their size is rechecked on each call. */
-    uint32_t slot = f->read_cursor_count;
-    for (uint32_t i = 0; i < f->read_cursor_count; ++i) {
-        if (f->read_cursors[i].owner == file.object &&
-            f->read_cursors[i].size == file.bytes) {
-            slot = i;
-            break;
-        }
-    }
-    if (slot == f->read_cursor_count) {
-        if (slot < OFS_APPEND_CACHE_SLOTS)
-            ++f->read_cursor_count;
-        else
-            slot = (f->read_cursor_next++) % OFS_APPEND_CACHE_SLOTS;
-        ofs_zero(&f->read_cursors[slot], sizeof(f->read_cursors[slot]));
-    }
-    r = ofs_read_file(f, &file, at, b, n, &f->read_cursors[slot]);
-    if (r) f->read_cursor_count = f->read_cursor_next = 0;
-    return r;
+    return ofs_read_cached(f, &file, at, b, n);
 }
 static int write_file(const char *p, uint32_t at, const void *b, uint32_t n) {
     OfsNode file;
@@ -145,8 +124,8 @@ static int symlink(const char *target, const char *path) {
 static int readlink(const char *path, char *out, uint32_t n) {
     return ofs_readlink(&ifs_ofs_active, path, out, n);
 }
-static int verify(IfsOfsCheckV3 *out) { return ofs_verify(&ifs_ofs_active, out, 0); }
-static int recover(IfsOfsCheckV3 *out) { return ofs_verify(&ifs_ofs_active, out, 1); }
+static int verify(IfsOfsCheckV3 *out) { return ofs_verify(&ifs_ofs_active, out, OFS_VERIFY_FULL); }
+static int recover(IfsOfsCheckV3 *out) { return ofs_verify(&ifs_ofs_active, out, OFS_VERIFY_REPAIR); }
 static int flush(void) {
     OfsFs *f = &ifs_ofs_active;
     if (!f->mounted)

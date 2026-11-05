@@ -15,6 +15,35 @@ import sys
 import time
 
 from ofs_v3_test import Api, Host, oracle, image
+from ofs_complete_test import block, checksum, put, space, store, u32
+
+
+def mount_validation_media(api, source, output):
+    host = Host(source)
+    assert api.mount(C.byref(host.io), None) == 0
+    key = api.meta(b'/Producer').block
+    root = space(api).root
+    assert api.unmount() == 0
+    host.close()
+    data = u32(block(source, key, 512), 16)
+    bitmap = u32(block(source, root, 512), 316)
+
+    bad_allocation = output / 'bad-allocation.img'
+    shutil.copyfile(source, bad_allocation)
+    b = block(bad_allocation, bitmap, 512)
+    bit = data - 2
+    offset = 4 + 4 * (bit // 32)
+    assert not (u32(b, offset) & (1 << (bit % 32)))
+    put(b, offset, u32(b, offset) | (1 << (bit % 32)))
+    checksum(b, 0)
+    store(bad_allocation, bitmap, 512, b)
+
+    bad_payload = output / 'bad-payload.img'
+    shutil.copyfile(source, bad_payload)
+    b = block(bad_payload, data, 512)
+    b[24] ^= 1
+    store(bad_payload, data, 512, b)
+    return [bad_allocation, bad_payload]
 
 
 def main():
@@ -74,7 +103,10 @@ def main():
     with bad.open('r+b') as f: f.write(b'DOS\x01')
     def digest(path):
         with path.open('rb') as f: return hashlib.file_digest(f, 'sha256').hexdigest()
-    bad_before = digest(bad)
+    invalid_media = [bad]
+    if cases[0][0] == 512:
+        invalid_media.extend(mount_validation_media(api, media[0], output))
+    invalid_before = [digest(path) for path in invalid_media]
     if a.fat16_module:
         fat = output / 'fat16.img'; image(fat, 8 * 1024 * 1024)
         subprocess.run(['mkfs.fat', '-F', '16', '-I', '-s', '1', str(fat)], check=True)
@@ -162,6 +194,20 @@ umount /mnt/test || fail fat16-final-unmount
 echo 'FAT16-KO-RUNTIME-PASS' >/dev/ttyS0
 '''
     init += f"if mount -t ofs {device_name(len(media))} /mnt/test; then fail wrong-format-accepted; fi\n"
+    if len(invalid_media) > 1:
+        invalid_allocation = device_name(len(media) + 1)
+        invalid_payload = device_name(len(media) + 2)
+        init += f'''
+if mount -t ofs -o rw {invalid_allocation} /mnt/test; then fail contradictory-allocation-accepted; fi
+mount -t ofs -o ro {invalid_allocation} /mnt/test || fail readonly-allocation-mount
+if mount -t ofs -o remount,rw {invalid_allocation} /mnt/test; then fail contradictory-allocation-remount; fi
+umount /mnt/test || fail readonly-allocation-unmount
+mount -t ofs -o rw {invalid_payload} /mnt/test || fail payload-checked-at-mount
+if cat /mnt/test/Producer >/dev/null; then fail corrupt-payload-accepted; fi
+if dd if=/dev/zero of=/mnt/test/Producer bs=1 count=1 conv=notrunc; then fail corrupt-payload-overwritten; fi
+umount /mnt/test || fail payload-unmount
+echo 'OFS-KO-ALLOCATION-GATE-AND-ON-ACCESS-PAYLOAD-PASS' >/dev/ttyS0
+'''
     init += "echo 'NATIVE-KO-QUALIFICATION-PASS' >/dev/ttyS0\npoweroff -f\n"
     (root / 'init').write_text(init); (root / 'init').chmod(0o755)
     archive = output / 'initramfs.cpio.gz'
@@ -174,7 +220,7 @@ echo 'FAT16-KO-RUNTIME-PASS' >/dev/ttyS0
                '-kernel', str(a.kernel.resolve()), '-initrd', str(archive),
                '-append', 'console=ttyS0 panic=-1']
     if a.qemu_data: command += ['-L', str(a.qemu_data.resolve())]
-    for index, path in enumerate([*media, bad]):
+    for index, path in enumerate([*media, *invalid_media]):
         sector = ',logical_block_size=4096,physical_block_size=4096' if index == 2 and cases[0][0] >= 4096 else ''
         command += ['-drive', f'file={path},format=raw,if=none,id=d{index}',
                     '-device', f'virtio-blk-pci,drive=d{index}{sector}']
@@ -198,7 +244,7 @@ echo 'FAT16-KO-RUNTIME-PASS' >/dev/ttyS0
             process.wait(timeout=10)
     serial = (output / 'serial.log').read_text(errors='replace')
     assert 'NATIVE-KO-QUALIFICATION-PASS' in serial and 'KO-RUNTIME-FAIL' not in serial, serial[-5000:]
-    assert digest(bad) == bad_before, 'Rejected FFS media was modified'
+    assert [digest(path) for path in invalid_media] == invalid_before, 'Rejected media was modified'
     for path, (bs, variant) in zip(media, cases):
         h = Host(path); assert api.mount(C.byref(h.io), None) == 0
         api.check(); assert api.data(b'/tree/Renamed') == b'OFS native kernel survives remount\n'

@@ -34,6 +34,25 @@ remain unchanged at released commit
 | Open inode durability | `tests/ofs_orphan_test.c` exercises deferred file, directory and symbolic-link deletion across all 28 profiles and fails every writer/flush barrier. Live allocations stay tracked and the on-disk bitmap remains dirty until the last close. The same unit runs under ASan/UBSan with leak checks. |
 | Packaging/publication | Portable DEB/direct SO and source-embedded native RUN; native build uses measured PGO/LTO. Extracted package payload/BUILD-INFO/hash/API behavior are verified. Main publication depends on filesystem, Boot and preserved transitional EFI-build jobs and creates an immutable version tag with checksums. |
 
+## Linux 7 and the OFS root handoff
+
+The kernel matrix builds the same canonical source for 6.12.107 and 7.0.
+Linux 7 uses the filesystem context mount and reconfigure API, current
+dentry validation and folio writeback. The block-device host drains the
+kernel's buffered writes and flushes the device cache at the engine's
+durability barriers.
+
+Linux writable mounts and read-only to writable remounts validate the
+namespace, file pointer tables and allocation ownership. The Linux adapter
+checks file data and links on access. The V3 writable-mount and explicit
+verification paths retain their full-volume data check.
+
+The Linux 7 OVMF check loads the kernel and initramfs through Boot and OFS.so,
+inserts the separately built OFS KO, switches root to the same OFS disk, and
+fsyncs a file written there. An independent image reader verifies the saved
+bytes after the VM powers off. The standalone EFI driver separately checks
+binding, nested reads, disconnect and rejection of incompatible media.
+
 ## API and limits
 
 The public API is `native/filesystems/ofs/module/ofs_v3.h`. Byte callbacks must

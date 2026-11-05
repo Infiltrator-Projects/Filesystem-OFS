@@ -51,13 +51,15 @@ void ofs_invalidate(OfsFs *f) {
     for (unsigned i = 0; i < 3u; ++i) f->cache[i].valid = 0;
     f->metadata_cache_next = 0;
     f->enumeration_valid = 0;
+    f->read_cursor_count = f->read_cursor_next = 0;
 }
 static int cached_block(const OfsFs *f, unsigned slot, uint64_t at) {
     return f->cache[slot].valid && at >= f->cache[slot].offset &&
         at - f->cache[slot].offset <= f->cache[slot].bytes &&
         f->block_bytes <= f->cache[slot].bytes - (at - f->cache[slot].offset);
 }
-int ofs_read_block(OfsFs *f, uint32_t k, uint8_t *out, int data) {
+int ofs_read_block(OfsFs *f, uint32_t k, uint8_t *out, int mode) {
+    const int data = mode == OFS_READ_DATA;
     uint64_t at = (uint64_t)k * f->block_bytes;
     if (!out || k >= f->blocks || at > f->io.volume_bytes ||
         f->block_bytes > f->io.volume_bytes - at)
@@ -73,10 +75,16 @@ int ofs_read_block(OfsFs *f, uint32_t k, uint8_t *out, int data) {
                  (size_t)(at - f->cache[slot].offset), f->block_bytes);
         return 0;
     }
+    if (mode == OFS_READ_METADATA_EXACT)
+        return f->io.read_at(f->io.context, at, out, f->block_bytes) == 0 ? 0 : IFS_OFS_IO_ERROR;
+    /* Small overwrites also touch the file header and root. Keep their
+     * cache misses bounded just like the data and extension reads. */
+    const int single = f->small_overwrite;
     unsigned slot = data ? 1u : ((f->metadata_cache_next++ & 1u) ? 2u : 0u);
-    uint64_t base = at & ~(uint64_t)(OFS_CACHE_BYTES - 1u);
+    uint64_t base = single ? at : at & ~(uint64_t)(OFS_CACHE_BYTES - 1u);
     uint64_t left = f->io.volume_bytes - base;
-    uint32_t count = left > OFS_CACHE_BYTES ? OFS_CACHE_BYTES : (uint32_t)left;
+    uint32_t count = single ? f->block_bytes :
+        left > OFS_CACHE_BYTES ? OFS_CACHE_BYTES : (uint32_t)left;
     f->cache[slot].valid = 0;
     /* An unrelated bad speculative sector cannot mask the requested block. */
     if (f->io.read_at(f->io.context, base, f->cache[slot].data, count) == 0) {
@@ -86,7 +94,8 @@ int ofs_read_block(OfsFs *f, uint32_t k, uint8_t *out, int data) {
         ofs_copy(out, f->cache[slot].data + (size_t)(at - base), f->block_bytes);
         return 0;
     }
-    return f->io.read_at(f->io.context, at, out, f->block_bytes) == 0 ? 0 : IFS_OFS_IO_ERROR;
+    return !single && f->io.read_at(f->io.context, at, out, f->block_bytes) == 0
+        ? 0 : IFS_OFS_IO_ERROR;
 }
 int ofs_write_block(OfsFs *f, uint32_t k, const uint8_t *b) {
     if ((f->io.flags & IFS_OFS_READ_ONLY) || !f->io.write_at || k >= f->blocks)
@@ -212,10 +221,10 @@ void ofs_release(OfsFs *f) {
     f->bitmap_keys = 0;
     f->system_keys = 0;
     f->system_count = 0;
-    f->append_checked_count = f->append_checked_next = 0;
+    f->checked_write_count = f->checked_write_next = 0;
     f->writeback_pending = 0;
-    f->append_transaction = 0;
-    f->append_cursor_active = 0;
+    f->keep_checked_writes = 0;
+    f->write_cursor_active = 0;
     f->read_cursor_count = f->read_cursor_next = 0;
     f->enumeration_valid = 0;
     f->mounted = 0;
@@ -281,7 +290,8 @@ int ofs_index_bitmaps(OfsFs *f, int allocation) {
     }
     return 0;
 }
-int ofs_probe(OfsFs *f, const IfsOfsIoV3 *io, const IfsOfsMountV3 *opts) {
+static int probe(OfsFs *f, const IfsOfsIoV3 *io, const IfsOfsMountV3 *opts,
+                 enum OfsVerifyMode mode) {
     uint8_t boot[12];
     uint32_t found = 0, chosen = 0, chosen_root = 0;
     if (!f || !io_valid(io) || (opts && opts->structure_bytes != sizeof(*opts)))
@@ -298,15 +308,16 @@ int ofs_probe(OfsFs *f, const IfsOfsIoV3 *io, const IfsOfsMountV3 *opts) {
     if (f->mounted || f->bitmap_keys)
         return IFS_OFS_INVALID;
     f->io = *io;
+    f->check_data_on_access = mode == OFS_VERIFY_ALLOCATION;
     f->variant = boot[3];
     f->reserved = reserved;
     f->mounted = 0;
     f->mutation = 0;
     f->failed = 0;
-    f->append_checked_count = f->append_checked_next = 0;
+    f->checked_write_count = f->checked_write_next = 0;
     f->writeback_pending = 0;
-    f->append_transaction = 0;
-    f->append_cursor_active = 0;
+    f->keep_checked_writes = 0;
+    f->write_cursor_active = 0;
     f->read_cursor_count = f->read_cursor_next = 0;
     f->enumeration_valid = 0;
     for (uint32_t b = requested ? requested : 512u; b <= OFS_MAX_BLOCK; b <<= 1) {
@@ -385,7 +396,7 @@ int ofs_probe(OfsFs *f, const IfsOfsIoV3 *io, const IfsOfsMountV3 *opts) {
      * Read-only Boot retains its bounded, heap-free streaming path. */
     if (!(io->flags & (IFS_OFS_READ_ONLY | IFS_OFS_ALLOW_DIRTY))) {
         IfsOfsCheckV3 check;
-        status = ofs_verify(f, &check, 0);
+        status = ofs_verify(f, &check, mode);
         if (status) {
             ofs_release(f);
             return status;
@@ -393,6 +404,12 @@ int ofs_probe(OfsFs *f, const IfsOfsIoV3 *io, const IfsOfsMountV3 *opts) {
         f->used_blocks = (uint32_t)check.referenced_blocks;
     }
     return 0;
+}
+int ofs_probe(OfsFs *f, const IfsOfsIoV3 *io, const IfsOfsMountV3 *opts) {
+    return probe(f, io, opts, OFS_VERIFY_FULL);
+}
+int ofs_probe_allocation(OfsFs *f, const IfsOfsIoV3 *io, const IfsOfsMountV3 *opts) {
+    return probe(f, io, opts, OFS_VERIFY_ALLOCATION);
 }
 int ofs_bitmap_key(OfsFs *f, uint32_t index, uint32_t *key) {
     uint8_t *b = f->scratch[6];
@@ -550,8 +567,8 @@ int ofs_begin(OfsFs *f) {
         f->cache_dirty_count = 0;
         f->read_cursor_count = f->read_cursor_next = 0;
         f->enumeration_valid = 0;
-        if (!f->append_transaction)
-            f->append_checked_count = f->append_checked_next = 0;
+        if (!f->keep_checked_writes)
+            f->checked_write_count = f->checked_write_next = 0;
         return 0;
     }
     uint8_t *r = f->scratch[6];
@@ -566,8 +583,8 @@ int ofs_begin(OfsFs *f) {
     f->cache_dirty_count = 0;
     f->read_cursor_count = f->read_cursor_next = 0;
     f->enumeration_valid = 0;
-    if (!f->append_transaction)
-        f->append_checked_count = f->append_checked_next = 0;
+    if (!f->keep_checked_writes)
+        f->checked_write_count = f->checked_write_next = 0;
     status = ofs_write_block(f, f->root, r);
     if (!status && !(f->io.flags & IFS_OFS_EPHEMERAL_FIXTURE) &&
         f->io.flush(f->io.context))

@@ -16,7 +16,7 @@ import sys
 import tempfile
 
 from ofs_v3_test import Api, Host, Date, oracle, image
-from ofs_complete_test import block, u32, fresh, space
+from ofs_complete_test import block, checksum, fresh, put, space, store, u32
 
 
 def execute(args, **kwargs):
@@ -86,11 +86,24 @@ def fixture(api, path, bs, variant, blocks=4096):
     assert api.hardlink(b'/D', b'/D/Cycle') == 0
     assert api.symlink(b'D/A', b'/Symbol') == 0
     # At 512-byte blocks cross two reversed-pointer extension tables.
+    first_ext = None
     if bs == 512:
         assert api.create(b'/large') == 0
         data = bytes((i * 31 + 7) & 255 for i in range(payload * 151 + 37))
-        assert api.write(b'/large', 0, data, len(data)) == 0
+        split = 72 * payload
+        assert api.write(b'/large', 0, data[:split], split) == 0
+        assert api.create(b'/Spacer') == 0
+        assert api.write(b'/Spacer', 0, b'x', 1) == 0
+        assert api.write(b'/large', split, data[split:], len(data) - split) == 0
+        first_ext = u32(block(path, api.meta(b'/large').block, bs), bs - 8)
     api.check(); assert api.unmount() == 0; host.close()
+    if first_ext is not None:
+        # AFFS supplies the first pointer again at byte 16. Leave the next
+        # extension zero there to cover both input formats in the same file.
+        raw = block(path, first_ext, bs)
+        put(raw, 16, u32(raw, bs - 204))
+        checksum(raw)
+        store(path, first_ext, bs, raw)
 
 
 def snapshot(api, path):
@@ -134,6 +147,11 @@ def verify_independent(path, bs, api):
         assert entry.get_meta_info().get_comment().get_ami_str() == b'preserved comment'
     if bs == 512:
         assert vol.read_file(FSString('large')) == bytes((i * 31 + 7) & 255 for i in range((bs - 24) * 151 + 37))
+        key = vol.get_file_path_name(FSString('large')).block.blk_num
+        first = block(path, u32(block(path, key, bs), bs - 8), bs)
+        assert u32(first, 16) == u32(first, bs - 204) != 0
+        second = block(path, u32(first, bs - 8), bs)
+        assert u32(second, 16) == 0
     vol.close(); dev.close(); view.unlink()
 
 
