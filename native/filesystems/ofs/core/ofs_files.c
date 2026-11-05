@@ -125,8 +125,7 @@ int ofs_pointer(OfsFs *f, uint32_t owner, uint32_t logical, uint32_t total, OfsF
     for (;;) {
         /* Intermediate tables only supply a link. On a cold seek, avoid
          * fetching a full read-ahead window for each table along the way. */
-        int mode = index != want ? OFS_READ_METADATA_EXACT :
-            f->small_overwrite ? OFS_READ_METADATA_BLOCK : OFS_READ_METADATA;
+        int mode = index != want ? OFS_READ_METADATA_EXACT : OFS_READ_METADATA;
         int r = ofs_file_table(f, owner, key, b, mode);
         if (r)
             return r;
@@ -160,7 +159,7 @@ int ofs_pointer(OfsFs *f, uint32_t owner, uint32_t logical, uint32_t total, OfsF
     return 0;
 }
 int ofs_data(OfsFs *f, uint32_t owner, uint32_t bytes, uint32_t logical, uint32_t key, uint8_t *b) {
-    int r = ofs_read_block(f, key, b, f->small_overwrite ? OFS_READ_DATA_BLOCK : OFS_READ_DATA);
+    int r = ofs_read_block(f, key, b, OFS_READ_DATA);
     if (r)
         return r;
     uint32_t payload = f->block_bytes - 24u;
@@ -512,8 +511,13 @@ static int changed(OfsFs *f, OfsNode *n) {
         return r;
     ofs_checksum(f, b, 5);
     r = ofs_write_block(f, n->object, b);
-    if (!r && ofs_be32(b + f->block_bytes - 12u) == f->root)
+    if (!r && ofs_be32(b + f->block_bytes - 12u) == f->root) {
         r = ofs_touch_root(f, 1);
+        /* This already updated both root timestamps. The Linux ordered
+         * writeback path can skip the second volume-date write at ofs_end. */
+        if (!r && f->check_data_on_access)
+            f->preserve_volume_date = 1;
+    }
     if (!r)
         r = ofs_cache_object(f, n->object);
     return r;

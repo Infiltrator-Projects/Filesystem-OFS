@@ -59,8 +59,7 @@ static int cached_block(const OfsFs *f, unsigned slot, uint64_t at) {
         f->block_bytes <= f->cache[slot].bytes - (at - f->cache[slot].offset);
 }
 int ofs_read_block(OfsFs *f, uint32_t k, uint8_t *out, int mode) {
-    const int data = mode == OFS_READ_DATA || mode == OFS_READ_DATA_BLOCK;
-    const int single = mode == OFS_READ_METADATA_BLOCK || mode == OFS_READ_DATA_BLOCK;
+    const int data = mode == OFS_READ_DATA;
     uint64_t at = (uint64_t)k * f->block_bytes;
     if (!out || k >= f->blocks || at > f->io.volume_bytes ||
         f->block_bytes > f->io.volume_bytes - at)
@@ -78,6 +77,9 @@ int ofs_read_block(OfsFs *f, uint32_t k, uint8_t *out, int mode) {
     }
     if (mode == OFS_READ_METADATA_EXACT)
         return f->io.read_at(f->io.context, at, out, f->block_bytes) == 0 ? 0 : IFS_OFS_IO_ERROR;
+    /* Small overwrites also touch the file header and root. Keep their
+     * cache misses bounded just like the data and extension reads. */
+    const int single = f->small_overwrite;
     unsigned slot = data ? 1u : ((f->metadata_cache_next++ & 1u) ? 2u : 0u);
     uint64_t base = single ? at : at & ~(uint64_t)(OFS_CACHE_BYTES - 1u);
     uint64_t left = f->io.volume_bytes - base;

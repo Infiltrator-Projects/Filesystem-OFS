@@ -77,10 +77,7 @@ void ofs_zero(void *, size_t);
 void ofs_copy(void *, const void *, size_t);
 int ofs_equal(const void *, const void *, size_t);
 int ofs_valid_block(const OfsFs *, uint32_t);
-enum {
-    OFS_READ_METADATA, OFS_READ_DATA, OFS_READ_METADATA_EXACT,
-    OFS_READ_METADATA_BLOCK, OFS_READ_DATA_BLOCK
-};
+enum { OFS_READ_METADATA, OFS_READ_DATA, OFS_READ_METADATA_EXACT };
 int ofs_read_block(OfsFs *, uint32_t, uint8_t *, int);
 int ofs_write_block(OfsFs *, uint32_t, const uint8_t *);
 int ofs_metadata(OfsFs *, uint32_t, uint8_t *);
