@@ -14,6 +14,7 @@
  */
 #include <linux/module.h>
 #include <linux/fs.h>
+#include <linux/fs_context.h>
 #include <linux/buffer_head.h>
 #include <linux/blkdev.h>
 #include <linux/pagemap.h>
@@ -101,7 +102,11 @@ static int write_io(void *ctx, u64 at, const void *p, u32 n) {
 }
 static int flush_io(void *ctx) {
     struct ofs_mount *m = ctx;
-    int r = sync_blockdev(m->sb->s_bdev);
+    struct block_device *device = m->sb->s_bdev;
+    int r = sync_blockdev(device);
+    /* The engine's dirty and clean markers require stable storage, including
+     * on devices that acknowledge writes into a volatile cache. */
+    if (!r && !m->error) r = blkdev_issue_flush(device);
     if (r) m->error = r;
     return r || m->error ? -1 : 0;
 }
@@ -217,7 +222,7 @@ static struct inode *get_inode(struct super_block *sb, const OfsNode *n) {
     u64 number = n->type == IFS_OFS_LINKDIR ? ((u64)n->object << 32) | n->key : n->object;
     struct inode *inode = iget_locked(sb, number);
     if (!inode) return ERR_PTR(-ENOMEM);
-    if (!(inode->i_state & I_NEW)) return inode;
+    if (!IFS_LINUX_INODE_IS_NEW(inode)) return inode;
     struct ofs_mount *m = ofs_mount(sb);
     mutex_lock(&m->lock);
     OfsNode fresh;
@@ -256,15 +261,23 @@ static int compare_dentry(const struct dentry *dentry, unsigned len, const char 
     if (name_bytes(&first, a, &an) || name_bytes(other, b, &bn)) return 1;
     return !ofs_name_equal(m->fs, a, an, b, bn);
 }
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 0, 0)
+static int revalidate_dentry(struct inode *parent, const struct qstr *query,
+                             struct dentry *dentry, unsigned flags) {
+#else
 static int revalidate_dentry(struct dentry *dentry, unsigned flags) {
+#endif
     if (IS_ROOT(dentry)) return 1;
     if (flags & LOOKUP_RCU) return -ECHILD;
     if (d_really_is_negative(dentry)) return 0;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(7, 0, 0)
     struct inode *parent = d_inode(dentry->d_parent);
+    const struct qstr *query = &dentry->d_name;
+#endif
     if (!parent) return 0;
     struct ofs_mount *m = ofs_mount(dentry->d_sb);
     u8 name[108]; u32 length;
-    if (name_bytes(&dentry->d_name, name, &length)) return 0;
+    if (name_bytes(query, name, &length)) return 0;
     mutex_lock(&m->lock);
     OfsNode n;
     int r = ofs_lookup(m->fs, ofs_inode(parent)->object, name, length, &n);
@@ -507,7 +520,15 @@ static int write_folio(struct folio *folio, struct writeback_control *wbc, void 
     folio_end_writeback(folio); folio_unlock(folio); return r;
 }
 static int writepages(struct address_space *mapping, struct writeback_control *wbc) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 0, 0)
+    struct folio *folio = NULL;
+    int error;
+    while ((folio = writeback_iter(mapping, wbc, folio, &error)))
+        error = write_folio(folio, wbc, NULL);
+    return error;
+#else
     return write_cache_pages(mapping, wbc, write_folio, NULL);
+#endif
 }
 static int fsync_file(struct file *file, loff_t start, loff_t end, int datasync) {
     int r = file_write_and_wait_range(file, start, end);
@@ -672,7 +693,7 @@ static void evict_inode(struct inode *inode) {
 static int sync_fs(struct super_block *sb, int wait) {
     struct ofs_mount *m = ofs_mount(sb);
     int r;
-    (void)wait;
+    if (!wait) return 0;
     mutex_lock(&m->lock); r = status(ofs_sync_pending(m->fs)); mutex_unlock(&m->lock);
     return r;
 }
@@ -705,22 +726,19 @@ static int show_options(struct seq_file *seq, struct dentry *root) {
     if (strcmp(m->volume, ":")) seq_show_option(seq, "volume", m->volume);
     return 0;
 }
-static int remount(struct super_block *sb, int *flags, char *data) {
+static int reconfigure_mount(struct super_block *sb, unsigned flags) {
     struct ofs_mount *m = ofs_mount(sb);
-    /* Presentation and geometry are chosen at mount time. Do not silently
-     * accept changes that would leave already cached inodes inconsistent. */
-    if (data && *data) return -EINVAL;
     int synced = sync_filesystem(sb);
     if (synced) return synced;
     mutex_lock(&m->lock);
     int r = 0;
     /* A read-only transition cannot complete a later last-close deletion.
      * Keep the writable lifetime intact until those native objects close. */
-    if ((*flags & SB_RDONLY) && m->fs->orphans) {
+    if ((flags & SB_RDONLY) && m->fs->orphans) {
         mutex_unlock(&m->lock);
         return -EBUSY;
     }
-    if (*flags & SB_RDONLY) m->fs->io.flags |= IFS_OFS_READ_ONLY;
+    if (flags & SB_RDONLY) m->fs->io.flags |= IFS_OFS_READ_ONLY;
     else if (m->fs->io.flags & IFS_OFS_READ_ONLY) {
         m->fs->io.flags &= ~IFS_OFS_READ_ONLY;
         IfsOfsCheckV3 check;
@@ -733,10 +751,19 @@ static int remount(struct super_block *sb, int *flags, char *data) {
     }
     mutex_unlock(&m->lock); return status(r);
 }
+#if LINUX_VERSION_CODE < KERNEL_VERSION(7, 0, 0)
+static int remount(struct super_block *sb, int *flags, char *data) {
+    if (data && *data) return -EINVAL;
+    return reconfigure_mount(sb, *flags);
+}
+#endif
 static const struct super_operations ofs_super_ops = {
     .alloc_inode = allocate_inode, .free_inode = free_inode, .evict_inode = evict_inode,
     .put_super = put_super, .sync_fs = sync_fs, .statfs = statfs_inode,
-    .show_options = show_options, .remount_fs = remount,
+    .show_options = show_options,
+#if LINUX_VERSION_CODE < KERNEL_VERSION(7, 0, 0)
+    .remount_fs = remount,
+#endif
 };
 static const struct address_space_operations ofs_aops = {
     .read_folio = read_folio, .write_begin = write_begin, .write_end = write_end,
@@ -761,7 +788,7 @@ static const struct inode_operations ofs_dir_iops = {
 static const struct inode_operations ofs_link_iops = {
     .get_link = get_link, .permission = permission_inode, .setattr = setattr_inode, .getattr = getattr_inode, .listxattr = listxattr,
 };
-static int fill_super(struct super_block *sb, void *data, int silent) {
+static int fill_super(struct super_block *sb, const char *data) {
     struct ofs_mount *m = kzalloc(sizeof(*m), GFP_KERNEL);
     if (!m) return -ENOMEM;
     m->fs = kvzalloc(sizeof(*m->fs), GFP_KERNEL);
@@ -769,10 +796,14 @@ static int fill_super(struct super_block *sb, void *data, int silent) {
     m->sb = sb; m->uid = from_kuid(&init_user_ns, current_uid());
     m->gid = from_kgid(&init_user_ns, current_gid()); strcpy(m->volume, ":");
     mutex_init(&m->lock); sb->s_fs_info = m;
-    sb->s_op = &ofs_super_ops; sb->s_xattr = ofs_xattrs; sb->s_d_op = &ofs_dentry_ops;
+    sb->s_op = &ofs_super_ops; sb->s_xattr = ofs_xattrs;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 0, 0)
+    set_default_d_op(sb, &ofs_dentry_ops);
+#else
+    sb->s_d_op = &ofs_dentry_ops;
+#endif
     sb->s_magic = AFFS_SUPER_MAGIC; sb->s_maxbytes = U32_MAX;
     sb->s_time_gran = 20000000;
-    (void)silent;
     int r = -EINVAL;
     if (!sb_min_blocksize(sb, bdev_logical_block_size(sb->s_bdev))) goto fail;
     IfsOfsMountV3 options = {.structure_bytes = sizeof(options)};
@@ -833,11 +864,65 @@ fail:
     pr_err("ofs: canonical engine refused mount (%d)\n", r);
     put_super(sb); return r;
 }
-static struct dentry *mount_ofs(struct file_system_type *type, int flags, const char *device, void *data) {
-    return mount_bdev(type, flags, device, data, fill_super);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 0, 0)
+static int parse_parameter(struct fs_context *fc, struct fs_parameter *parameter) {
+    if (!strcmp(parameter->key, "source")) return -ENOPARAM;
+    /* Keep one option parser for both mount APIs. VFS consumes its own flags
+     * before this callback. OFS geometry and presentation are mount-only. */
+    if (fc->purpose == FS_CONTEXT_FOR_RECONFIGURE) return -EINVAL;
+    if (parameter->type != fs_value_is_flag && parameter->type != fs_value_is_string)
+        return -EINVAL;
+    const char *value = parameter->type == fs_value_is_string ? parameter->string : NULL;
+    if (strpbrk(parameter->key, ",=") || (value && strchr(value, ','))) return -EINVAL;
+    char *options = fc->fs_private;
+    size_t used = options ? strlen(options) : 0;
+    size_t bytes = strlen(parameter->key) + (used != 0) + (value ? strlen(value) + 1u : 0u);
+    if (bytes >= PAGE_SIZE - used) return -E2BIG;
+    if (!options) {
+        options = kzalloc(PAGE_SIZE, GFP_KERNEL);
+        if (!options) return -ENOMEM;
+        fc->fs_private = options;
+    }
+    snprintf(options + used, PAGE_SIZE - used, "%s%s%s%s", used ? "," : "",
+             parameter->key, value ? "=" : "", value ? value : "");
+    return 0;
 }
+static int fill_super_context(struct super_block *sb, struct fs_context *fc) {
+    return fill_super(sb, fc->fs_private);
+}
+static int get_tree(struct fs_context *fc) {
+    return get_tree_bdev(fc, fill_super_context);
+}
+static int reconfigure(struct fs_context *fc) {
+    return reconfigure_mount(fc->root->d_sb, fc->sb_flags);
+}
+static void free_context(struct fs_context *fc) {
+    kfree(fc->fs_private);
+}
+static const struct fs_context_operations ofs_context_ops = {
+    .parse_param = parse_parameter, .get_tree = get_tree,
+    .reconfigure = reconfigure, .free = free_context,
+};
+static int init_context(struct fs_context *fc) {
+    fc->ops = &ofs_context_ops;
+    return 0;
+}
+#else
+static int fill_super_legacy(struct super_block *sb, void *data, int silent) {
+    (void)silent;
+    return fill_super(sb, data);
+}
+static struct dentry *mount_ofs(struct file_system_type *type, int flags, const char *device, void *data) {
+    return mount_bdev(type, flags, device, data, fill_super_legacy);
+}
+#endif
 static struct file_system_type ofs_type = {
-    .owner = THIS_MODULE, .name = "ofs", .mount = mount_ofs,
+    .owner = THIS_MODULE, .name = "ofs",
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 0, 0)
+    .init_fs_context = init_context,
+#else
+    .mount = mount_ofs,
+#endif
     .kill_sb = kill_block_super, .fs_flags = FS_REQUIRES_DEV,
 };
 static int __init start(void) { return register_filesystem(&ofs_type); }

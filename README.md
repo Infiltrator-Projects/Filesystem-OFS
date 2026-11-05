@@ -77,7 +77,9 @@ canonical engine as the SO and supports read/write DOS0/2/4/6 at all seven
 block sizes, including 8, 16 and 32 KiB on a 4 KiB-page kernel. Its VFS binding
 provides buffered I/O, executable/private/shared mappings, native metadata
 xattrs, hard-link lifetimes and deferred deletion of open files. Each mounted
-volume has independent state. Kernel SO loading is a later generic mechanism.
+volume has independent state. Qualification also builds and exercises the
+Linux 7.0 VFS binding. Build a separate KO against the headers for the exact
+kernel that will load it. Kernel SO loading is a later generic mechanism.
 
 For Boot **v0.1.38**, stage the same portable SO bytes as `OFS.so` in
 `filesystems_x64/` beside Boot's EFI executable. A manual entry can require
@@ -86,6 +88,9 @@ For Boot **v0.1.38**, stage the same portable SO bytes as `OFS.so` in
 RDB/MBR partition discovery belongs to the host. Boot refuses unsigned modules
 when Secure Boot is enabled or its state cannot be established. These builds
 and tests do not deploy modules to an ESP or change firmware settings.
+The combined OVMF qualification loads Linux and its initramfs from OFS,
+loads the matching `ofs.ko`, switches to that OFS volume as `/`, and verifies
+a Linux write on the resulting disk image.
 
 The evidence and its limits are recorded in
 [`docs/SO_COMPLETION.md`](docs/SO_COMPLETION.md) and
