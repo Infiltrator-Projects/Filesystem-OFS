@@ -98,7 +98,13 @@ def extension(a,path,bs):
     assert a.write(b'/large',0,data,len(data))==0
     assert a.data(b'/large')==data
     key=a.meta(b'/large').block;hdr=block(path,key,bs)
-    ext=u32(hdr,bs-8);assert ext and u32(block(path,ext,bs),bs-8)
+    ext=u32(hdr,bs-8)
+    for _ in range(2):
+        assert ext
+        raw=block(path,ext,bs)
+        assert u32(raw,12)==u32(raw,16)==0
+        ext=u32(raw,bs-8)
+    assert ext==0
     a.check()
     for n in (payload*table+1,payload*table,payload*table-1,payload+1,payload,1,0):
         assert a.truncate(b'/large',n)==0 and a.data(b'/large')==data[:n]

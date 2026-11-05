@@ -332,13 +332,16 @@ int ofs_layout_write(OfsLayout *m, IfsDefragTarget *target) {
         do {
             r = read_metadata(m, list, b); if (r) break;
             uint32_t next_list = ofs_be32(b + f->block_bytes - 8u);
+            uint32_t first_data = ofs_word(b, 4);
             uint32_t count = file->count - done;
             if (count > f->hash_size) count = f->hash_size;
             r = patch(m, b, list); if (r) break;
             for (uint32_t j = 0; j < f->hash_size; ++j)
                 ofs_put32(b + f->block_bytes - 204u - 4u * j,
                           j < count ? file->new_data[done + j] : 0);
-            if (list == file->key) ofs_setword(b, 4, file->count ? file->new_data[0] : 0);
+            /* Preserve zero-filled extensions and update the redundant pointer
+             * in extensions written by implementations such as Linux AFFS. */
+            ofs_setword(b, 4, count && (list == file->key || first_data) ? file->new_data[done] : 0);
             ofs_checksum(f, b, 5); r = write_block(m, target, mapped(m, list), b);
             done += count; list = next_list;
         } while (!r && list);

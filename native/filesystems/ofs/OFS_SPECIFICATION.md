@@ -256,7 +256,8 @@ When a file uses more than `H` data blocks, file-extension blocks (`T_LIST=16`) 
 | `0` | 4 | `T_LIST=16` |
 | `4` | 4 | Own extension key |
 | `8` | 4 | `highSeq`: valid data pointers in this extension |
-| `12..19` | 8 | Reserved |
+| `12` | 4 | Reserved, written as zero |
+| `16` | 4 | Reserved in the Amiga ROM Kernel Reference Manual. Some implementations store a copy of the first data key in this table |
 | `20` | 4 | Metadata checksum |
 | `24..B-201` | `4H` | BE32 data block keys, **last valid table entries first** |
 | `B-200..B-17` | 184 | Unused/reserved metadata area |
@@ -264,6 +265,8 @@ When a file uses more than `H` data blocks, file-extension blocks (`T_LIST=16`) 
 | `B-12` | 4 | Parent/owner **file-header** key |
 | `B-8` | 4 | Next file extension key, 0 if final |
 | `B-4` | 4 | `ST_FILE=-3` |
+
+The [Amiga ROM Kernel Reference Manual, DOS §13.6.8](https://developer.amigaos3.net/sites/default/files/downloads/2024-10/Amiga_ROM_Kernel_Reference_Manual_DOS.pdf) specifies zero at byte 16. The [earlier AmigaDOS Technical Reference Manual, Figure 1-D](https://www.pagetable.com/docs/amigados_tripos/amigados_manual.pdf) labels that word as a first-data key, and Linux AFFS fills it. InfiltratorOS creates extensions with zero there and uses the reversed table for lookup. When relocating an existing extension, it preserves zero or updates the populated copy to the new first data key.
 
 The owning file header and any extensions must agree about referenced data block keys and file size. An empty file has a file header, length zero and **no data blocks**; do not allocate an empty spurious data chain.
 
