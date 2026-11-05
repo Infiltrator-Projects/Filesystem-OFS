@@ -34,13 +34,13 @@ typedef struct {
     uint32_t system_count, used_blocks;
     uint32_t *cache_dirty;
     size_t cache_dirty_count, cache_dirty_capacity;
-    int mounted, mutation, failed, preserve_volume_date;
+    int mounted, mutation, failed, preserve_volume_date, check_data_on_access;
     int writeback_pending; /* Persisted dirty marker across buffered transactions */
     /* Checked file chains are valid only while this engine owns the mount.
      * Structural mutations outside checked writes invalidate the cache. */
     struct { uint32_t object, bytes; OfsFileCursor cursor; } checked_writes[OFS_APPEND_CACHE_SLOTS];
     uint32_t checked_write_count, checked_write_next;
-    int keep_checked_writes, write_cursor_active;
+    int keep_checked_writes, write_cursor_active, small_overwrite;
     OfsFileCursor append_growth_cursor, write_cursor;
     /* Sequential public reads retain extension-chain location between calls.
      * Every metadata mutation invalidates these cursors. */
@@ -77,13 +77,17 @@ void ofs_zero(void *, size_t);
 void ofs_copy(void *, const void *, size_t);
 int ofs_equal(const void *, const void *, size_t);
 int ofs_valid_block(const OfsFs *, uint32_t);
-enum { OFS_READ_METADATA = 0, OFS_READ_DATA, OFS_READ_METADATA_EXACT };
+enum {
+    OFS_READ_METADATA, OFS_READ_DATA, OFS_READ_METADATA_EXACT,
+    OFS_READ_METADATA_BLOCK, OFS_READ_DATA_BLOCK
+};
 int ofs_read_block(OfsFs *, uint32_t, uint8_t *, int);
 int ofs_write_block(OfsFs *, uint32_t, const uint8_t *);
 int ofs_metadata(OfsFs *, uint32_t, uint8_t *);
 void ofs_checksum(OfsFs *, uint8_t *, uint32_t);
 void ofs_invalidate(OfsFs *);
 int ofs_probe(OfsFs *, const IfsOfsIoV3 *, const IfsOfsMountV3 *);
+int ofs_probe_allocation(OfsFs *, const IfsOfsIoV3 *, const IfsOfsMountV3 *);
 void ofs_release(OfsFs *);
 int ofs_format(OfsFs *, const IfsOfsIoV3 *, const IfsOfsFormatV3 *);
 int ofs_begin(OfsFs *);
@@ -112,8 +116,10 @@ int ofs_next(OfsFs *, uint32_t, OfsDirCursor *, OfsNode *);
 int ofs_path(OfsFs *, const char *, int, OfsNode *);
 int ofs_parent(OfsFs *, const char *, uint32_t *, uint8_t *, uint32_t *);
 int ofs_entry(OfsFs *, const OfsNode *, IfsOfsEntryV3 *);
+int ofs_file_table(OfsFs *, uint32_t, uint32_t, uint8_t *, int);
 int ofs_pointer(OfsFs *, uint32_t, uint32_t, uint32_t, OfsFileCursor *, uint32_t *);
 int ofs_read_file(OfsFs *, const OfsNode *, uint32_t, void *, uint32_t, OfsFileCursor *);
+int ofs_read_cached(OfsFs *, const OfsNode *, uint32_t, void *, uint32_t);
 int ofs_check_file(OfsFs *, const OfsNode *);
 int ofs_data(OfsFs *, uint32_t, uint32_t, uint32_t, uint32_t, uint8_t *);
 int ofs_resize(OfsFs *, OfsNode *, uint32_t);
@@ -131,7 +137,8 @@ int ofs_set_metadata(OfsFs *, const char *, uint32_t, const void *);
 int ofs_set_metadata_key(OfsFs *, uint32_t, uint32_t, const void *);
 int ofs_set_label(OfsFs *, const char *);
 int ofs_readlink(OfsFs *, const char *, char *, uint32_t);
-int ofs_verify(OfsFs *, IfsOfsCheckV3 *, int);
+enum OfsVerifyMode { OFS_VERIFY_FULL, OFS_VERIFY_REPAIR, OFS_VERIFY_ALLOCATION };
+int ofs_verify(OfsFs *, IfsOfsCheckV3 *, enum OfsVerifyMode);
 void ofs_sort_keys(uint32_t *, uint32_t);
 int ofs_put_strings(OfsFs *, uint32_t, uint8_t *, const uint8_t *, uint32_t, const uint8_t *,
                     uint32_t);

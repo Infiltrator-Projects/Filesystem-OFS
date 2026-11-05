@@ -96,7 +96,7 @@ int ofs_layout_open(OfsLayout *m, const IfsDefragHostV2 *h, IfsDefragTarget *tar
                      read_io, 0, 0, allocate_io, release_io, 0};
     int r = ofs_probe(m->fs, &io, 0);
     IfsOfsCheckV3 check;
-    if (!r) r = ofs_verify(m->fs, &check, 0);
+    if (!r) r = ofs_verify(m->fs, &check, OFS_VERIFY_FULL);
     if (r) { ofs_layout_close(m); return r; }
     OfsFs *f = m->fs;
     m->map_bytes = ((size_t)f->blocks + 7u) / 8u;

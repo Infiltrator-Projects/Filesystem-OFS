@@ -6,7 +6,7 @@
 #include "ofs_engine.h"
 
 /* Shared admission for public byte APIs and native host adapters. */
-static int check_overwrite(OfsFs *, const OfsNode *, uint32_t, uint32_t, OfsFileCursor);
+static int check_overwrite(OfsFs *, const OfsNode *, uint32_t, uint32_t, OfsFileCursor *);
 
 static int growth_available(OfsFs *f, uint32_t old, uint32_t bytes) {
     if (bytes <= old) return 0;
@@ -28,6 +28,8 @@ int ofs_write_checked(OfsFs *f, OfsNode *n, uint32_t at, const void *data, uint3
      * A cached overwrite still checks its range before any disk mutation. */
     const int append = at == n->bytes, overwrite = at + bytes <= n->bytes;
     const int reusable = append || overwrite;
+    /* A small random write needs a few blocks, even when the file is huge. */
+    f->small_overwrite = f->check_data_on_access && overwrite && bytes <= 8u * f->block_bytes;
     int cached = 0;
     OfsFileCursor remembered = {0};
     for (uint32_t i = 0; reusable && i < f->checked_write_count; ++i) {
@@ -38,8 +40,15 @@ int ofs_write_checked(OfsFs *f, OfsNode *n, uint32_t at, const void *data, uint3
             break;
         }
     }
-    int r = !cached ? ofs_check_file(f, n)
-        : overwrite ? check_overwrite(f, n, at, bytes, remembered) : 0;
+    int r = 0;
+    /* Linux proved block ownership at mount. Check the affected payload and
+     * its links on the first write, just as on later cached overwrites. */
+    if (overwrite && (cached || f->check_data_on_access))
+        r = check_overwrite(f, n, at, bytes, &remembered);
+    else if (append && n->bytes && f->check_data_on_access)
+        r = check_overwrite(f, n, n->bytes - 1u, 1u, &remembered);
+    else if (!cached)
+        r = ofs_check_file(f, n);
     if (!r) r = growth_available(f, n->bytes, at + bytes);
     if (!r) {
         f->keep_checked_writes = reusable;
@@ -53,6 +62,7 @@ int ofs_write_checked(OfsFs *f, OfsNode *n, uint32_t at, const void *data, uint3
         r = ofs_end(f, ofs_write_file(f, n, at, data, bytes));
         f->write_cursor_active = 0;
     }
+    f->small_overwrite = 0;
     if (r) {
         f->checked_write_count = f->checked_write_next = 0;
         return r;
@@ -89,7 +99,7 @@ int ofs_resize_checked(OfsFs *f, OfsNode *n, uint32_t bytes) {
 static uint32_t file_blocks(OfsFs *f, uint32_t bytes) {
     return bytes ? (bytes - 1u) / (f->block_bytes - 24u) + 1u : 0;
 }
-static int table_read(OfsFs *f, uint32_t owner, uint32_t key, uint8_t *b, int mode) {
+int ofs_file_table(OfsFs *f, uint32_t owner, uint32_t key, uint8_t *b, int mode) {
     if (!ofs_valid_block(f, key))
         return IFS_OFS_CORRUPT;
     int r = ofs_read_block(f, key, b, mode);
@@ -115,8 +125,9 @@ int ofs_pointer(OfsFs *f, uint32_t owner, uint32_t logical, uint32_t total, OfsF
     for (;;) {
         /* Intermediate tables only supply a link. On a cold seek, avoid
          * fetching a full read-ahead window for each table along the way. */
-        int mode = index == want ? OFS_READ_METADATA : OFS_READ_METADATA_EXACT;
-        int r = table_read(f, owner, key, b, mode);
+        int mode = index != want ? OFS_READ_METADATA_EXACT :
+            f->small_overwrite ? OFS_READ_METADATA_BLOCK : OFS_READ_METADATA;
+        int r = ofs_file_table(f, owner, key, b, mode);
         if (r)
             return r;
         uint64_t base = (uint64_t)index * f->hash_size;
@@ -149,7 +160,7 @@ int ofs_pointer(OfsFs *f, uint32_t owner, uint32_t logical, uint32_t total, OfsF
     return 0;
 }
 int ofs_data(OfsFs *f, uint32_t owner, uint32_t bytes, uint32_t logical, uint32_t key, uint8_t *b) {
-    int r = ofs_read_block(f, key, b, OFS_READ_DATA);
+    int r = ofs_read_block(f, key, b, f->small_overwrite ? OFS_READ_DATA_BLOCK : OFS_READ_DATA);
     if (r)
         return r;
     uint32_t payload = f->block_bytes - 24u;
@@ -202,8 +213,30 @@ int ofs_read_file(OfsFs *f, const OfsNode *n, uint32_t offset, void *buffer, uin
     }
     return 0;
 }
+int ofs_read_cached(OfsFs *f, const OfsNode *n, uint32_t at, void *buffer, uint32_t count) {
+    /* Keep a checked extension cursor across adjacent reads from the same file. */
+    uint32_t slot = f->read_cursor_count;
+    for (uint32_t i = 0; i < f->read_cursor_count; ++i) {
+        if (f->read_cursors[i].owner == n->object &&
+            f->read_cursors[i].size == n->bytes) {
+            slot = i;
+            break;
+        }
+    }
+    if (slot == f->read_cursor_count) {
+        if (slot < OFS_APPEND_CACHE_SLOTS)
+            ++f->read_cursor_count;
+        else
+            slot = (f->read_cursor_next++) % OFS_APPEND_CACHE_SLOTS;
+        ofs_zero(&f->read_cursors[slot], sizeof(f->read_cursors[slot]));
+    }
+    int r = ofs_read_file(f, n, at, buffer, count, &f->read_cursors[slot]);
+    if (r) f->read_cursor_count = f->read_cursor_next = 0;
+    return r;
+}
 static int check_file_blocks(OfsFs *f, const OfsNode *n, uint32_t first,
-                             uint32_t limit, OfsFileCursor cursor) {
+                             uint32_t limit, OfsFileCursor *position) {
+    OfsFileCursor cursor = *position;
     uint8_t *b = f->scratch[4];
     uint32_t total = file_blocks(f, n->bytes), next = 0;
     for (uint32_t i = first; i < limit; ++i) {
@@ -211,7 +244,9 @@ static int check_file_blocks(OfsFs *f, const OfsNode *n, uint32_t first,
         int r = ofs_pointer(f, n->object, i, total, &cursor, &key);
         if (r)
             return r;
-        if (i != first && key != next)
+        if (i == first)
+            *position = cursor;
+        else if (key != next)
             return IFS_OFS_CORRUPT;
         r = ofs_data(f, n->object, n->bytes, i, key, b);
         if (r)
@@ -222,10 +257,12 @@ static int check_file_blocks(OfsFs *f, const OfsNode *n, uint32_t first,
 }
 int ofs_check_file(OfsFs *f, const OfsNode *n) {
     uint32_t total = file_blocks(f, n->bytes);
-    if (total)
-        return check_file_blocks(f, n, 0, total, (OfsFileCursor){0});
+    if (total) {
+        OfsFileCursor cursor = {0};
+        return check_file_blocks(f, n, 0, total, &cursor);
+    }
     uint8_t *b = f->scratch[4];
-    int r = table_read(f, n->object, n->object, b, OFS_READ_METADATA);
+    int r = ofs_file_table(f, n->object, n->object, b, OFS_READ_METADATA);
     if (r)
         return r;
     if (ofs_word(b, 2) || ofs_word(b, 4) || ofs_be32(b + f->block_bytes - 8u))
@@ -236,7 +273,7 @@ int ofs_check_file(OfsFs *f, const OfsNode *n) {
     return 0;
 }
 static int check_overwrite(OfsFs *f, const OfsNode *n, uint32_t offset,
-                           uint32_t bytes, OfsFileCursor cursor) {
+                           uint32_t bytes, OfsFileCursor *cursor) {
     uint32_t payload = f->block_bytes - 24u;
     uint32_t first = offset / payload, limit = (offset + bytes - 1u) / payload + 1u;
     /* Include the neighboring blocks to check links across both boundaries. */
@@ -248,7 +285,7 @@ static int check_overwrite(OfsFs *f, const OfsNode *n, uint32_t offset,
 }
 static int set_size(OfsFs *f, OfsNode *n, uint32_t bytes) {
     uint8_t *b = f->scratch[3];
-    int r = table_read(f, n->object, n->object, b, OFS_READ_METADATA);
+    int r = ofs_file_table(f, n->object, n->object, b, OFS_READ_METADATA);
     if (r)
         return r;
     ofs_put32(b + f->block_bytes - 188u, bytes);
@@ -318,7 +355,7 @@ static int grow(OfsFs *f, OfsNode *n, uint32_t bytes,
                 r = ofs_write_block(f, new_list, fresh);
                 if (r)
                     return r;
-                r = table_read(f, n->object, list, table, OFS_READ_METADATA);
+                r = ofs_file_table(f, n->object, list, table, OFS_READ_METADATA);
                 if (r)
                     return r;
                 if (ofs_be32(table + f->block_bytes - 8u))
@@ -350,7 +387,7 @@ static int grow(OfsFs *f, OfsNode *n, uint32_t bytes,
         r = ofs_write_block(f, key, data);
         if (r)
             return r;
-        r = table_read(f, n->object, list, table, OFS_READ_METADATA);
+        r = ofs_file_table(f, n->object, list, table, OFS_READ_METADATA);
         if (r)
             return r;
         if (ofs_word(table, 2) != within || ofs_word(table, 6u + f->hash_size - 1u - within))
@@ -408,7 +445,7 @@ static int shrink(OfsFs *f, OfsNode *n, uint32_t bytes) {
         if (r)
             return r;
     }
-    r = table_read(f, n->object, list, table, OFS_READ_METADATA);
+    r = ofs_file_table(f, n->object, list, table, OFS_READ_METADATA);
     if (r)
         return r;
     uint32_t free_list = ofs_be32(table + f->block_bytes - 8u);
@@ -446,7 +483,7 @@ static int shrink(OfsFs *f, OfsNode *n, uint32_t bytes) {
     while (free_list) {
         if (!budget--)
             return IFS_OFS_CORRUPT;
-        r = table_read(f, n->object, free_list, table, OFS_READ_METADATA);
+        r = ofs_file_table(f, n->object, free_list, table, OFS_READ_METADATA);
         if (r)
             return r;
         uint32_t next = ofs_be32(table + f->block_bytes - 8u);
@@ -459,7 +496,7 @@ static int shrink(OfsFs *f, OfsNode *n, uint32_t bytes) {
 }
 static int changed(OfsFs *f, OfsNode *n) {
     uint8_t *b = f->scratch[3];
-    int r = table_read(f, n->object, n->object, b, OFS_READ_METADATA);
+    int r = ofs_file_table(f, n->object, n->object, b, OFS_READ_METADATA);
     if (r)
         return r;
     ofs_put32(b + f->block_bytes - 192u, ofs_be32(b + f->block_bytes - 192u) & ~16u);

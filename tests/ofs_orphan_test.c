@@ -25,7 +25,7 @@ static void mount_image(OfsFs *f, Host *h) {
 static uint32_t lookup(OfsFs *f,const char *path) {
     OfsNode n; CHECK(ofs_path(f,path,0,&n)==0); return n.object;
 }
-static void verify(OfsFs *f) { IfsOfsCheckV3 c; CHECK(ofs_verify(f,&c,0)==0); }
+static void verify(OfsFs *f) { IfsOfsCheckV3 c; CHECK(ofs_verify(f,&c,OFS_VERIFY_FULL)==0); }
 static void destroy(OfsFs *f,Host *h) { ofs_release(f);CHECK(h->allocations==0);free(f); }
 static uint32_t root_flag(OfsFs *f,Host *h) { return ofs_be32(h->data+(size_t)f->root*f->block_bytes+f->block_bytes-200); }
 static void success(Host *h, const unsigned char *original, uint32_t bs) {

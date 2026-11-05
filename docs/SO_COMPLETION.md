@@ -42,6 +42,11 @@ dentry validation and folio writeback. The block-device host drains the
 kernel's buffered writes and flushes the device cache at the engine's
 durability barriers.
 
+Linux writable mounts and read-only to writable remounts validate the
+namespace, file pointer tables and allocation ownership. The Linux adapter
+checks file data and links on access. The V3 writable-mount and explicit
+verification paths retain their full-volume data check.
+
 The Linux 7 OVMF check loads the kernel and initramfs through Boot and OFS.so,
 inserts the separately built OFS KO, switches root to the same OFS disk, and
 fsyncs a file written there. An independent image reader verifies the saved

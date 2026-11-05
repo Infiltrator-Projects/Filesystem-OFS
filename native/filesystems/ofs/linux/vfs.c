@@ -73,14 +73,29 @@ static int status(int r) {
     }
 }
 static int byte_io(struct ofs_mount *m, u64 at, void *data, u32 count, bool write) {
-    u32 unit = m->sb->s_blocksize, done = 0;
-    u64 bytes = bdev_nr_bytes(m->sb->s_bdev);
-    if (at > bytes || count > bytes - at || (write && sb_rdonly(m->sb))) return -1;
+    struct super_block *sb = m->sb;
+    u32 unit = sb->s_blocksize, done = 0;
+    unsigned shift = sb->s_blocksize_bits;
+    u64 bytes = bdev_nr_bytes(sb->s_bdev);
+    if (at > bytes || count > bytes - at || (write && sb_rdonly(sb))) return -1;
+    if (!write && count > unit) {
+        struct blk_plug plug;
+        u64 end = (at + count - 1u) >> shift;
+        blk_start_plug(&plug);
+        for (u64 block = at >> shift; block <= end; ++block)
+            __breadahead(sb->s_bdev, block, unit);
+        blk_finish_plug(&plug);
+    }
     while (done < count) {
         u64 offset = at + done;
         u32 within = offset & (unit - 1u), take = min(count - done, unit - within);
-        struct buffer_head *bh = sb_bread(m->sb, offset >> m->sb->s_blocksize_bits);
-        if (!bh) { m->error = -EIO; return -1; }
+        /* Full device buffers can be replaced without a read-modify-write. */
+        struct buffer_head *bh = write && take == unit
+            ? sb_getblk(sb, offset >> shift) : sb_bread(sb, offset >> shift);
+        if (!bh) {
+            if (write) m->error = -EIO;
+            return -1;
+        }
         if (write) {
             lock_buffer(bh);
             memcpy(bh->b_data + within, (u8 *)data + done, take);
@@ -454,7 +469,7 @@ static int fill_folio(struct inode *inode, struct folio *folio) {
     u32 count = !r && at < n.bytes ? min_t(u64, folio_size(folio), n.bytes - at) : 0;
     void *data = count ? kvmalloc(count, GFP_NOFS) : NULL;
     if (!r && count && !data) r = IFS_OFS_NO_MEMORY;
-    if (!r && count) r = ofs_read_file(m->fs, &n, at, data, count, NULL);
+    if (!r && count) r = ofs_read_cached(m->fs, &n, at, data, count);
     if (!r) {
         if (count) memcpy_to_folio(folio, 0, data, count);
         folio_zero_range(folio, count, folio_size(folio) - count);
@@ -742,7 +757,7 @@ static int reconfigure_mount(struct super_block *sb, unsigned flags) {
     else if (m->fs->io.flags & IFS_OFS_READ_ONLY) {
         m->fs->io.flags &= ~IFS_OFS_READ_ONLY;
         IfsOfsCheckV3 check;
-        r = ofs_verify(m->fs, &check, 0);
+        r = ofs_verify(m->fs, &check, OFS_VERIFY_ALLOCATION);
         if (r) m->fs->io.flags |= IFS_OFS_READ_ONLY;
         else {
             m->fs->used_blocks = check.referenced_blocks;
@@ -849,7 +864,7 @@ static int fill_super(struct super_block *sb, const char *data) {
     IfsOfsIoV3 io = {sizeof(io),
         sb_rdonly(sb) ? IFS_OFS_READ_ONLY : IFS_OFS_ORDERED_WRITEBACK, m,
         bdev_nr_bytes(sb->s_bdev), read_io, write_io, flush_io, allocate_io, release_io, clock_io};
-    r = status(ofs_probe(m->fs, &io, &options));
+    r = status(ofs_probe_allocation(m->fs, &io, &options));
     if (r) goto fail;
     OfsNode root;
     r = status(ofs_node(m->fs, m->fs->root, &root, m->fs->scratch[0]));
