@@ -77,7 +77,7 @@ def build_deb(profile, dest):
             f"X-Infiltrator-Resource-SHA256: {digest}\n"
             f"X-Infiltrator-PDF-SHA256: {pdf_digest}\n"
             f"Description: Independent {MODULE} filesystem shared object for InfiltratorOS\n"
-            f" Installs only {MODULE} and its illustrated PDF.\n")
+            f" Installs {MODULE} and its illustrated PDF.\n")
         dest.parent.mkdir(parents=True, exist_ok=True)
         run(["dpkg-deb", "--root-owner-group", "--build", root, dest])
         content = subprocess.check_output(["dpkg-deb", "--contents", str(dest)], text=True)
@@ -91,6 +91,41 @@ def build_deb(profile, dest):
             if actual != expected:
                 raise RuntimeError("DEB must own one .so and one PDF: " + str(actual))
     return dest
+
+
+def bundle_kernel(package, kernel, output):
+    """Add the qualified Linux binary to the already built portable package."""
+    if kernel.is_symlink() or not kernel.is_file():
+        raise ValueError("Expected a regular OFS kernel module")
+    report = subprocess.check_output(["readelf", "-W", "-h", "-p", ".modinfo", kernel],
+                                     text=True, env={**os.environ, "LC_ALL": "C"})
+    if (not re.search(r"^\s*Type:\s+REL\b", report, re.M)
+            or not re.search(r"^\s*Machine:.*X86-64\s*$", report, re.M)
+            or not re.search(r"\bname=ofs\s*$", report, re.M)
+            or not re.search(r"\bvermagic=6\.12\.107(?=\s|$)", report)):
+        raise ValueError("Expected the amd64 OFS module for Linux 6.12.107")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="ofs-kernel-package-", dir=output.parent) as folder:
+        work = Path(folder)
+        image = work / "root"
+        run(["dpkg-deb", "--raw-extract", package, image])
+        control = image / "DEBIAN/control"
+        text = control.read_text()
+        fields = dict(line.split(": ", 1) for line in text.splitlines() if ": " in line and not line.startswith(" "))
+        expected = {"Package": PACKAGE, "Version": VERSION, "Architecture": "amd64",
+                    "X-Infiltrator-Native-Profile": "portable", "X-Infiltrator-Source-Revision": source_revision()}
+        if any(fields.get(key) != value for key, value in expected.items()):
+            raise ValueError("Expected the portable OFS package from this release source")
+        destination = image / "System/Kernel/Filesystems/ofs.ko"
+        if destination.exists() or destination.is_symlink() or "X-Infiltrator-Kernel-SHA256" in fields:
+            raise ValueError("The package already contains an OFS kernel module")
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(kernel, destination)
+        digest = hashlib.sha256(destination.read_bytes()).hexdigest()
+        control.write_text(text.rstrip("\n") + "\n" + f"X-Infiltrator-Kernel-SHA256: {digest}\n")
+        bundled = work / "bundled.deb"
+        run(["dpkg-deb", "--root-owner-group", "--build", image, bundled])
+        bundled.replace(output)
 
 def source_files():
     if (ROOT / ".git").exists():
@@ -213,14 +248,21 @@ def install(rest):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("command", choices=("release", "install"))
+    p.add_argument("command", choices=("release", "install", "bundle-kernel"))
     args, rest = p.parse_known_args()
     if args.command == "release":
         if rest:
             p.error("Unrecognised release options")
         release()
-    else:
+    elif args.command == "install":
         install(rest)
+    else:
+        bundle = argparse.ArgumentParser()
+        bundle.add_argument("package", type=Path)
+        bundle.add_argument("kernel", type=Path)
+        bundle.add_argument("output", type=Path)
+        paths = bundle.parse_args(rest)
+        bundle_kernel(paths.package, paths.kernel, paths.output)
 
 if __name__ == "__main__":
     try:

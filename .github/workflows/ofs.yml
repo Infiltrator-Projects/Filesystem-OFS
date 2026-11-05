@@ -199,6 +199,19 @@ jobs:
             --kernel "$RUNNER_TEMP/linux/arch/x86/boot/bzImage" --kernel-module build/kernel/ofs.ko \
             --module build/kernel/portable/System/Filesystems/OFS.so \
             --oracle .qualification/oracle/amitools-0.8.1 --output build/ofs-root
+      - name: Bundle the qualified Linux module in the portable DEB
+        if: matrix.version == '6.12.107'
+        run: |
+          package="dist/infiltrator-filesystem-ofs_$(cat VERSION)_amd64.deb"
+          bundled="build/qualified-portable/$(basename "$package")"
+          python3 standalone/release.py bundle-kernel "$package" build/kernel/ofs.ko "$bundled"
+          python3 tests/check-package.py "$bundled" --profile portable --kernel-module build/kernel/ofs.ko
+      - uses: actions/upload-artifact@v4
+        if: matrix.version == '6.12.107'
+        with:
+          name: ofs-portable-${{ github.sha }}
+          path: build/qualified-portable/*.deb
+          if-no-files-found: error
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}-${{ github.sha }}
@@ -246,6 +259,10 @@ jobs:
         with:
           name: ofs-kernel-${{ github.sha }}
           path: build/qualified-kernel
+      - uses: actions/download-artifact@v4
+        with:
+          name: ofs-portable-${{ github.sha }}
+          path: build/qualified-portable
       - name: Publish exact qualified immutable version
         env:
           GH_TOKEN: ${{ github.token }}
@@ -260,7 +277,9 @@ jobs:
             exit 0
           fi
           mkdir -p build/package
+          install -m 0644 "build/qualified-portable/infiltrator-filesystem-ofs_${version}_amd64.deb" "dist/infiltrator-filesystem-ofs_${version}_amd64.deb"
           dpkg-deb -x dist/*.deb build/package
+          cmp build/package/System/Kernel/Filesystems/ofs.ko build/qualified-kernel/ofs.ko
           install -m 0644 build/package/System/Filesystems/OFS.so dist/OFS.so
           install -m 0644 build/qualified-kernel/ofs.ko dist/ofs-linux-6.12.107.ko
           (cd dist && sha256sum *.deb *.run OFS.so *.ko > SHA256SUMS)

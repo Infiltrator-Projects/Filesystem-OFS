@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 p=argparse.ArgumentParser();p.add_argument('package',type=Path);p.add_argument('--profile',choices=('portable','aggressive'),required=True)
+p.add_argument('--kernel-module',type=Path)
 a=p.parse_args();root=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(root/'standalone'));import build
 with tempfile.TemporaryDirectory(prefix='ofs-package-') as tmp:
@@ -24,9 +25,18 @@ with tempfile.TemporaryDirectory(prefix='ofs-package-') as tmp:
     assert fields['X-Infiltrator-Resource-SHA256']==hashlib.sha256(module.read_bytes()).hexdigest()
     assert fields['X-Infiltrator-PDF-SHA256']==hashlib.sha256(manual.read_bytes()).hexdigest()
     assert len(fields['X-Infiltrator-Source-Revision'])==40
+    expected_files = {module, manual}
+    if a.kernel_module:
+        kernel = target/'System/Kernel/Filesystems/ofs.ko'
+        assert kernel.read_bytes() == a.kernel_module.read_bytes()
+        assert fields['X-Infiltrator-Kernel-SHA256'] == hashlib.sha256(kernel.read_bytes()).hexdigest()
+        expected_files.add(kernel)
+    assert {x for x in target.rglob('*') if x.is_symlink() or not x.is_dir()} == expected_files
+    assert all(x.is_file() and not x.is_symlink() for x in expected_files)
     if a.profile=='aggressive':
         assert '-O3 -march=native -mtune=native -flto=auto' in fields['X-Infiltrator-Cflags']
         assert fields['X-Infiltrator-PGO']=='trained-two-pass'
         assert fields['X-Infiltrator-LTO']=='enabled'
-    subprocess.run([sys.executable,str(root/'tests/ofs_complete_test.py'),'--module',str(module),'--quick'],check=True)
+    if not a.kernel_module:
+        subprocess.run([sys.executable,str(root/'tests/ofs_complete_test.py'),'--module',str(module),'--quick'],check=True)
 print('OFS-PACKAGE-CONTENTS-BINARY-IDENTITY-LIFECYCLE-PASS',a.profile)
