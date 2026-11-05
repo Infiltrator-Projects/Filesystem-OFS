@@ -17,10 +17,10 @@ with tempfile.TemporaryDirectory(prefix='ofs-package-') as tmp:
     payload=[x for x in (target/'System/Filesystems').iterdir()]
     assert len(payload)==1 and payload[0].name=='OFS.so'
     module=payload[0];build.inspect(module)
-    docs=target/'System/Resources/Documentation/Filesystem-OFS'
-    manual=docs/'OFS.pdf'
+    docs=target/'System/Resources/Documentation'
+    manual=docs/'Filesystem-OFS.pdf'
     assert manual.read_bytes().startswith(b'%PDF-')
-    assert {x.name for x in docs.iterdir()} == {'OFS.pdf'}
+    assert {x.name for x in docs.iterdir()} == {'Filesystem-OFS.pdf'}
     report=subprocess.check_output(['dpkg-deb','-f',str(a.package.resolve())],text=True)
     fields=dict(line.split(': ',1) for line in report.splitlines() if ': ' in line)
     assert fields['X-Infiltrator-Native-Profile']==a.profile

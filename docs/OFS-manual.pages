@@ -41,7 +41,7 @@ BT /F1 10.7 Tf 0.060 0.115 0.200 rg 1 0 0 1 65 323 Tm (Native Defrag V2 layout, 
 BT /F2 15 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 245 Tm (Installed files) Tj ET
 0.930 0.960 0.970 rg 45 136 506 79 re f
 BT /F3 11 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 192 Tm (/System/Filesystems/OFS.so) Tj ET
-BT /F3 10 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 168 Tm (/System/Resources/Documentation/Filesystem-OFS/OFS.pdf) Tj ET
+BT /F3 10 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 168 Tm (/System/Resources/Documentation/Filesystem-OFS.pdf) Tj ET
 BT /F3 10 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 147 Tm (/System/Kernel/Filesystems/ofs.ko) Tj ET
 %%Page
 0.060 0.115 0.200 rg 0 750 595 92 re f

@@ -46,7 +46,7 @@ make release
 The release contains portable `OFS.so`, its DEB, a source-first native RUN
 installer, and separately qualified `ofs-linux-6.12.107.ko`. The published
 DEB installs `/System/Filesystems/OFS.so`, the manual at
-`/System/Resources/Documentation/Filesystem-OFS/OFS.pdf`, and the qualified
+`/System/Resources/Documentation/Filesystem-OFS.pdf`, and the qualified
 module at `/System/Kernel/Filesystems/ofs.ko` for manual use. The native profile
 uses `-O3 -march=native -mtune=native -flto=auto` with measured two-pass PGO;
 AVX/AMX instructions are disabled for firmware compatibility. Build records

@@ -46,6 +46,7 @@ jobs:
           set -euo pipefail
           test "$(find dist -maxdepth 1 -type f | wc -l)" -eq 2
           python3 tests/check-package.py dist/*.deb --profile portable
+          sudo python3 standalone/check-documentation-upgrade.py dist/*.deb
           bash dist/*.run --help
           bash dist/*.run --profile aggressive --system-package-mode --build-only --output build/native-package
           python3 tests/check-package.py build/native-package/*.deb --profile aggressive
@@ -192,8 +193,8 @@ jobs:
           install -m 0644 build/kernel/manual/System/Kernel/Filesystems/ofs.ko build/kernel/ofs.ko
           test "$(modinfo -F name build/kernel/ofs.ko)" = ofs
           dpkg-deb -x dist/*.deb build/kernel/portable
-          cmp build/kernel/manual/System/Resources/Documentation/Filesystem-OFS/OFS.pdf \
-              build/kernel/portable/System/Resources/Documentation/Filesystem-OFS/OFS.pdf
+          cmp build/kernel/manual/System/Resources/Documentation/Filesystem-OFS.pdf \
+              build/kernel/portable/System/Resources/Documentation/Filesystem-OFS.pdf
           python3 tests/fetch-oracle.py --output .qualification/oracle
           python3 tests/test_kernel_runtime.py --kernel "$kernel/arch/x86/boot/bzImage" \
             --module build/kernel/ofs.ko --so build/kernel/portable/System/Filesystems/OFS.so \
