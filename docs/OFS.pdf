@@ -19,13 +19,13 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 7 0 R >>
 endobj
 7 0 obj
-<< /Length 3260 >>
+<< /Length 3273 >>
 stream
 0.060 0.115 0.200 rg 0 750 595 92 re f
 0.020 0.520 0.560 rg 45 747 90 4 re f
 BT /F2 10 Tf 0.570 0.820 0.870 rg 1 0 0 1 45 803 Tm (INFILTRATOR  /  FILESYSTEMS) Tj ET
 BT /F2 21 Tf 1.000 1.000 1.000 rg 1 0 0 1 45 774 Tm (Amiga Original File System) Tj ET
-BT /F1 9 Tf 0.320 0.390 0.450 rg 1 0 0 1 45 37 Tm (Filesystem-OFS  |  User manual  |  0.1.2) Tj ET
+BT /F1 9 Tf 0.320 0.390 0.450 rg 1 0 0 1 45 37 Tm (Filesystem-OFS  |  User manual  |  0.1.9) Tj ET
 0.810 0.850 0.880 RG 1 w 45 50 m 550 50 l S
 BT /F1 9 Tf 0.320 0.390 0.450 rg 1 0 0 1 519 37 Tm (01 / 02) Tj ET
 BT /F2 12 Tf 0.020 0.520 0.560 rg 1 0 0 1 45 714 Tm (WHAT IS THIS FILESYSTEM?) Tj ET
@@ -61,24 +61,24 @@ BT /F1 10.7 Tf 0.060 0.115 0.200 rg 1 0 0 1 65 353 Tm (V3 file operations and me
 0.020 0.520 0.560 rg 47 324 7 7 re f
 BT /F1 10.7 Tf 0.060 0.115 0.200 rg 1 0 0 1 65 323 Tm (Native Defrag V2 layout, journal, Growth reserve and recovery) Tj ET
 0.020 0.520 0.560 rg 45 234 4 22 re f
-BT /F2 15 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 245 Tm (One installed module and one manual) Tj ET
+BT /F2 15 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 245 Tm (Installed files) Tj ET
 0.930 0.960 0.970 rg 45 136 506 79 re f
 BT /F3 11 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 192 Tm (/System/Filesystems/OFS.so) Tj ET
-BT /F3 10 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 168 Tm (/System/Resources/Documentation/Filesystem-OFS/) Tj ET
-BT /F3 11 Tf 0.020 0.520 0.560 rg 1 0 0 1 60 147 Tm (OFS.pdf) Tj ET
+BT /F3 10 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 168 Tm (/System/Resources/Documentation/Filesystem-OFS/OFS.pdf) Tj ET
+BT /F3 10 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 147 Tm (/System/Kernel/Filesystems/ofs.ko) Tj ET
 endstream
 endobj
 8 0 obj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 9 0 R >>
 endobj
 9 0 obj
-<< /Length 3152 >>
+<< /Length 3169 >>
 stream
 0.060 0.115 0.200 rg 0 750 595 92 re f
 0.020 0.520 0.560 rg 45 747 90 4 re f
 BT /F2 10 Tf 0.570 0.820 0.870 rg 1 0 0 1 45 803 Tm (INFILTRATOR  /  FILESYSTEMS) Tj ET
 BT /F2 21 Tf 1.000 1.000 1.000 rg 1 0 0 1 45 774 Tm (Amiga Original File System) Tj ET
-BT /F1 9 Tf 0.320 0.390 0.450 rg 1 0 0 1 45 37 Tm (Filesystem-OFS  |  User manual  |  0.1.2) Tj ET
+BT /F1 9 Tf 0.320 0.390 0.450 rg 1 0 0 1 45 37 Tm (Filesystem-OFS  |  User manual  |  0.1.9) Tj ET
 0.810 0.850 0.880 RG 1 w 45 50 m 550 50 l S
 BT /F1 9 Tf 0.320 0.390 0.450 rg 1 0 0 1 519 37 Tm (02 / 02) Tj ET
 0.020 0.520 0.560 rg 45 703 4 22 re f
@@ -89,9 +89,9 @@ BT /F1 11 Tf 0.060 0.115 0.200 rg 1 0 0 1 45 651 Tm (directly.) Tj ET
 0.020 0.520 0.560 rg 45 593 4 22 re f
 BT /F2 15 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 604 Tm (Installation and verification) Tj ET
 0.930 0.960 0.970 rg 45 465 506 117 re f
-BT /F1 10.7 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 560 Tm (Portable package: install the released Debian .deb.) Tj ET
-BT /F1 10.7 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 539 Tm (Native option: run the released .run installer.) Tj ET
-BT /F1 10.7 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 515 Tm (The Debian package owns exactly one .so and this PDF.) Tj ET
+BT /F1 10.7 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 560 Tm (The released Debian package installs all three files.) Tj ET
+BT /F1 10.7 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 539 Tm (The native .run builds the SO, PDF and KO locally.) Tj ET
+BT /F1 10.7 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 515 Tm (The native .run uses the build tree for the target Linux kernel.) Tj ET
 BT /F1 10.7 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 492 Tm (Build records and checksums live in the Debian package metadata.) Tj ET
 BT /F1 10.7 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 473 Tm (Full source, tests and engineering notes remain in GitHub.) Tj ET
 0.020 0.520 0.560 rg 45 418 4 22 re f
@@ -102,7 +102,7 @@ BT /F1 10.8 Tf 0.060 0.115 0.200 rg 1 0 0 1 65 401 Tm (OFS and FFS are different
 BT /F1 10.8 Tf 0.060 0.115 0.200 rg 1 0 0 1 65 369 Tm (Boot integration is read-only; write paths are distinct application) Tj ET
 BT /F1 10.8 Tf 0.060 0.115 0.200 rg 1 0 0 1 65 352 Tm (interfaces.) Tj ET
 0.740 0.460 0.140 rg 47 321 7 7 re f
-BT /F1 10.8 Tf 0.060 0.115 0.200 rg 1 0 0 1 65 320 Tm (The released kernel .ko is qualified for a pinned Linux version only.) Tj ET
+BT /F1 10.8 Tf 0.060 0.115 0.200 rg 1 0 0 1 65 320 Tm (The prebuilt kernel module targets the qualified Linux 6.12.107 build.) Tj ET
 0.020 0.520 0.560 rg 45 245 4 22 re f
 BT /F2 15 Tf 0.060 0.115 0.200 rg 1 0 0 1 60 256 Tm (Operational model) Tj ET
 BT /F3 11 Tf 0.060 0.115 0.200 rg 1 0 0 1 45 229 Tm (Media -> host I/O callbacks -> filesystem .so -> caller) Tj ET
@@ -122,10 +122,10 @@ xref
 0000000272 00000 n 
 0000000340 00000 n 
 0000000486 00000 n 
-0000003797 00000 n 
-0000003943 00000 n 
+0000003810 00000 n 
+0000003956 00000 n 
 trailer
-<< /Root 1 0 R /Size 10 >>
+<< /Size 10 /Root 1 0 R >>
 startxref
-7146
+7176
 %%EOF

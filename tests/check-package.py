@@ -7,7 +7,9 @@ import subprocess
 import sys
 import tempfile
 p=argparse.ArgumentParser();p.add_argument('package',type=Path);p.add_argument('--profile',choices=('portable','aggressive'),required=True)
-p.add_argument('--kernel-module',type=Path)
+kernel_options=p.add_mutually_exclusive_group()
+kernel_options.add_argument('--kernel-module',type=Path)
+kernel_options.add_argument('--kernel-release')
 a=p.parse_args();root=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(root/'standalone'));import build
 with tempfile.TemporaryDirectory(prefix='ofs-package-') as tmp:
@@ -26,9 +28,14 @@ with tempfile.TemporaryDirectory(prefix='ofs-package-') as tmp:
     assert fields['X-Infiltrator-PDF-SHA256']==hashlib.sha256(manual.read_bytes()).hexdigest()
     assert len(fields['X-Infiltrator-Source-Revision'])==40
     expected_files = {module, manual}
-    if a.kernel_module:
+    if a.kernel_module or a.kernel_release:
         kernel = target/'System/Kernel/Filesystems/ofs.ko'
-        assert kernel.read_bytes() == a.kernel_module.read_bytes()
+        if a.kernel_module:
+            assert kernel.read_bytes() == a.kernel_module.read_bytes()
+        if a.kernel_release:
+            vermagic = subprocess.check_output(['modinfo','-F','vermagic',str(kernel)],text=True).split()[0]
+            assert vermagic == a.kernel_release
+            assert fields['X-Infiltrator-Kernel-Release'] == a.kernel_release
         assert fields['X-Infiltrator-Kernel-SHA256'] == hashlib.sha256(kernel.read_bytes()).hexdigest()
         expected_files.add(kernel)
     assert {x for x in target.rglob('*') if x.is_symlink() or not x.is_dir()} == expected_files
@@ -37,6 +44,6 @@ with tempfile.TemporaryDirectory(prefix='ofs-package-') as tmp:
         assert '-O3 -march=native -mtune=native -flto=auto' in fields['X-Infiltrator-Cflags']
         assert fields['X-Infiltrator-PGO']=='trained-two-pass'
         assert fields['X-Infiltrator-LTO']=='enabled'
-    if not a.kernel_module:
+    if not a.kernel_module and not a.kernel_release:
         subprocess.run([sys.executable,str(root/'tests/ofs_complete_test.py'),'--module',str(module),'--quick'],check=True)
 print('OFS-PACKAGE-CONTENTS-BINARY-IDENTITY-LIFECYCLE-PASS',a.profile)

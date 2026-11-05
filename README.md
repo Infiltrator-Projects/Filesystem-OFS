@@ -56,11 +56,20 @@ exercise the same workloads and injected I/O failures. Hosts without that
 space use the normal temporary directory, which the full `make check` suite
 also uses.
 
-The RUN can build a package without installing it.
+The manual RUN builds `OFS.so` and `ofs.ko` locally, generates the PDF from
+`docs/OFS-manual.pages`, and installs all three files at the same paths as the
+portable DEB. It uses the running kernel's prepared build directory under
+`/lib/modules` by default. Install the matching kernel headers first, or pass
+`--kernel-build DIRECTORY` to target a prepared kernel build explicitly. The
+module is stored for manual use. Use `--build-only` to produce the package
+without installing it.
 
 ```sh
-bash filesystem-ofs-0.1.1-native-installer.run --build-only --output ./native-package
+bash filesystem-ofs-0.1.9-native-installer.run --build-only --output ./native-package
 ```
+
+InfiltratorOS uses `--system-package-mode` to build the SO and PDF as a package.
+Its installer checks and stages the matching released kernel module separately.
 
 Defragmenter loads `/System/Filesystems/OFS.so` for analysis, Defrag, Growth
 Defrag and Recover. The same file supplies V3 formatting and creation for its

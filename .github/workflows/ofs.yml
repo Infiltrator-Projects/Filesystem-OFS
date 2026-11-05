@@ -89,7 +89,7 @@ jobs:
           make test
           dpkg-deb -x dist/*.deb build/release-package
           cmp build/OFS.so build/release-package/System/Filesystems/OFS.so
-          bash dist/*.run --build-only --output build/native-package
+          bash dist/*.run --system-package-mode --build-only --output build/native-package
           dpkg-deb -x build/native-package/*.deb build/native-payload
           mkdir -p build-native
           cp build/native-payload/System/Filesystems/OFS.so build-native/OFS.so
@@ -162,7 +162,7 @@ jobs:
         with:
           name: ofs-qualified-${{ github.sha }}
           path: dist
-      - name: Build pinned Linux and the actual native KO
+      - name: Build pinned Linux and qualify the manual RUN
         shell: bash
         run: |
           set -euo pipefail
@@ -185,9 +185,15 @@ jobs:
           fi
           make -C "$kernel" olddefconfig
           make -C "$kernel" -j2 bzImage modules
-          bash scripts/build-ofs-kernel.sh build/kernel "$kernel"
+          kernel_release=$(make -s -C "$kernel" kernelrelease)
+          bash dist/*.run --profile portable --build-only --kernel-build "$kernel" --output build/manual-package
+          python3 tests/check-package.py build/manual-package/*.deb --profile portable --kernel-release "$kernel_release"
+          dpkg-deb -x build/manual-package/*.deb build/kernel/manual
+          install -m 0644 build/kernel/manual/System/Kernel/Filesystems/ofs.ko build/kernel/ofs.ko
           test "$(modinfo -F name build/kernel/ofs.ko)" = ofs
           dpkg-deb -x dist/*.deb build/kernel/portable
+          cmp build/kernel/manual/System/Resources/Documentation/Filesystem-OFS/OFS.pdf \
+              build/kernel/portable/System/Resources/Documentation/Filesystem-OFS/OFS.pdf
           python3 tests/fetch-oracle.py --output .qualification/oracle
           python3 tests/test_kernel_runtime.py --kernel "$kernel/arch/x86/boot/bzImage" \
             --module build/kernel/ofs.ko --so build/kernel/portable/System/Filesystems/OFS.so \
