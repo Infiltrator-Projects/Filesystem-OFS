@@ -108,7 +108,7 @@ PDF = Path("docs/OFS.pdf")
 
 def build_manual(destination, version):
     """Compile the existing two-page design without host fonts or timestamps."""
-    source = (ROOT / "docs/OFS-manual.pages").read_bytes()
+    raw = (ROOT / "docs/OFS-manual.pages").read_bytes()\n    if (raw.count(b"\n%%Page\n") < 7 or raw.count(b"https://") < 2 or b"HISTORICAL" not in raw.upper()):\n        raise ValueError("Insufficient original-format reference: need 8 pages, chronology and primary sources")\n    source = raw
     pages = source.replace(b"@VERSION@", version.encode("ascii")).split(b"\n%%Page\n")
     objects = [b"<< /Type /Catalog /Pages 2 0 R >>", b""]
     for font in (b"Helvetica", b"Helvetica-Bold", b"Courier"):
