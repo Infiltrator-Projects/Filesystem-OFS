@@ -167,3 +167,61 @@ BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 440.0 Tm (Implementation boundary: t
 BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 423.0 Tm (and the source-first installer are distinct products. The original filesystem design is) Tj ET
 BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 406.0 Tm (documented above; claims about the adapter's qualification require its own source, tests) Tj ET
 BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 389.0 Tm (and release evidence.) Tj ET
+%%Page
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.04 0.52 0.60 rg 50 747 114 5 re f
+0.76 0.82 0.86 RG 0.7 w 50 50 m 545 50 l S
+BT /F2 9 Tf 0.65 0.89 0.92 rg 1 0 0 1 50 802.0 Tm (INFILTRATOR / PRIMARY FORMAT DESIGN APPENDIX) Tj ET
+BT /F2 17 Tf 1 1 1 rg 1 0 0 1 50 773.0 Tm (OFS / technical detail) Tj ET
+BT /F1 8 Tf 0.31 0.40 0.44 rg 1 0 0 1 50 34.0 Tm (OFS / original filesystem research) Tj ET
+BT /F1 8 Tf 0.31 0.40 0.44 rg 1 0 0 1 510 34.0 Tm (PAGE 09) Tj ET
+BT /F2 14 Tf 0.03 0.44 0.51 rg 1 0 0 1 50 704.0 Tm (ON-DISK FIELD AND STRUCTURE INVENTORY) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 666.0 Tm (Format-specific field names and meanings are summarised below; where applicable the) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 648.0 Tm (original specification defines exact endianness, offsets, checksums and format-revision) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 630.0 Tm (limits.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 600.0 Tm (1. Boot identifier: DOS0, DOS2, DOS4 or DOS6 variant identity.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 570.0 Tm (2. Root block: volume name, time fields, bitmap and hash table.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 540.0 Tm (3. Directory header: metadata and hash-chain continuation links.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 510.0 Tm (4. File header: size, name, protection, extension and data-table pointers.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 480.0 Tm (5. File extension: continuation of reversed data pointer sequence.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 450.0 Tm (6. OFS data block: 24-byte type, owner, sequence, size, next, checksum header.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 420.0 Tm (7. Bitmap blocks: per-block free/used ownership state.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 390.0 Tm (8. Bitmap-valid protocol: distinguishes clean allocation bookkeeping.) Tj ET
+%%Page
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.04 0.52 0.60 rg 50 747 114 5 re f
+0.76 0.82 0.86 RG 0.7 w 50 50 m 545 50 l S
+BT /F2 9 Tf 0.65 0.89 0.92 rg 1 0 0 1 50 802.0 Tm (INFILTRATOR / PRIMARY FORMAT DESIGN APPENDIX) Tj ET
+BT /F2 17 Tf 1 1 1 rg 1 0 0 1 50 773.0 Tm (OFS / technical detail) Tj ET
+BT /F1 8 Tf 0.31 0.40 0.44 rg 1 0 0 1 50 34.0 Tm (OFS / original filesystem research) Tj ET
+BT /F1 8 Tf 0.31 0.40 0.44 rg 1 0 0 1 510 34.0 Tm (PAGE 10) Tj ET
+BT /F2 14 Tf 0.03 0.44 0.51 rg 1 0 0 1 50 704.0 Tm (HISTORICAL FORMAT DEVELOPMENT) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 666.0 Tm (Selected design milestones explain why this format acquired its present layout. Dates) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 648.0 Tm (refer to historical format or implementation changes, not InfiltratorOS releases.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 618.0 Tm (1. 1985: original AmigaDOS OFS shipping with the first Amiga.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 588.0 Tm (2. Late 1980s: FFS removes file data block headers for speed.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 558.0 Tm (3. 1992: directory-caching file system mode introduced.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 528.0 Tm (4. 2001: long-name variation extends AmigaDOS structures.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 498.0 Tm (Important historical distinction: newly introduced driver features are not necessarily) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 480.0 Tm (changes to the original on-disk format. Read the version or feature bits rather than) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 462.0 Tm (assuming current software support defines historic media.) Tj ET
+%%Page
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.04 0.52 0.60 rg 50 747 114 5 re f
+0.76 0.82 0.86 RG 0.7 w 50 50 m 545 50 l S
+BT /F2 9 Tf 0.65 0.89 0.92 rg 1 0 0 1 50 802.0 Tm (INFILTRATOR / PRIMARY FORMAT DESIGN APPENDIX) Tj ET
+BT /F2 17 Tf 1 1 1 rg 1 0 0 1 50 773.0 Tm (OFS / technical detail) Tj ET
+BT /F1 8 Tf 0.31 0.40 0.44 rg 1 0 0 1 50 34.0 Tm (OFS / original filesystem research) Tj ET
+BT /F1 8 Tf 0.31 0.40 0.44 rg 1 0 0 1 510 34.0 Tm (PAGE 11) Tj ET
+BT /F2 14 Tf 0.03 0.44 0.51 rg 1 0 0 1 50 704.0 Tm (FORMAT VALIDATION AND RECOVERY INVARIANTS) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 666.0 Tm (A writable implementation must establish all of these conditions before modifying any) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 648.0 Tm (original-format media. These checks describe the minimum class of invariants, not proof) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 630.0 Tm (of complete recovery qualification.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 600.0 Tm (1. Check 24-byte OFS data header and checksum for each file block.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 570.0 Tm (2. Require data sequences and owner keys consistent with file headers.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 540.0 Tm (3. Validate bitmap allocation against namespace reachability.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 510.0 Tm (4. Distinguish DOS0, international, cache and long-name modes.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 480.0 Tm (5. Never apply FFS raw-data mapping to OFS blocks.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 450.0 Tm (Forensic principle: use a separate verified image, retain original structures, and) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 432.0 Tm (report conflicting evidence instead of inventing a new supposedly clean filesystem) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 414.0 Tm (state.) Tj ET
