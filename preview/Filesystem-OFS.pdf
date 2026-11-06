@@ -1,0 +1,428 @@
+%PDF-1.4
+%ASCII-ONLY-PDF
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [6 0 R 8 0 R 10 0 R 12 0 R 14 0 R 16 0 R 18 0 R 20 0 R 22 0 R 24 0 R 26 0 R 28 0 R 30 0 R] /Count 13 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 2940 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+0.75 0.82 0.85 RG .7 w 50 49 m 545 49 l S
+BT /F2 9 Tf 0.62 0.88 0.91 rg 1 0 0 1 50 800.0 Tm (INFILTRATOR / FILESYSTEM HISTORICAL & DESIGN REFERENCE) Tj ET
+BT /F2 19 Tf 1 1 1 rg 1 0 0 1 50 770.0 Tm (Amiga OFS - original disk filesystem) Tj ET
+BT /F1 8 Tf 0.30 0.39 0.42 rg 1 0 0 1 50 34.0 Tm (Filesystem-OFS / technical reference / current-source revision) Tj ET
+BT /F1 8 Tf 0.30 0.39 0.42 rg 1 0 0 1 504 34.0 Tm (PAGE 01) Tj ET
+BT /F2 12 Tf 0.03 0.54 0.59 rg 1 0 0 1 50 695.0 Tm (ORIGINAL FORMAT / HISTORY / ENGINEERING DESIGN) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 649.0 Tm (Amiga Original File System \(DOS0\) preserves checksummed header-bearing data blocks, a) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 632.0 Tm (bitmap allocator, and AmigaDOS name and directory semantics.) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 603.0 Tm (This reference describes the original upstream disk format and its historical engineering) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 586.0 Tm (rationale. The separate InfiltratorOS adapter is not the original specification. Historical) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 569.0 Tm (facts, format rules and implementation limitations are separated; consult the named primary) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 552.0 Tm (sources for field-level normative requirements.) Tj ET
+BT /F2 12 Tf 0.02 0.44 0.50 rg 1 0 0 1 50 516.0 Tm (ON-DISK STRUCTURE / CONCEPTUAL MAP) Tj ET
+0.05 0.35 0.45 rg 50 434 238 68 re f
+BT /F2 12 Tf 1 1 1 rg 1 0 0 1 63 463.0 Tm (BOOT BLOCKS) Tj ET
+BT /F1 9 Tf 0.86 0.96 0.97 rg 1 0 0 1 63 444.0 Tm (DOS type, boot code, root link) Tj ET
+0.08 0.39 0.48 rg 299 434 238 68 re f
+BT /F2 12 Tf 1 1 1 rg 1 0 0 1 312 463.0 Tm (ROOT BLOCK) Tj ET
+BT /F1 9 Tf 0.86 0.96 0.97 rg 1 0 0 1 312 444.0 Tm (Volume and root directory) Tj ET
+0.11 0.43 0.51 rg 50 354 238 68 re f
+BT /F2 12 Tf 1 1 1 rg 1 0 0 1 63 383.0 Tm (BITMAP + HEADERS) Tj ET
+BT /F1 9 Tf 0.86 0.96 0.97 rg 1 0 0 1 63 364.0 Tm (Allocation and name metadata) Tj ET
+0.14 0.47 0.54 rg 299 354 238 68 re f
+BT /F2 12 Tf 1 1 1 rg 1 0 0 1 312 383.0 Tm (DATA BLOCKS) Tj ET
+BT /F1 9 Tf 0.86 0.96 0.97 rg 1 0 0 1 312 364.0 Tm (24-byte OFS file data headers) Tj ET
+BT /F2 12 Tf 0.02 0.44 0.50 rg 1 0 0 1 50 313.0 Tm (CHAPTERS) Tj ET
+BT /F1 10.5 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 284.0 Tm (1. Historical chronology) Tj ET
+BT /F1 10.5 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 259.0 Tm (2. Original design and on-disk structures) Tj ET
+BT /F1 10.5 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 234.0 Tm (3. Allocation and directories) Tj ET
+BT /F1 10.5 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 209.0 Tm (4. Integrity, validation and recovery) Tj ET
+BT /F1 10.5 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 184.0 Tm (5. Design trade-offs and historical limitations) Tj ET
+BT /F1 10.5 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 159.0 Tm (6. InfiltratorOS interpretation) Tj ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 9 0 R >>
+endobj
+9 0 obj
+<< /Length 2096 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+0.75 0.82 0.85 RG .7 w 50 49 m 545 49 l S
+BT /F2 9 Tf 0.62 0.88 0.91 rg 1 0 0 1 50 800.0 Tm (INFILTRATOR / FILESYSTEM HISTORICAL & DESIGN REFERENCE) Tj ET
+BT /F2 19 Tf 1 1 1 rg 1 0 0 1 50 770.0 Tm (Amiga OFS - original disk filesystem) Tj ET
+BT /F1 8 Tf 0.30 0.39 0.42 rg 1 0 0 1 50 34.0 Tm (Filesystem-OFS / technical reference / current-source revision) Tj ET
+BT /F1 8 Tf 0.30 0.39 0.42 rg 1 0 0 1 504 34.0 Tm (PAGE 02) Tj ET
+BT /F2 16 Tf 0.02 0.44 0.50 rg 1 0 0 1 50 713.0 Tm (HISTORICAL CHRONOLOGY) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 677.0 Tm (The original Amiga file system appeared with the first Commodore Amiga machines in 1985.) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 660.0 Tm (The DOS0 format suited the floppy-centred Amiga environment and its operating system's) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 643.0 Tm (distinctive handler and device model. The Fast File System later changed file-data layout) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 626.0 Tm (for better throughput on hard disks; it was not merely an optimised implementation of) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 609.0 Tm (identical OFS data blocks.) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 580.0 Tm (Amiga filesystem modes carry DOS type identifiers: original DOS0, international DOS2,) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 563.0 Tm (directory-cache DOS4 and later long-name variants. The AmigaOS documentation identifies the) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 546.0 Tm (international change with correct handling of accented filename case equivalence, while) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 529.0 Tm (directory caching was introduced to accelerate floppy directory listing. These variants are) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 512.0 Tm (historical format decisions that require explicit handling, not silent assumptions about) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 495.0 Tm (every Amiga disk.) Tj ET
+endstream
+endobj
+10 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 11 0 R >>
+endobj
+11 0 obj
+<< /Length 2127 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+0.75 0.82 0.85 RG .7 w 50 49 m 545 49 l S
+BT /F2 9 Tf 0.62 0.88 0.91 rg 1 0 0 1 50 800.0 Tm (INFILTRATOR / FILESYSTEM HISTORICAL & DESIGN REFERENCE) Tj ET
+BT /F2 19 Tf 1 1 1 rg 1 0 0 1 50 770.0 Tm (Amiga OFS - original disk filesystem) Tj ET
+BT /F1 8 Tf 0.30 0.39 0.42 rg 1 0 0 1 50 34.0 Tm (Filesystem-OFS / technical reference / current-source revision) Tj ET
+BT /F1 8 Tf 0.30 0.39 0.42 rg 1 0 0 1 504 34.0 Tm (PAGE 03) Tj ET
+BT /F2 16 Tf 0.02 0.44 0.50 rg 1 0 0 1 50 713.0 Tm (ORIGINAL DESIGN AND ON-DISK STRUCTURES) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 677.0 Tm (OFS data blocks include a 24-byte header with block type, ownership, sequence and) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 660.0 Tm (checksum-related fields before the payload. File header and extension blocks carry pointers) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 643.0 Tm (to data blocks, timestamps, names and comments. Root and directory header blocks maintain) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 626.0 Tm (directory hash-chain links. Free and used blocks are tracked in on-media bitmap blocks, not) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 609.0 Tm (in a FAT-style next-cluster table.) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 580.0 Tm (Amiga filesystems use block keys and structured blocks with checksums. The DOS type in the) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 563.0 Tm (boot block identifies variant features. Header tables can point to data blocks in an order) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 546.0 Tm (different from physical placement; reverse-oriented pointer tables and extension blocks) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 529.0 Tm (must be interpreted according to the upstream format. Logical payload size is not simply) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 512.0 Tm (equal to the number of allocated blocks times the block size, because OFS data block) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 495.0 Tm (headers consume space.) Tj ET
+endstream
+endobj
+12 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 13 0 R >>
+endobj
+13 0 obj
+<< /Length 1993 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+0.75 0.82 0.85 RG .7 w 50 49 m 545 49 l S
+BT /F2 9 Tf 0.62 0.88 0.91 rg 1 0 0 1 50 800.0 Tm (INFILTRATOR / FILESYSTEM HISTORICAL & DESIGN REFERENCE) Tj ET
+BT /F2 19 Tf 1 1 1 rg 1 0 0 1 50 770.0 Tm (Amiga OFS - original disk filesystem) Tj ET
+BT /F1 8 Tf 0.30 0.39 0.42 rg 1 0 0 1 50 34.0 Tm (Filesystem-OFS / technical reference / current-source revision) Tj ET
+BT /F1 8 Tf 0.30 0.39 0.42 rg 1 0 0 1 504 34.0 Tm (PAGE 04) Tj ET
+BT /F2 16 Tf 0.02 0.44 0.50 rg 1 0 0 1 50 713.0 Tm (ALLOCATION AND DIRECTORIES) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 677.0 Tm (The root block and directory headers act as directories containing hashed link chains to) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 660.0 Tm (child objects. Names, Amiga protection bits, comments and datestamps belong to on-disk) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 643.0 Tm (entry metadata. File extension blocks are required when the direct header's pointer) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 626.0 Tm (capacity is exceeded. Different DOS variants add changes to the name comparison, directory) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 609.0 Tm (cache and long-name representation.) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 580.0 Tm (Bitmap state identifies free blocks, but consistency also requires traversing every rooted) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 563.0 Tm (object and tracing every referenced header, extension and data block. Filesystems may) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 546.0 Tm (contain hard and symbolic link concepts that differ from Unix, and modern Linux adapters) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 529.0 Tm (must map those semantics without inventing guarantees that the original format does not) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 512.0 Tm (provide. Special care is needed when links form cycles.) Tj ET
+endstream
+endobj
+14 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 15 0 R >>
+endobj
+15 0 obj
+<< /Length 1986 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+0.75 0.82 0.85 RG .7 w 50 49 m 545 49 l S
+BT /F2 9 Tf 0.62 0.88 0.91 rg 1 0 0 1 50 800.0 Tm (INFILTRATOR / FILESYSTEM HISTORICAL & DESIGN REFERENCE) Tj ET
+BT /F2 19 Tf 1 1 1 rg 1 0 0 1 50 770.0 Tm (Amiga OFS - original disk filesystem) Tj ET
+BT /F1 8 Tf 0.30 0.39 0.42 rg 1 0 0 1 50 34.0 Tm (Filesystem-OFS / technical reference / current-source revision) Tj ET
+BT /F1 8 Tf 0.30 0.39 0.42 rg 1 0 0 1 504 34.0 Tm (PAGE 05) Tj ET
+BT /F2 16 Tf 0.02 0.44 0.50 rg 1 0 0 1 50 713.0 Tm (INTEGRITY, VALIDATION AND RECOVERY) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 677.0 Tm (OFS protects its structural and file data blocks with on-media checksums, unlike FFS data) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 660.0 Tm (blocks. The checksums detect many forms of corruption but do not supply modern) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 643.0 Tm (transactional rollback. The volume may also have bitmap-valid state and must not be) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 626.0 Tm (declared writable after an interrupted update without checking allocation ownership and) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 609.0 Tm (structural reachability.) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 580.0 Tm (Safe recovery requires checking root and directory structures, bitmap ownership, extension) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 563.0 Tm (chains, data-sequence numbers, header checksums and links. A bitmap rebuild is acceptable) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 546.0 Tm (only if the file tree provides an internally consistent ownership inventory. Failure during) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 529.0 Tm (metadata changes can leave seemingly valid blocks with inconsistent higher-level ownership;) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 512.0 Tm (inventing a missing parent risks permanent damage.) Tj ET
+endstream
+endobj
+16 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 17 0 R >>
+endobj
+17 0 obj
+<< /Length 1872 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+0.75 0.82 0.85 RG .7 w 50 49 m 545 49 l S
+BT /F2 9 Tf 0.62 0.88 0.91 rg 1 0 0 1 50 800.0 Tm (INFILTRATOR / FILESYSTEM HISTORICAL & DESIGN REFERENCE) Tj ET
+BT /F2 19 Tf 1 1 1 rg 1 0 0 1 50 770.0 Tm (Amiga OFS - original disk filesystem) Tj ET
+BT /F1 8 Tf 0.30 0.39 0.42 rg 1 0 0 1 50 34.0 Tm (Filesystem-OFS / technical reference / current-source revision) Tj ET
+BT /F1 8 Tf 0.30 0.39 0.42 rg 1 0 0 1 504 34.0 Tm (PAGE 06) Tj ET
+BT /F2 16 Tf 0.02 0.44 0.50 rg 1 0 0 1 50 713.0 Tm (DESIGN TRADE-OFFS AND HISTORICAL LIMITATIONS) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 677.0 Tm (OFS reflects floppy-disk priorities: inexpensive integrity checks, native Amiga metadata) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 660.0 Tm (and explicit block ownership. Embedding 24-byte metadata headers in data blocks reduces) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 643.0 Tm (useful data per block and creates additional work during sequential reads. FFS addressed) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 626.0 Tm (part of this performance limitation by storing file data without OFS-style headers.) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 597.0 Tm (Old AmigaDOS formats are historically significant but are not uniform across DOS0/2/4/6.) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 580.0 Tm (The directory-cache variation speeds some lookups at additional maintenance cost.) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 563.0 Tm (International and long-name variants need compatible name comparison and encoding policies.) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 546.0 Tm (Rigid assumptions about 512-byte blocks must not be used where larger blocks are permitted) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 529.0 Tm (by the format.) Tj ET
+endstream
+endobj
+18 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 19 0 R >>
+endobj
+19 0 obj
+<< /Length 1707 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+0.75 0.82 0.85 RG .7 w 50 49 m 545 49 l S
+BT /F2 9 Tf 0.62 0.88 0.91 rg 1 0 0 1 50 800.0 Tm (INFILTRATOR / FILESYSTEM HISTORICAL & DESIGN REFERENCE) Tj ET
+BT /F2 19 Tf 1 1 1 rg 1 0 0 1 50 770.0 Tm (Amiga OFS - original disk filesystem) Tj ET
+BT /F1 8 Tf 0.30 0.39 0.42 rg 1 0 0 1 50 34.0 Tm (Filesystem-OFS / technical reference / current-source revision) Tj ET
+BT /F1 8 Tf 0.30 0.39 0.42 rg 1 0 0 1 504 34.0 Tm (PAGE 07) Tj ET
+BT /F2 16 Tf 0.02 0.44 0.50 rg 1 0 0 1 50 713.0 Tm (INFILTRATOROS INTERPRETATION) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 677.0 Tm (Our OFS.so offers Amiga-format operations through a versioned portable ABI. It is not the) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 660.0 Tm (historical AmigaOS filesystem handler, and the separate optional Linux kernel adapter and) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 643.0 Tm (EFI boot-loading mechanism are compatibility layers. The implementation's current) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 626.0 Tm (write/defragmentation claims must be checked against evidence in its own repository, not) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 609.0 Tm (deduced from the original OS reference.) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 580.0 Tm (For exact DOS0, DOS2, DOS4 and DOS6 support, preserve the correct data-block headers,) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 563.0 Tm (checksums, name rules, hash chains, link rules and bitmap protocols. Do not conflate OFS) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 546.0 Tm (with Amiga Fast File System or use FFS file payload assumptions.) Tj ET
+endstream
+endobj
+20 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 21 0 R >>
+endobj
+21 0 obj
+<< /Length 2303 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+0.75 0.82 0.85 RG .7 w 50 49 m 545 49 l S
+BT /F2 9 Tf 0.62 0.88 0.91 rg 1 0 0 1 50 800.0 Tm (INFILTRATOR / FILESYSTEM HISTORICAL & DESIGN REFERENCE) Tj ET
+BT /F2 19 Tf 1 1 1 rg 1 0 0 1 50 770.0 Tm (Amiga OFS - original disk filesystem) Tj ET
+BT /F1 8 Tf 0.30 0.39 0.42 rg 1 0 0 1 50 34.0 Tm (Filesystem-OFS / technical reference / current-source revision) Tj ET
+BT /F1 8 Tf 0.30 0.39 0.42 rg 1 0 0 1 504 34.0 Tm (PAGE 08) Tj ET
+BT /F2 16 Tf 0.02 0.44 0.50 rg 1 0 0 1 50 713.0 Tm (PRIMARY SOURCES & DOCUMENTATION) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 677.0 Tm (References are included to make the historical and technical account auditable. The source) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 660.0 Tm (documents, published format specifications and implementation references take precedence) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 643.0 Tm (over this explanatory guide where a detail differs.) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 614.0 Tm (1. Linux kernel Overview of Amiga Filesystems \(DOS0 through DOS5\)) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 585.0 Tm (https://kernel.org/doc/html/v6.7/filesystems/affs.html) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 556.0 Tm (2. AmigaOS technical documentation, directory cache and long-name low-level structures) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 527.0 Tm (https://wiki.amigaos.net/wiki/DCFS_and_LNFS_Low_Level_Data_Structures) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 498.0 Tm (3. AmigaOS file system capability and compatibility table) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 469.0 Tm (https://wiki.amigaos.net/wiki/UserDoc%3AAmigaOS_File_Systems) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 440.0 Tm (Implementation boundary: the installed InfiltratorOS .so, the optional Linux kernel .ko,) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 423.0 Tm (and the source-first installer are distinct products. The original filesystem design is) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 406.0 Tm (documented above; claims about the adapter's qualification require its own source, tests) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 389.0 Tm (and release evidence.) Tj ET
+endstream
+endobj
+22 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 23 0 R >>
+endobj
+23 0 obj
+<< /Length 1913 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.04 0.52 0.60 rg 50 747 114 5 re f
+0.76 0.82 0.86 RG 0.7 w 50 50 m 545 50 l S
+BT /F2 9 Tf 0.65 0.89 0.92 rg 1 0 0 1 50 802.0 Tm (INFILTRATOR / PRIMARY FORMAT DESIGN APPENDIX) Tj ET
+BT /F2 17 Tf 1 1 1 rg 1 0 0 1 50 773.0 Tm (OFS / technical detail) Tj ET
+BT /F1 8 Tf 0.31 0.40 0.44 rg 1 0 0 1 50 34.0 Tm (OFS / original filesystem research) Tj ET
+BT /F1 8 Tf 0.31 0.40 0.44 rg 1 0 0 1 510 34.0 Tm (PAGE 09) Tj ET
+BT /F2 14 Tf 0.03 0.44 0.51 rg 1 0 0 1 50 704.0 Tm (ON-DISK FIELD AND STRUCTURE INVENTORY) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 666.0 Tm (Format-specific field names and meanings are summarised below; where applicable the) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 648.0 Tm (original specification defines exact endianness, offsets, checksums and format-revision) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 630.0 Tm (limits.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 600.0 Tm (1. Boot identifier: DOS0, DOS2, DOS4 or DOS6 variant identity.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 570.0 Tm (2. Root block: volume name, time fields, bitmap and hash table.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 540.0 Tm (3. Directory header: metadata and hash-chain continuation links.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 510.0 Tm (4. File header: size, name, protection, extension and data-table pointers.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 480.0 Tm (5. File extension: continuation of reversed data pointer sequence.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 450.0 Tm (6. OFS data block: 24-byte type, owner, sequence, size, next, checksum header.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 420.0 Tm (7. Bitmap blocks: per-block free/used ownership state.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 390.0 Tm (8. Bitmap-valid protocol: distinguishes clean allocation bookkeeping.) Tj ET
+endstream
+endobj
+24 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 25 0 R >>
+endobj
+25 0 obj
+<< /Length 1705 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.04 0.52 0.60 rg 50 747 114 5 re f
+0.76 0.82 0.86 RG 0.7 w 50 50 m 545 50 l S
+BT /F2 9 Tf 0.65 0.89 0.92 rg 1 0 0 1 50 802.0 Tm (INFILTRATOR / PRIMARY FORMAT DESIGN APPENDIX) Tj ET
+BT /F2 17 Tf 1 1 1 rg 1 0 0 1 50 773.0 Tm (OFS / technical detail) Tj ET
+BT /F1 8 Tf 0.31 0.40 0.44 rg 1 0 0 1 50 34.0 Tm (OFS / original filesystem research) Tj ET
+BT /F1 8 Tf 0.31 0.40 0.44 rg 1 0 0 1 510 34.0 Tm (PAGE 10) Tj ET
+BT /F2 14 Tf 0.03 0.44 0.51 rg 1 0 0 1 50 704.0 Tm (HISTORICAL FORMAT DEVELOPMENT) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 666.0 Tm (Selected design milestones explain why this format acquired its present layout. Dates) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 648.0 Tm (refer to historical format or implementation changes, not InfiltratorOS releases.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 618.0 Tm (1. 1985: original AmigaDOS OFS shipping with the first Amiga.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 588.0 Tm (2. Late 1980s: FFS removes file data block headers for speed.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 558.0 Tm (3. 1992: directory-caching file system mode introduced.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 528.0 Tm (4. 2001: long-name variation extends AmigaDOS structures.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 498.0 Tm (Important historical distinction: newly introduced driver features are not necessarily) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 480.0 Tm (changes to the original on-disk format. Read the version or feature bits rather than) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 462.0 Tm (assuming current software support defines historic media.) Tj ET
+endstream
+endobj
+26 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 27 0 R >>
+endobj
+27 0 obj
+<< /Length 1896 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.04 0.52 0.60 rg 50 747 114 5 re f
+0.76 0.82 0.86 RG 0.7 w 50 50 m 545 50 l S
+BT /F2 9 Tf 0.65 0.89 0.92 rg 1 0 0 1 50 802.0 Tm (INFILTRATOR / PRIMARY FORMAT DESIGN APPENDIX) Tj ET
+BT /F2 17 Tf 1 1 1 rg 1 0 0 1 50 773.0 Tm (OFS / technical detail) Tj ET
+BT /F1 8 Tf 0.31 0.40 0.44 rg 1 0 0 1 50 34.0 Tm (OFS / original filesystem research) Tj ET
+BT /F1 8 Tf 0.31 0.40 0.44 rg 1 0 0 1 510 34.0 Tm (PAGE 11) Tj ET
+BT /F2 14 Tf 0.03 0.44 0.51 rg 1 0 0 1 50 704.0 Tm (FORMAT VALIDATION AND RECOVERY INVARIANTS) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 666.0 Tm (A writable implementation must establish all of these conditions before modifying any) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 648.0 Tm (original-format media. These checks describe the minimum class of invariants, not proof) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 630.0 Tm (of complete recovery qualification.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 600.0 Tm (1. Check 24-byte OFS data header and checksum for each file block.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 570.0 Tm (2. Require data sequences and owner keys consistent with file headers.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 540.0 Tm (3. Validate bitmap allocation against namespace reachability.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 510.0 Tm (4. Distinguish DOS0, international, cache and long-name modes.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 480.0 Tm (5. Never apply FFS raw-data mapping to OFS blocks.) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 450.0 Tm (Forensic principle: use a separate verified image, retain original structures, and) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 432.0 Tm (report conflicting evidence instead of inventing a new supposedly clean filesystem) Tj ET
+BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 414.0 Tm (state.) Tj ET
+endstream
+endobj
+28 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 29 0 R >>
+endobj
+29 0 obj
+<< /Length 2918 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+0.75 0.82 0.85 RG .7 w 50 49 m 545 49 l S
+BT /F2 9 Tf 0.62 0.88 0.91 rg 1 0 0 1 50 800 Tm (INFILTRATOR / ORIGINAL FILESYSTEM ENGINEERING APPENDIX) Tj ET
+BT /F2 19 Tf 1 1 1 rg 1 0 0 1 50 770 Tm (OFS / engineering detail) Tj ET
+BT /F1 8 Tf 0.3 0.39 0.42 rg 1 0 0 1 50 34 Tm (Original format research; consult primary references for normative fields) Tj ET
+BT /F1 8 Tf 0.3 0.39 0.42 rg 1 0 0 1 509 34 Tm (PAGE 12) Tj ET
+BT /F2 13.5 Tf 0.02 0.44 0.50 rg 1 0 0 1 50 710 Tm (DISK READ PATH / ENGINEERING NOTES) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 678 Tm (1. Confirm the DOS type in the boot blocks before interpreting a volume; DOS0, DOS2, DOS4) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 661.5 Tm (and DOS6 imply related but not identical filename and directory-cache behaviour.) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 635 Tm (2. Use Amiga big-endian fields and the partition-relative block numbering expected by the) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 618.5 Tm (original format. Raw disk offsets must account for the partition's geometry and reserved) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 602 Tm (blocks.) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 575.5 Tm (3. Locate and validate the root block and its directory hash table. The root is not a) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 559 Tm (FAT-style fixed table at the start of the data region.) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 532.5 Tm (4. Resolve directory hash buckets through on-disk hash-chain links. Check the type and) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 516 Tm (checksum of every header and prevent cycles in damaged directory chains.) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 489.5 Tm (5. Read file header and extension blocks to reconstruct ordered data-block references.) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 473 Tm (Pointer table order must be interpreted correctly, not presumed to match physical block) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 456.5 Tm (order.) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 430 Tm (6. An OFS data block carries a 24-byte header for block identity, file ownership,) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 413.5 Tm (sequence, data length, successor and checksum information before its payload.) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 387 Tm (7. Compute useful payload size from the format's block and header layout. Allocated block) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 370.5 Tm (count alone does not equal logical file length.) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 344 Tm (8. Verify bitmap references and free/allocated ownership separately from reachability; a) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 327.5 Tm (set bit cannot prove that a block belongs to the claimed file.) Tj ET
+endstream
+endobj
+30 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 31 0 R >>
+endobj
+31 0 obj
+<< /Length 2795 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+0.75 0.82 0.85 RG .7 w 50 49 m 545 49 l S
+BT /F2 9 Tf 0.62 0.88 0.91 rg 1 0 0 1 50 800 Tm (INFILTRATOR / ORIGINAL FILESYSTEM ENGINEERING APPENDIX) Tj ET
+BT /F2 19 Tf 1 1 1 rg 1 0 0 1 50 770 Tm (OFS / engineering detail) Tj ET
+BT /F1 8 Tf 0.3 0.39 0.42 rg 1 0 0 1 50 34 Tm (Original format research; consult primary references for normative fields) Tj ET
+BT /F1 8 Tf 0.3 0.39 0.42 rg 1 0 0 1 509 34 Tm (PAGE 13) Tj ET
+BT /F2 13.5 Tf 0.02 0.44 0.50 rg 1 0 0 1 50 710 Tm (VALIDATION, RECOVERY AND COMPATIBILITY) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 678 Tm (1. Verify checksum coverage using AmigaDOS block rules and the correct block length. A) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 661.5 Tm (generic CRC algorithm is not equivalent to the format's checksum.) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 635 Tm (2. Check that every file-data sequence advances consistently and belongs to the expected) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 618.5 Tm (file header; blindly following a next pointer can misassociate unrelated data.) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 592 Tm (3. Preserve case-folding and accented-character behaviour appropriate to each) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 575.5 Tm (international DOS variant. Do not force modern Unicode collation onto legacy name) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 559 Tm (matching.) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 532.5 Tm (4. Directory-cache variants introduce additional metadata that must be updated) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 516 Tm (coherently. A plain DOS0 writer must not silently modify a DOS4 volume.) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 489.5 Tm (5. Do not infer that every block size accepted by an adapter is valid for every historic) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 473 Tm (medium or geometry. Read the volume definition first.) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 446.5 Tm (6. Distinguish data-block damage from header-chain damage; OFS checksum protection aids) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 430 Tm (detection but is not a transaction journal.) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 403.5 Tm (7. On suspected corruption, inventory root-reachable blocks and bitmap ownership before) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 387 Tm (rebuilding free-space metadata, and retain original images for independent recovery.) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 360.5 Tm (8. The original AmigaDOS format rules govern disk layout; InfiltratorOS .so and .ko) Tj ET
+BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 344 Tm (support must be verified independently by tests.) Tj ET
+endstream
+endobj
+xref
+0 32
+0000000000 65535 f 
+0000000025 00000 n 
+0000000074 00000 n 
+0000000215 00000 n 
+0000000285 00000 n 
+0000000360 00000 n 
+0000000428 00000 n 
+0000000574 00000 n 
+0000003565 00000 n 
+0000003711 00000 n 
+0000005858 00000 n 
+0000006006 00000 n 
+0000008185 00000 n 
+0000008333 00000 n 
+0000010378 00000 n 
+0000010526 00000 n 
+0000012564 00000 n 
+0000012712 00000 n 
+0000014636 00000 n 
+0000014784 00000 n 
+0000016543 00000 n 
+0000016691 00000 n 
+0000019046 00000 n 
+0000019194 00000 n 
+0000021159 00000 n 
+0000021307 00000 n 
+0000023064 00000 n 
+0000023212 00000 n 
+0000025160 00000 n 
+0000025308 00000 n 
+0000028278 00000 n 
+0000028426 00000 n 
+trailer
+<< /Size 32 /Root 1 0 R >>
+startxref
+31273
+%%EOF
