@@ -193,6 +193,38 @@ static uint32_t free_run(OfsLayout *m, uint32_t *at) {
     while (*at < n && !bit(m->occupied, *at)) ++*at;
     return *at - start;
 }
+/* OFS exposes its certified usable runs to the common Defragmenter planner.
+ * It still interprets bitmap/system blocks and performs all OFS-specific
+ * metadata, data and crash-recoverable staging itself. The appended host
+ * callback is optional so an older, already-released V2 host remains usable
+ * while the module protocol is migrated incrementally. */
+static int common_layout_available(const OfsLayout *m) {
+    const IfsDefragHostV2 *h = m->io.host;
+    return h->structure_bytes >=
+               offsetof(IfsDefragHostV2, plan_layout) +
+                   sizeof(h->plan_layout) &&
+           h->plan_layout != 0;
+}
+static int common_file_placement(OfsLayout *m, const OfsLayoutFile *file,
+                                 uint64_t start, uint64_t limit, int growth,
+                                 IfsDefragLayoutPlacement *out) {
+    const IfsDefragHostV2 *h = m->io.host;
+    IfsDefragLayoutObject object = {(uint64_t)file->key,
+                                   (uint64_t)file->count, 1u, 0u};
+    int r = h->plan_layout(&object, 1u, start, limit,
+                           growth ? 10u : 0u, out);
+    if (r == -2) return IFS_OFS_NO_SPACE;
+    if (r || out->object_id != file->key ||
+        out->allocated_units != file->count ||
+        out->first_unit < start ||
+        out->first_unit >= limit ||
+        out->gap_after_units > UINT32_MAX ||
+        out->allocated_units > limit - out->first_unit ||
+        out->gap_after_units >
+            limit - out->first_unit - out->allocated_units)
+        return IFS_OFS_INVALID;
+    return 0;
+}
 int ofs_layout_plan(OfsLayout *m, int growth) {
     OfsFs *f = m->fs;
     ofs_zero(m->occupied, m->map_bytes);
@@ -210,12 +242,36 @@ int ofs_layout_plan(OfsLayout *m, int growth) {
         uint64_t need = (uint64_t)file->count + gap;
         uint32_t at = f->reserved, start = 0, run;
         if (!need) continue;
+        if (common_layout_available(m)) {
+            /* Only the generic planner chooses the Growth reserve. The
+             * legacy arithmetic above is retained for pre-extension hosts. */
+            IfsDefragLayoutPlacement proposal = {0};
+            int r = common_file_placement(m, file, 0u, UINT64_MAX,
+                                          growth, &proposal);
+            if (r) return r;
+            gap = (uint32_t)proposal.gap_after_units;
+            need = (uint64_t)file->count + gap;
+        }
         /* Prefer one extent. Only a file larger than every available run is
          * split at fixed root/bitmap boundaries. A growth gap is real free
          * allocation immediately after the final data block, never metadata. */
         while (at < f->blocks) {
             run = free_run(m, &at);
-            if (run >= need) { start = at - run; break; }
+            if (run >= need) {
+                start = at - run;
+                if (common_layout_available(m)) {
+                    IfsDefragLayoutPlacement proposal = {0};
+                    int r = common_file_placement(
+                        m, file, start, (uint64_t)start + run, growth,
+                        &proposal);
+                    if (r) return r;
+                    if (proposal.first_unit != start ||
+                        proposal.gap_after_units != gap)
+                        return IFS_OFS_INVALID;
+                    start = (uint32_t)proposal.first_unit;
+                }
+                break;
+            }
         }
         uint32_t done = 0;
         if (start) {
