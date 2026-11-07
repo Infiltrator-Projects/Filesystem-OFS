@@ -4,7 +4,7 @@
  */
 #include <stddef.h>
 #if defined(__GNUC__) && !defined(__clang__)
-#define IFS_FREESTANDING_MEM IFS_FREESTANDING_MEM
+#define IFS_FREESTANDING_MEM __attribute__((used, externally_visible, visibility("hidden")))
 #else
 #define IFS_FREESTANDING_MEM __attribute__((used, visibility("hidden")))
 #endif
