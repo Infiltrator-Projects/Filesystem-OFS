@@ -39,7 +39,8 @@ find_package(OpenSSL REQUIRED)
 add_executable(ofs-worker "{source}/native/ofs_module_loader.c"
  "{source}/native/filesystem_module_host.c"
  "{core}/ld_runtime.c" "{core}/ld_io.c" "{core}/ld_device.c"
- "{core}/ld_stop.c" "{core}/ld_path.c" "{core}/ld_protocol.c")
+ "{core}/ld_stop.c" "{core}/ld_path.c" "{core}/ld_protocol.c"
+ "{core}/ld_generic_layout.c")
 target_include_directories(ofs-worker PRIVATE "{core}" "{source}/native" "{work}")
 target_compile_definitions(ofs-worker PRIVATE _GNU_SOURCE _FILE_OFFSET_BITS=64 IFS_MODULE_TESTING)
 target_compile_options(ofs-worker PRIVATE -Wall -Wextra -Wpedantic -Werror)
