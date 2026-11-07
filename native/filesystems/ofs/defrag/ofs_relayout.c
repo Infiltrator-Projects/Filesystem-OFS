@@ -225,11 +225,144 @@ static int common_file_placement(OfsLayout *m, const OfsLayoutFile *file,
         return IFS_OFS_INVALID;
     return 0;
 }
+
+/* New host API: Defragmenter owns *both* contiguous and split placement.
+ * OFS owns only metadata/system constraints and the actual transactional
+ * writer. Never call this callback unless the optional service fits within
+ * the advertised host structure. Old V2 hosts retain the old implementation.
+ */
+static int common_extents_available(const OfsLayout *m) {
+    const IfsDefragHostV2 *h = m->io.host;
+    return h->structure_bytes >=
+               offsetof(IfsDefragHostV2, plan_file_extents) +
+                   sizeof(h->plan_file_extents) &&
+           h->plan_file_extents != 0;
+}
+
+/* Consume *only* a complete generic plan; independently check every extent
+ * against the OFS allocation bitmap before reserving any block in memory.
+ * No source-device writes are performed here. */
+static int plan_file_from_free_runs(OfsLayout *m, OfsLayoutFile *file, int growth) {
+    const IfsDefragHostV2 *h = m->io.host;
+    const uint32_t blocks = m->fs->blocks;
+    size_t count = 0u;
+    uint32_t at = m->fs->reserved;
+    while (at < blocks) {
+        uint32_t run = free_run(m, &at);
+        if (run) {
+            if (count == SIZE_MAX) return IFS_OFS_NO_MEMORY;
+            ++count;
+        }
+    }
+    if (!count) return IFS_OFS_NO_SPACE;
+    if (count > SIZE_MAX / sizeof(IfsDefragFreeExtent))
+        return IFS_OFS_NO_MEMORY;
+
+    IfsDefragFreeExtent *free_extents =
+        h->allocate(count * sizeof(*free_extents));
+    size_t capacity = count < (size_t)file->count ?
+                      count : (size_t)file->count;
+    if (!capacity || capacity > SIZE_MAX / sizeof(IfsDefragPlannedExtent)) {
+        h->release(free_extents);
+        return IFS_OFS_NO_MEMORY;
+    }
+    IfsDefragPlannedExtent *placements =
+        h->allocate(capacity * sizeof(*placements));
+    if (!free_extents || !placements) {
+        h->release(free_extents);
+        h->release(placements);
+        return IFS_OFS_NO_MEMORY;
+    }
+    size_t used = 0u;
+    at = m->fs->reserved;
+    while (at < blocks) {
+        uint32_t length = free_run(m, &at);
+        if (length) {
+            if (used >= count) { /* Must match the first, nonmutating scan. */
+                h->release(free_extents);
+                h->release(placements);
+                return IFS_OFS_CORRUPT;
+            }
+            free_extents[used++] = (IfsDefragFreeExtent){
+                (uint64_t)(at - length), (uint64_t)length
+            };
+        }
+    }
+    IfsDefragLayoutObject object = {
+        (uint64_t)file->key, (uint64_t)file->count, 1u, 0u
+    };
+    size_t produced = 0u;
+    int r = used == count ?
+        h->plan_file_extents(&object, free_extents, count,
+                             growth ? 10u : 0u,
+                             placements, capacity, &produced) : -1;
+    if (r) {
+        h->release(free_extents);
+        h->release(placements);
+        return r == -2 ? IFS_OFS_NO_SPACE :
+               r == -4 ? IFS_OFS_NO_MEMORY : IFS_OFS_INVALID;
+    }
+    if (!produced || produced > capacity) r = IFS_OFS_CORRUPT;
+
+    /* Validate the complete proposed plan: ordered data segments, non-
+     * overlapping metadata, a terminal growth reserve, and full file size. */
+    uint64_t assigned = 0u;
+    uint64_t prior_end = m->fs->reserved;
+    for (size_t i = 0; !r && i < produced; ++i) {
+        const IfsDefragPlannedExtent *extent = &placements[i];
+        const uint64_t start = extent->first_unit;
+        const uint64_t len = extent->allocated_units;
+        const uint64_t gap = extent->gap_after_units;
+        if (!len || start < prior_end ||
+            start >= blocks || len > blocks - start ||
+            gap > blocks - start - len ||
+            (i + 1u != produced && gap != 0u) ||
+            (!growth && gap != 0u) ||
+            len > file->count - assigned) {
+            r = IFS_OFS_CORRUPT;
+            break;
+        }
+        for (uint64_t key = start; key < start + len + gap; ++key) {
+            if (bit(m->occupied, (uint32_t)key)) {
+                r = IFS_OFS_CORRUPT;
+                break;
+            }
+        }
+        assigned += len;
+        prior_end = start + len + gap;
+    }
+    if (!r && (assigned != file->count ||
+               (growth && !placements[produced - 1u].gap_after_units)))
+        r = IFS_OFS_CORRUPT;
+
+    /* Mark only a fully validated plan; reserve gaps in occupied, not used. */
+    if (!r) {
+        uint32_t written = 0u;
+        for (size_t i = 0; i < produced; ++i) {
+            const IfsDefragPlannedExtent *extent = &placements[i];
+            for (uint64_t j = 0u; j < extent->allocated_units; ++j) {
+                uint32_t key = (uint32_t)(extent->first_unit + j);
+                file->new_data[written++] = key;
+                set(m->occupied, key, 1);
+            }
+            uint64_t end = extent->first_unit + extent->allocated_units;
+            for (uint64_t j = 0u; j < extent->gap_after_units; ++j)
+                set(m->occupied, (uint32_t)(end + j), 1);
+        }
+    }
+    h->release(free_extents);
+    h->release(placements);
+    return r;
+}
+
 int ofs_layout_plan(OfsLayout *m, int growth) {
     OfsFs *f = m->fs;
     if (common_layout_available(m) && m->file_count != 0u)
         m->io.host->print(m->io.host->context, 1,
             "[filesystem-module] ofs: shared Defragmenter layout policy active\n");
+    if (common_extents_available(m) && m->file_count != 0u)
+        m->io.host->print(m->io.host->context, 1,
+            "[filesystem-module] ofs: shared range-aware extent planner active\n");
     ofs_zero(m->occupied, m->map_bytes);
     for (uint32_t k = 0; k < f->reserved; ++k) set(m->occupied, k, 1);
     for (uint32_t i = 0; i < f->system_count; ++i) set(m->occupied, f->system_keys[i], 1);
@@ -245,6 +378,15 @@ int ofs_layout_plan(OfsLayout *m, int growth) {
         uint64_t need = (uint64_t)file->count + gap;
         uint32_t at = f->reserved, start = 0, run;
         if (!need) continue;
+        if (common_extents_available(m)) {
+            /* Shared engine handles all free ranges (including split files).
+             * The SO translates the resulting block map and commits safely. */
+            int r = plan_file_from_free_runs(m, file, growth);
+            if (r) return r;
+            r = stopped(m);
+            if (r) return r;
+            continue;
+        }
         if (common_layout_available(m)) {
             /* Only the generic planner chooses the Growth reserve. The
              * legacy arithmetic above is retained for pre-extension hosts. */
