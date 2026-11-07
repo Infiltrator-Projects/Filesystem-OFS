@@ -209,6 +209,8 @@ def main():
             if expected == 0 and command in ('defrag', 'growth-defrag'):
                 assert 'shared Defragmenter layout policy active' in result.stderr, (
                     name, 'OFS did not invoke the common layout planner', result.stderr)
+                assert 'shared range-aware extent planner active' in result.stderr, (
+                    name, 'OFS did not select range-aware shared planner', result.stderr)
             return result, journal
 
         def analyse(path):
