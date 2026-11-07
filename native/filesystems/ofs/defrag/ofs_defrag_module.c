@@ -120,7 +120,8 @@ static void result(const IfsDefragHostV2 *h, const char *operation, int status) 
         status == IFS_DEFRAG_STOPPED ? "Durable recovery state is retained when source writes began." : "");
 }
 static int host_valid(const IfsDefragHostV2 *h) {
-    return h && h->abi_version == IFS_DEFRAG_ABI_V2 && h->structure_bytes >= sizeof(*h) &&
+    return h && h->abi_version == IFS_DEFRAG_ABI_V2 &&
+        h->structure_bytes >= offsetof(IfsDefragHostV2, plan_layout) &&
         h->program_version && h->allocate && h->release && h->open_target && h->create_stage &&
         h->close_target && h->read_at && h->write_at && h->sync_target && h->file_exists &&
         h->read_file && h->atomic_file && h->remove_file && h->digest_create && h->digest_update &&
