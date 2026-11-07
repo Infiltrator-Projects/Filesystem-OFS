@@ -229,7 +229,7 @@ int ofs_layout_plan(OfsLayout *m, int growth) {
     OfsFs *f = m->fs;
     if (common_layout_available(m) && m->file_count != 0u)
         m->io.host->print(m->io.host->context, 1,
-            "[filesystem-module] ofs: shared Defragmenter layout policy active\\n");
+            "[filesystem-module] ofs: shared Defragmenter layout policy active\n");
     ofs_zero(m->occupied, m->map_bytes);
     for (uint32_t k = 0; k < f->reserved; ++k) set(m->occupied, k, 1);
     for (uint32_t i = 0; i < f->system_count; ++i) set(m->occupied, f->system_keys[i], 1);
