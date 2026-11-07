@@ -206,6 +206,9 @@ def main():
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60)
             (output / (name + '.log')).write_text(result.stdout + result.stderr)
             assert result.returncode == expected, (name, result.returncode, result.stdout, result.stderr)
+            if expected == 0 and command in ('defrag', 'growth-defrag'):
+                assert 'shared Defragmenter layout policy active' in result.stderr, (
+                    name, 'OFS did not invoke the common layout planner', result.stderr)
             return result, journal
 
         def analyse(path):
