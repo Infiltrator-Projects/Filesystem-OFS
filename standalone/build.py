@@ -10,12 +10,12 @@ import tempfile
 
 ROOT=Path(__file__).resolve().parents[1]
 BASE=ROOT/'native/filesystems/ofs'
-SOURCES=[BASE/'module'/n for n in ('ofs_module.c','ofs_v3.c','ofs_boot.c','ofs_memory.c')]+[
+SOURCES=[BASE/'module'/n for n in ('ofs_module.c','ofs_v3.c','ofs_common.c','ofs_boot.c','ofs_memory.c')]+[
     BASE/'core'/n for n in ('ofs_core.c','ofs_primitives.c','ofs_volume.c','ofs_nodes.c',
     'ofs_files.c','ofs_namespace.c','ofs_check.c','ofs_strings.c','ofs_cache.c')]
 SOURCES += [BASE/'defrag'/n for n in ('ofs_relayout.c','ofs_defrag_module.c')]
 INCLUDES=[BASE/'module',BASE/'core',BASE/'efi',ROOT/'native/include']
-EXPORTS=tuple('infiltrator_filesystem_module_v'+str(i) for i in (1,2,3))+('infiltrator_filesystem_boot_v1','infiltrator_filesystem_defrag_v2')
+EXPORTS=('infiltrator_filesystem_api_v1',)+tuple('infiltrator_filesystem_module_v'+str(i) for i in (1,2,3))+('infiltrator_filesystem_boot_v1','infiltrator_filesystem_defrag_v2')
 
 def run(args,**kwargs):subprocess.run([str(x) for x in args],check=True,**kwargs)
 
@@ -42,7 +42,7 @@ def inspect(module):
     manifest=struct.pack('<8sIIII16s32s',b'IFSBOOT1',72,1,62,1,b'ofs',b'Amiga Original File System')
     if manifest not in module.read_bytes():raise RuntimeError('Missing exact Boot V1 manifest')
     meta=subprocess.check_output(['readelf','-p','.ifsmeta',str(module)],text=True)
-    if any('IFS-MODULE:ofs:'+str(i) not in meta for i in (1,2,3)):raise RuntimeError('Missing ABI identities')
+    if any('IFS-MODULE:ofs:'+str(i) not in meta for i in (1,2,3)) or 'IFS-MODULE:ofs:common1' not in meta:raise RuntimeError('Missing ABI identities')
     print('OFS-FREESTANDING-BOOT-PROFILE-PASS')
 
 def compile_module(module,flags,training=False):
@@ -63,6 +63,12 @@ def test(module,full=False):
     args=[sys.executable,ROOT/'tests/ofs_complete_test.py','--module',module]
     if not full:args+=['--quick']
     run(args)
+    testexe=module.parent/'ofs-common-abi-test'
+    run([os.environ.get('CC','cc'),'-std=c11','-O2','-Wall','-Wextra','-Werror',
+         '-I',ROOT/'native/include',ROOT/'tests/ofs_common_abi_test.c',
+         '-ldl','-o',testexe])
+    run([testexe,module])
+    testexe.unlink()
 
 def build(profile,module):
     module=module.resolve();module.parent.mkdir(parents=True,exist_ok=True)
@@ -177,6 +183,7 @@ def release_source_files():
         selected = (
             q.startswith("native/filesystems/ofs/") or
             q.startswith("native/include/infiltratr/fs/") or
+            q == "native/include/infiltratr/filesystem_module.h" or
             q == "native/platform/linux_kernel/vfs_compat.h" or
             q.startswith("standalone/") or q.startswith("docs/") or
             q.startswith("tests/") or q.startswith("scripts/") or q.startswith(".github/") or

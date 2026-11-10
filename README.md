@@ -129,3 +129,12 @@ Source origin: Filesystems commit
 `7473534b1afbd1e9b14f8ab9ae0769fc6be2126e`, independent OFS baseline
 `386d97969996864a939bd644c500cd6394a348a3`. Copyright notices are preserved.
 License: GPL-3.0-or-later.
+
+## Shared filesystem interface
+
+`OFS.so` now exports `infiltrator_filesystem_api_v1`, using the canonical
+V3 engine for probing, mount, directories, I/O, formatting and checking.
+Writable operations require exclusive host access. Formatting requires
+validated logical sector size. The Common table does not advertise bitmap
+recovery or defragmentation until those operations have matching Common
+contracts. No duplicate OFS engine is introduced.
