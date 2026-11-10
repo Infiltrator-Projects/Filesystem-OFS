@@ -187,6 +187,20 @@ __attribute__((visibility("default")))
 const IfsFsModuleApiV1 *infiltrator_filesystem_api_v1(void){return &api;}
 
 /* V2 volume operations use the same serialized OFS engine as V1. */
+static int v2_query(void *volume,IfsFsVolumeInfoV1 *info) {
+    IfsOfsSpaceV3 space={0};
+    if(!live(volume)||!info||info->structure_bytes<sizeof(*info))
+        return IFS_FS_INVALID;
+    space.structure_bytes=sizeof(space);
+    int r=infiltrator_filesystem_module_v3()->space(&space);
+    if(r!=IFS_FS_OK)return r;
+    info->variant=space.variant;
+    info->block_bytes=space.block_bytes;
+    info->max_name_bytes=space.variant==6u?106u:30u;
+    info->total_bytes=space.total_bytes;
+    info->free_bytes=space.free_bytes;
+    return IFS_FS_OK;
+}
 static int v2_sync(void *volume) {
     if(!live(volume))return IFS_FS_INVALID;
     return infiltrator_filesystem_module_v3()->flush()==0?
@@ -214,8 +228,9 @@ static const char identity_v2[]="IFS-MODULE:ofs:common2";
 static const IfsFsVolumeOpsV1 volume_v2={
     .header={IFS_FS_GROUP_ABI_V1,sizeof(IfsFsVolumeOpsV1),
        IFS_FS_GROUP_VOLUME,0u,
-       IFS_FS_VOLUME_SYNC|IFS_FS_VOLUME_CHECK|IFS_FS_VOLUME_FORMAT},
-    .sync=v2_sync,.check=v2_check,.format=v2_format
+       IFS_FS_VOLUME_QUERY|IFS_FS_VOLUME_SYNC|IFS_FS_VOLUME_CHECK|
+       IFS_FS_VOLUME_FORMAT},
+    .query=v2_query,.sync=v2_sync,.check=v2_check,.format=v2_format
 };
 static const IfsFsGroupHeaderV2 *query_v2(
     uint32_t id,uint32_t low,uint32_t high){
