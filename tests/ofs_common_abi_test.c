@@ -26,8 +26,12 @@ int main(int argc,char **argv) {
     if(!ifs_fs_api_v2_valid(v2,"ofs")||
        v2->base_v1!=api ||
        ifs_fs_group_v2(v2,IFS_FS_GROUP_VOLUME)==NULL ||
+       !(((const IfsFsVolumeOpsV1 *)ifs_fs_group_v2(v2,IFS_FS_GROUP_VOLUME))
+          ->header.capabilities & IFS_FS_VOLUME_QUERY) ||
+       !((const IfsFsVolumeOpsV1 *)ifs_fs_group_v2(v2,IFS_FS_GROUP_VOLUME))
+          ->query ||
        (v2->runtime_profiles&IFS_FS_PROFILE_KERNEL)) {
-        fputs("OFS V2 contract rejected\\n",stderr);
+        fputs("OFS V2 contract rejected\n",stderr);
         dlclose(so);return 1;
     }
     dlclose(so);return 0;
