@@ -4,6 +4,7 @@
 #include "ofs_v3.h"
 #include "../core/ofs_engine.h"
 #include <infiltratr/filesystem_module.h>
+#include <infiltratr/filesystem_module_v2.h>
 extern OfsFs ifs_ofs_active;
 static struct {
     IfsFsHostIoV1 host;
@@ -184,3 +185,50 @@ static const IfsFsModuleApiV1 api={
 };
 __attribute__((visibility("default")))
 const IfsFsModuleApiV1 *infiltrator_filesystem_api_v1(void){return &api;}
+
+/* V2 volume operations use the same serialized OFS engine as V1. */
+static int v2_sync(void *volume) {
+    if(!live(volume))return IFS_FS_INVALID;
+    return infiltrator_filesystem_module_v3()->flush()==0?
+        IFS_FS_OK:IFS_FS_IO_ERROR;
+}
+static int v2_check(void *volume,uint32_t flags,uint64_t *errors) {
+    uint32_t count=0;
+    if(flags)return IFS_FS_UNSUPPORTED;
+    if(!errors)return IFS_FS_INVALID;
+    int r=check(volume,&count);
+    if(r==IFS_FS_OK)*errors=count;
+    return r;
+}
+static int v2_format(const IfsFsHostRuntimeV2 *host,
+                     uint32_t variant,const char *label,uint32_t flags){
+    IfsFsHostFormatIoV1 io={0};
+    if(flags)return IFS_FS_UNSUPPORTED;
+    if(!host)return IFS_FS_INVALID;
+    if(host->capabilities & IFS_FS_HOST_READ_ONLY)return IFS_FS_ACCESS;
+    int r=ifs_fs_host_v2_as_format_v1(host,&io);
+    return r==IFS_FS_OK?format(&io.host,variant,label):r;
+}
+__attribute__((used,section(".ifsmeta")))
+static const char identity_v2[]="IFS-MODULE:ofs:common2";
+static const IfsFsVolumeOpsV1 volume_v2={
+    .header={IFS_FS_GROUP_ABI_V1,sizeof(IfsFsVolumeOpsV1),
+       IFS_FS_GROUP_VOLUME,0u,
+       IFS_FS_VOLUME_SYNC|IFS_FS_VOLUME_CHECK|IFS_FS_VOLUME_FORMAT},
+    .sync=v2_sync,.check=v2_check,.format=v2_format
+};
+static const IfsFsGroupHeaderV2 *query_v2(
+    uint32_t id,uint32_t low,uint32_t high){
+    if(id!=IFS_FS_GROUP_VOLUME||low>IFS_FS_GROUP_ABI_V1||
+       high<IFS_FS_GROUP_ABI_V1)return NULL;
+    return &volume_v2.header;
+}
+static const IfsFsModuleApiV2 api_v2={
+    IFS_FS_COMMON_ABI_V2,sizeof(IfsFsModuleApiV2),"ofs",
+    IFS_FS_PROFILE_HOSTED|IFS_FS_PROFILE_FREESTANDING,
+    IFS_FS_GROUP_BIT(IFS_FS_GROUP_VOLUME),&api,query_v2
+};
+__attribute__((visibility("default")))
+const IfsFsModuleApiV2 *infiltrator_filesystem_api_v2(void){
+    return &api_v2;
+}

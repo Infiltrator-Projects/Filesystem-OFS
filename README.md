@@ -138,3 +138,10 @@ Writable operations require exclusive host access. Formatting requires
 validated logical sector size. The Common table does not advertise bitmap
 recovery or defragmentation until those operations have matching Common
 contracts. No duplicate OFS engine is introduced.
+
+## Common V2 ABI
+
+`OFS.so` exports `infiltrator_filesystem_api_v2` for negotiated V2 volume
+sync, integrity check and format operations, all backed by the existing OFS
+engine. Host conversion validates complete geometry and permissions; recovery
+and direct kernel/firmware execution are deliberately not claimed.

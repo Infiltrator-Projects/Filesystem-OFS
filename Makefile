@@ -8,7 +8,7 @@ MODULE := $(OFS)/module/ofs_module.c $(OFS)/module/ofs_v3.c $(OFS)/module/ofs_co
 INC := -I$(OFS)/core -I$(OFS)/efi -I$(OFS)/module -Inative/include
 OUT ?= build
 PYTHON ?= python3
-HEADERS := $(wildcard $(OFS)/core/*.h $(OFS)/module/*.h $(OFS)/efi/*.h $(OFS)/defrag/*.h native/include/infiltratr/fs/*.h native/include/infiltratr/filesystem_module.h)
+HEADERS := $(wildcard $(OFS)/core/*.h $(OFS)/module/*.h $(OFS)/efi/*.h $(OFS)/defrag/*.h native/include/infiltratr/fs/*.h native/include/infiltratr/filesystem_module.h native/include/infiltratr/filesystem_module_v2.h)
 
 .PHONY: all test check interop release native clean efi kernel
 all: $(OUT)/OFS.so
