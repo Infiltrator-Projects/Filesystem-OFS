@@ -3,25 +3,23 @@
  */
 #include "ofs_v3.h"
 #include "../core/ofs_engine.h"
-#include <infiltratr/filesystem_module.h>
 #include <infiltratr/filesystem_module_v2.h>
 extern OfsFs ifs_ofs_active;
 static struct {
-    IfsFsHostIoV1 host;
+    IfsFsHostRuntimeV2 host;
     uintptr_t generation, handle;
     int mounted, writable;
 } session;
-static int eligible(const IfsFsHostIoV1 *host) {
-    return host && host->structure_bytes >= sizeof(*host) &&
-        host->read_at && host->volume_bytes >= 8192u &&
-        !(host->flags & ~(IFS_FS_IO_READ_ONLY | IFS_FS_IO_EXCLUSIVE));
+static int eligible(const IfsFsHostRuntimeV2 *host) {
+    return host && ifs_fs_host_v2_valid(host) &&
+        host->volume_bytes >= 8192u;
 }
 static int live(void *v) {
     return session.mounted && session.handle &&
         (uintptr_t)v == session.handle && ifs_ofs_active.mounted;
 }
 static int can_write(void) { return session.writable && ifs_ofs_active.mounted; }
-static IfsOfsIoV3 native(const IfsFsHostIoV1 *h, int write) {
+static IfsOfsIoV3 native(const IfsFsHostRuntimeV2 *h, int write) {
     IfsOfsIoV3 n = {0};
     n.structure_bytes = sizeof(n);
     n.flags = write ? 0u : IFS_OFS_READ_ONLY;
@@ -31,7 +29,7 @@ static IfsOfsIoV3 native(const IfsFsHostIoV1 *h, int write) {
     n.allocate=h->allocate; n.release=h->release;
     return n;
 }
-static int probe(const IfsFsHostIoV1 *h, uint32_t *variant) {
+static int probe(const IfsFsHostRuntimeV2 *h, uint32_t *variant) {
     const IfsOfsModuleV3 *m = infiltrator_filesystem_module_v3();
     IfsOfsSpaceV3 space = {0};
     int r, closed;
@@ -47,7 +45,7 @@ static int probe(const IfsFsHostIoV1 *h, uint32_t *variant) {
     *variant=space.variant;
     return IFS_FS_OK;
 }
-static int mount(const IfsFsHostIoV1 *h, void **v, IfsFsVolumeInfoV1 *info) {
+static int mount(const IfsFsHostRuntimeV2 *h, void **v, IfsFsVolumeInfoV2 *info) {
     const IfsOfsModuleV3 *m=infiltrator_filesystem_module_v3();
     IfsOfsSpaceV3 space={0};
     int r,write;
@@ -56,9 +54,10 @@ static int mount(const IfsFsHostIoV1 *h, void **v, IfsFsVolumeInfoV1 *info) {
     *v=NULL;
     if (session.mounted || ifs_ofs_active.mounted ||
         session.generation == UINTPTR_MAX) return IFS_FS_BUSY;
-    write=!(h->flags & IFS_FS_IO_READ_ONLY) &&
-        (h->flags & IFS_FS_IO_EXCLUSIVE) && h->write_at &&
-        h->flush && h->allocate && h->release;
+    write=!(h->capabilities & IFS_FS_HOST_READ_ONLY) &&
+        (h->capabilities & IFS_FS_HOST_EXCLUSIVE) &&
+        (h->capabilities & IFS_FS_HOST_DURABLE) &&
+        h->write_at && h->flush;
     session.host=*h;
     IfsOfsIoV3 io=native(&session.host,write);
     r=m->mount(&io,NULL);
@@ -81,7 +80,7 @@ static int unmount(void *v) {
     if(!r){session.mounted=0;session.writable=0;session.handle=0;}
     return r;
 }
-static int assign(const IfsOfsEntryV3 *e, IfsFsEntryV1 *out) {
+static int assign(const IfsOfsEntryV3 *e, IfsFsEntryV2 *out) {
     uint32_t len=0;
     if(!out || out->structure_bytes<sizeof(*out) ||
        !out->name || !out->name_capacity) return IFS_FS_INVALID;
@@ -94,14 +93,14 @@ static int assign(const IfsOfsEntryV3 *e, IfsFsEntryV1 *out) {
          e->type==IFS_OFS_LINKDIR)?IFS_FS_ENTRY_DIRECTORY:IFS_FS_ENTRY_FILE;
     return IFS_FS_OK;
 }
-static int stat_path(void *v, const char *p, IfsFsEntryV1 *out) {
+static int stat_path(void *v, const char *p, IfsFsEntryV2 *out) {
     IfsOfsEntryV3 e={0};
     if(!live(v)||!p||!out)return IFS_FS_INVALID;
     e.structure_bytes=sizeof(e);
     int r=infiltrator_filesystem_module_v3()->stat(p,&e);
     return r?r:assign(&e,out);
 }
-static int nth(void *v,const char *p,uint32_t index,IfsFsEntryV1 *out){
+static int nth(void *v,const char *p,uint32_t index,IfsFsEntryV2 *out){
     IfsOfsEntryV3 e={0};
     if(!live(v)||!p||!out)return IFS_FS_INVALID;
     e.structure_bytes=sizeof(e);
@@ -143,23 +142,23 @@ static int resize_path(void *v,const char *p,uint64_t bytes){
     if(bytes>UINT32_MAX)return IFS_FS_UNSUPPORTED;
     return infiltrator_filesystem_module_v3()->truncate(p,(uint32_t)bytes);
 }
-static int format(const IfsFsHostIoV1 *h,uint32_t variant,const char *label){
-    const IfsFsHostFormatIoV1 *ext;
+static int format(const IfsFsHostRuntimeV2 *h,uint32_t variant,
+                  const char *label,uint32_t flags){
     IfsOfsFormatV3 options={0};
     if(!eligible(h))return IFS_FS_INVALID;
-    if((h->flags & IFS_FS_IO_READ_ONLY) ||
-       !(h->flags & IFS_FS_IO_EXCLUSIVE) || !h->write_at ||
-       !h->flush || !h->allocate || !h->release)return IFS_FS_ACCESS;
-    if(h->structure_bytes<sizeof(IfsFsHostFormatIoV1))return IFS_FS_UNSUPPORTED;
+    if(flags)return IFS_FS_UNSUPPORTED;
+    if((h->capabilities & IFS_FS_HOST_READ_ONLY) ||
+       !(h->capabilities & IFS_FS_HOST_EXCLUSIVE) ||
+       !(h->capabilities & IFS_FS_HOST_DURABLE) ||
+       !h->write_at || !h->flush)return IFS_FS_ACCESS;
     if(session.mounted||ifs_ofs_active.mounted)return IFS_FS_BUSY;
-    ext=(const IfsFsHostFormatIoV1 *)(const void *)h;
-    if(ext->reserved||ext->logical_sector_bytes<512u ||
-       ext->logical_sector_bytes>32768u ||
-       (ext->logical_sector_bytes&(ext->logical_sector_bytes-1u)) ||
+    if(h->logical_sector_bytes<512u ||
+       h->logical_sector_bytes>32768u ||
+       (h->logical_sector_bytes&(h->logical_sector_bytes-1u)) ||
        (variant!=0u&&variant!=2u&&variant!=4u&&variant!=6u))
        return IFS_FS_INVALID;
     options.structure_bytes=sizeof(options);
-    options.block_bytes=ext->logical_sector_bytes;
+    options.block_bytes=h->logical_sector_bytes;
     options.variant=variant;options.label=label;
     IfsOfsIoV3 io=native(h,1);
     return infiltrator_filesystem_module_v3()->format(&io,&options);
@@ -172,24 +171,12 @@ static int check(void *v,uint32_t *errors){
     *errors=report.errors;
     return r;
 }
-/* Recovery and defrag counts need separately qualified Common contracts. */
-__attribute__((used,section(".ifsmeta")))
-static const char common_identity[]="IFS-MODULE:ofs:common1";
-static const IfsFsModuleApiV1 api={
-    IFS_FS_COMMON_ABI_V1,sizeof(IfsFsModuleApiV1),"ofs",
-    IFS_FS_CAP_PROBE|IFS_FS_CAP_MOUNT|IFS_FS_CAP_LIST|IFS_FS_CAP_READ|
-    IFS_FS_CAP_WRITE|IFS_FS_CAP_CREATE|IFS_FS_CAP_REMOVE|IFS_FS_CAP_RENAME|
-    IFS_FS_CAP_TRUNCATE|IFS_FS_CAP_FORMAT|IFS_FS_CAP_CHECK,
-    probe,mount,unmount,stat_path,nth,read_file,write_file,create_path,
-    remove_path,rename_path,resize_path,format,check,NULL
-};
-__attribute__((visibility("default")))
-const IfsFsModuleApiV1 *infiltrator_filesystem_api_v1(void){return &api;}
-
-/* V2 volume operations use the same serialized OFS engine as V1. */
-static int v2_query(void *volume,IfsFsVolumeInfoV1 *info) {
+/* Common V2 is the sole exported format-neutral contract. Its operations
+ * use the authoritative OFS V3 engine and the verified V2 host lease.
+ * Recovery/defrag remain unadvertised until translated to DEFRAG V2. */
+static int volume_query(void *mounted,IfsFsVolumeInfoV2 *info) {
     IfsOfsSpaceV3 space={0};
-    if(!live(volume)||!info||info->structure_bytes<sizeof(*info))
+    if(!live(mounted)||!info||info->structure_bytes<sizeof(*info))
         return IFS_FS_INVALID;
     space.structure_bytes=sizeof(space);
     int r=infiltrator_filesystem_module_v3()->space(&space);
@@ -201,47 +188,53 @@ static int v2_query(void *volume,IfsFsVolumeInfoV1 *info) {
     info->free_bytes=space.free_bytes;
     return IFS_FS_OK;
 }
-static int v2_sync(void *volume) {
-    if(!live(volume))return IFS_FS_INVALID;
+static int volume_sync(void *mounted) {
+    if(!live(mounted))return IFS_FS_INVALID;
     return infiltrator_filesystem_module_v3()->flush()==0?
         IFS_FS_OK:IFS_FS_IO_ERROR;
 }
-static int v2_check(void *volume,uint32_t flags,uint64_t *errors) {
+static int volume_check(void *mounted,uint32_t flags,uint64_t *errors) {
     uint32_t count=0;
     if(flags)return IFS_FS_UNSUPPORTED;
     if(!errors)return IFS_FS_INVALID;
-    int r=check(volume,&count);
+    const int r=check(mounted,&count);
     if(r==IFS_FS_OK)*errors=count;
     return r;
 }
-static int v2_format(const IfsFsHostRuntimeV2 *host,
-                     uint32_t variant,const char *label,uint32_t flags){
-    IfsFsHostFormatIoV1 io={0};
-    if(flags)return IFS_FS_UNSUPPORTED;
-    if(!host)return IFS_FS_INVALID;
-    if(host->capabilities & IFS_FS_HOST_READ_ONLY)return IFS_FS_ACCESS;
-    int r=ifs_fs_host_v2_as_format_v1(host,&io);
-    return r==IFS_FS_OK?format(&io.host,variant,label):r;
-}
 __attribute__((used,section(".ifsmeta")))
 static const char identity_v2[]="IFS-MODULE:ofs:common2";
-static const IfsFsVolumeOpsV1 volume_v2={
-    .header={IFS_FS_GROUP_ABI_V1,sizeof(IfsFsVolumeOpsV1),
+static const IfsFsCoreOpsV2 core_v2={
+    .header={IFS_FS_GROUP_ABI_V2,sizeof(IfsFsCoreOpsV2),
+       IFS_FS_GROUP_CORE,0u,
+       IFS_FS_CORE_PROBE|IFS_FS_CORE_MOUNT|IFS_FS_CORE_STAT|
+       IFS_FS_CORE_LIST|IFS_FS_CORE_READ|IFS_FS_CORE_WRITE|
+       IFS_FS_CORE_CREATE|IFS_FS_CORE_REMOVE|IFS_FS_CORE_RENAME|
+       IFS_FS_CORE_TRUNCATE},
+    .probe=probe,.mount=mount,.unmount=unmount,
+    .stat=stat_path,.directory_entry=nth,
+    .read=read_file,.write=write_file,.create=create_path,
+    .remove=remove_path,.rename=rename_path,.truncate=resize_path
+};
+static const IfsFsVolumeOpsV2 volume_v2={
+    .header={IFS_FS_GROUP_ABI_V2,sizeof(IfsFsVolumeOpsV2),
        IFS_FS_GROUP_VOLUME,0u,
-       IFS_FS_VOLUME_QUERY|IFS_FS_VOLUME_SYNC|IFS_FS_VOLUME_CHECK|
-       IFS_FS_VOLUME_FORMAT},
-    .query=v2_query,.sync=v2_sync,.check=v2_check,.format=v2_format
+       IFS_FS_VOLUME_QUERY|IFS_FS_VOLUME_SYNC|
+       IFS_FS_VOLUME_CHECK|IFS_FS_VOLUME_FORMAT},
+    .query=volume_query,.sync=volume_sync,
+    .check=volume_check,.format=format
 };
 static const IfsFsGroupHeaderV2 *query_v2(
     uint32_t id,uint32_t low,uint32_t high){
-    if(id!=IFS_FS_GROUP_VOLUME||low>IFS_FS_GROUP_ABI_V1||
-       high<IFS_FS_GROUP_ABI_V1)return NULL;
-    return &volume_v2.header;
+    if(low>IFS_FS_GROUP_ABI_V2||high<IFS_FS_GROUP_ABI_V2)return NULL;
+    if(id==IFS_FS_GROUP_CORE)return &core_v2.header;
+    if(id==IFS_FS_GROUP_VOLUME)return &volume_v2.header;
+    return NULL;
 }
 static const IfsFsModuleApiV2 api_v2={
     IFS_FS_COMMON_ABI_V2,sizeof(IfsFsModuleApiV2),"ofs",
     IFS_FS_PROFILE_HOSTED|IFS_FS_PROFILE_FREESTANDING,
-    IFS_FS_GROUP_BIT(IFS_FS_GROUP_VOLUME),&api,query_v2
+    IFS_FS_GROUP_BIT(IFS_FS_GROUP_CORE)|
+        IFS_FS_GROUP_BIT(IFS_FS_GROUP_VOLUME),query_v2
 };
 __attribute__((visibility("default")))
 const IfsFsModuleApiV2 *infiltrator_filesystem_api_v2(void){

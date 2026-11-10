@@ -15,7 +15,7 @@ SOURCES=[BASE/'module'/n for n in ('ofs_module.c','ofs_v3.c','ofs_common.c','ofs
     'ofs_files.c','ofs_namespace.c','ofs_check.c','ofs_strings.c','ofs_cache.c')]
 SOURCES += [BASE/'defrag'/n for n in ('ofs_relayout.c','ofs_defrag_module.c')]
 INCLUDES=[BASE/'module',BASE/'core',BASE/'efi',ROOT/'native/include']
-EXPORTS=('infiltrator_filesystem_api_v1','infiltrator_filesystem_api_v2')+tuple('infiltrator_filesystem_module_v'+str(i) for i in (1,2,3))+('infiltrator_filesystem_boot_v1','infiltrator_filesystem_defrag_v2')
+EXPORTS=('infiltrator_filesystem_api_v2',)+tuple('infiltrator_filesystem_module_v'+str(i) for i in (1,2,3))+('infiltrator_filesystem_boot_v1','infiltrator_filesystem_defrag_v2')
 
 def run(args,**kwargs):subprocess.run([str(x) for x in args],check=True,**kwargs)
 
@@ -42,7 +42,7 @@ def inspect(module):
     manifest=struct.pack('<8sIIII16s32s',b'IFSBOOT1',72,1,62,1,b'ofs',b'Amiga Original File System')
     if manifest not in module.read_bytes():raise RuntimeError('Missing exact Boot V1 manifest')
     meta=subprocess.check_output(['readelf','-p','.ifsmeta',str(module)],text=True)
-    if any('IFS-MODULE:ofs:'+str(i) not in meta for i in (1,2,3)) or ('IFS-MODULE:ofs:common1' not in meta or 'IFS-MODULE:ofs:common2' not in meta):raise RuntimeError('Missing ABI identities')
+    if any('IFS-MODULE:ofs:'+str(i) not in meta for i in (1,2,3)) or 'IFS-MODULE:ofs:common2' not in meta:raise RuntimeError('Missing ABI identities')
     print('OFS-FREESTANDING-BOOT-PROFILE-PASS')
 
 def compile_module(module,flags,training=False):
