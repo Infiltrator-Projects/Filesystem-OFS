@@ -5,8 +5,8 @@ Its OFS sources were imported from Infiltrator-Projects/Filesystems commit
 `7473534b1afbd1e9b14f8ab9ae0769fc6be2126e`. Existing copyright and SPDX notices
 are preserved. New portable allocation, namespace, data and checking code
 adapts those OFS algorithms and the canonical OFS specification, rather than
-using FFS raw-data semantics. The SO exports the original unchanged V1/V2
-layouts and additive V3 and generic Boot V1 interfaces.
+using FFS raw-data semantics. The SO exports the original native layouts, the later read/write extension and the
+firmware adapter used at that checkpoint.
 
 Defrag V2 is an additive process-hosted interface in the same freestanding SO.
 Its OFS relocation uses the canonical engine's verified namespace, data cursors

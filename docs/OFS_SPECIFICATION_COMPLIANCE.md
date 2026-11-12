@@ -1,7 +1,7 @@
 # OFS format completeness and implementation qualification
 
 **29 October 2026 shared-module update:** the independent OFS.so V3 and generic
-Boot V1 implementation and its current software evidence are tracked in
+Firmware adapter implementation and its current software evidence are tracked in
 [SO completion and qualification](SO_COMPLETION.md). The historical platform
 assessment below is retained as a dated record. The current canonical Linux KO
 replaces the old PAGE_SIZE-dependent engine and qualifies read/write DOS0/2/4/6

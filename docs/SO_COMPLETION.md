@@ -7,16 +7,16 @@ The authoritative disk format remains `native/filesystems/ofs/OFS_SPECIFICATION.
 The original DOS0 A–I acceptance contract and historical Linux/physical/Amiga
 qualification gates are not redefined by a successful SO test.
 
-The V1/V2-only independent baseline is
+The initial independent baseline is
 `386d97969996864a939bd644c500cd6394a348a3`. The module now includes one portable
-engine, reused by V1/V2, the additive V3 API, generic Boot V1 and the native KO. The separate
+engine, reused by the early read and overwrite interfaces, the full read/write API, the firmware adapter and the native kernel module. The separate
 legacy EFI reader is no longer linked into OFS.so. Boot production sources
 remain unchanged at released commit
 `dbc6a710dbe88b78318c8b9afbf47bb64e8706b3` (v0.1.38).
 
 | Concern | Implementation and reproducible evidence |
 | --- | --- |
-| Source/ABI | Original V1/V2 layouts preserved and original assertions retained; V3 and Boot use the same engine. Exact Boot header comparison, export/manifest/no-import/relative-relocation inspection in `standalone/build.py` and `tests/check-boot-so.sh`. |
+| Source/ABI | Original native layouts preserved and original assertions retained; V3 and Boot use the same engine. Exact Boot header comparison, export/manifest/no-import/relative-relocation inspection in `standalone/build.py` and `tests/check-boot-so.sh`. |
 | Seven geometries/four variants | `tests/ofs_v3_test.py`: 56 two-way producer/consumer round trips (seven sizes × DOS0/2/4/6 × own/foreign producer), independent LNFS reader comparisons and remounts. Oracle limitations and the narrowly corrected DOS4 cache-type defect are in the provenance document. |
 | Native OFS file data | Header/owner/sequence/checksum and forward-chain/reversed-pointer agreement; extension rollover and shrink across multiple lists; random and EOF reads, zero-filled growth, overwrite and 32-bit length overflow checks in `tests/ofs_complete_test.py`. |
 | Namespace/metadata | Every variant/size exercises create, mkdir, rename/move/replace, unlink, file and directory hard-link promotion, symbolic targets/loops, protection, uid/gid, comments, exact DateStamps and labels. DOS0 and international high-byte case behavior are distinguished. |

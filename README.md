@@ -4,8 +4,8 @@ Independent OFS filesystem module for InfiltratorOS, with the same shared
 object used by applications and Boot. Filesystem implementation lives here;
 Boot supplies its generic ELF loader, byte I/O and UEFI filesystem bridge.
 
-`OFS.so` exports the preserved V1/V2 interfaces, a full read/write **V3** API,
-the generic **Boot V1** interface and process-hosted **Defrag V2**. It handles OFS `DOS0`, international
+`OFS.so` exports Common V2 for filesystem operations, alongside the
+dedicated relocation and recovery interface. It handles OFS `DOS0`, international
 `DOS2`, directory-cache `DOS4`, and long-name `DOS6`. OFS data always retains
 its 24-byte data header and checksum. Amiga FFS is a separate filesystem.
 
@@ -18,13 +18,13 @@ its 24-byte data header and checksum. Amiga FFS is a separate filesystem.
 | DOS4 | Cache creation, validation and updates after namespace, file-size and metadata changes |
 | DOS6 | Long names, inline/overflow comments and allocated-block counter maintenance; 106-byte writer/107-byte reader name limits |
 | Volume management | Explicit unmounted format, whole-volume ownership/bitmap verification and explicit bitmap recovery after a structurally valid scan |
-| Boot | Read-only streaming, directories, seeks, filenames and labels; exact generic ABI/manifest; no runtime library imports or constructors |
+| Boot | Read-only streaming, directories, seeks, filenames and labels; firmware-compatible Common V2 profile; no runtime library imports or constructors |
 | Defragmenter | Analyse/map, metadata and data relocation, exact 10% Growth reserve, verified staging, durable journals, Stop and bound-target Recover; filesystem semantics stay in OFS.so |
 
 V3 is serialized and owns one mount per loaded image. The host provides
 bounded partition-relative I/O, allocation, flush and optional native Amiga
 time callbacks. Its public contract is
-[`ofs_v3.h`](native/filesystems/ofs/module/ofs_v3.h). Existing V1/V2 clients keep
+[`ofs_v3.h`](native/filesystems/ofs/module/ofs_v3.h). Earlier native callers keep
 their 512-byte DOS0/2/4 contract; V2 remains bounded existing-file overwrite.
 New filesystem operations use V3. File and user-directory hard links support
 creation, mutation through aliases, deletion and promotion. Explicit directory
@@ -130,18 +130,11 @@ Source origin: Filesystems commit
 `386d97969996864a939bd644c500cd6394a348a3`. Copyright notices are preserved.
 License: GPL-3.0-or-later.
 
-## Shared filesystem interface
+## Common V2 filesystem ABI
 
-`OFS.so` now exports `infiltrator_filesystem_api_v1`, using the canonical
-V3 engine for probing, mount, directories, I/O, formatting and checking.
-Writable operations require exclusive host access. Formatting requires
-validated logical sector size. The Common table does not advertise bitmap
-recovery or defragmentation until those operations have matching Common
-contracts. No duplicate OFS engine is introduced.
-
-## Common V2 ABI
-
-`OFS.so` exports `infiltrator_filesystem_api_v2` for negotiated V2 volume
-sync, integrity check and format operations, all backed by the existing OFS
-engine. Host conversion validates complete geometry and permissions; recovery
-and direct kernel/firmware execution are deliberately not claimed.
+`OFS.so` exposes `infiltrator_filesystem_api_v2` using the canonical OFS
+engine. It supports probe, mount, directories, file I/O, volume query,
+sync, integrity check and format. The host supplies verified geometry and
+exclusive access for writes. The Common interface does not yet provide
+bitmap recovery or defragmentation. Those operations retain their
+dedicated interfaces until Common V2 equivalents are qualified.
