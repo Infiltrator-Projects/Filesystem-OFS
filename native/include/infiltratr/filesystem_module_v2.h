@@ -151,6 +151,68 @@ static inline int ifs_fs_host_v2_valid(const IfsFsHostRuntimeV2 *h)
     return 1;
 }
 
+/* Portable byte-range reads over sector-constrained host I/O.
+ * Callbacks receive ONLY complete, sector-aligned transfers, never
+ * more than maximum_transfer_bytes. Misaligned/short requests use one
+ * host-owned scratch sector and cannot cross the authenticated volume.
+ * A read may have partially filled the destination before an I/O error.
+ * No OS, libc, legacy ABI or filesystem-specific service is required. */
+static inline int ifs_fs_host_read_bytes_v2(
+    const IfsFsHostRuntimeV2 *host, uint64_t offset,
+    void *destination, uint32_t bytes)
+{
+    uint8_t *out = (uint8_t *)destination;
+    uint8_t *scratch = NULL;
+    const uint32_t sector = host ? host->logical_sector_bytes : 0u;
+    uint32_t transfer, chunk, skip, i;
+    int result = IFS_FS_OK;
+    if (!ifs_fs_host_v2_valid(host) || (!destination && bytes))
+        return IFS_FS_INVALID;
+    if (offset > host->volume_bytes ||
+        bytes > host->volume_bytes - offset)
+        return IFS_FS_INVALID;
+    if (!bytes) return IFS_FS_OK;
+    transfer = (host->maximum_transfer_bytes / sector) * sector;
+    while (bytes != 0u) {
+        skip = (uint32_t)(offset % sector);
+        if (!skip && bytes >= sector) {
+            chunk = bytes - bytes % sector;
+            if (chunk > transfer) chunk = transfer;
+            if (host->read_at(host->context, offset, out, chunk) != 0) {
+                result = IFS_FS_IO_ERROR;
+                break;
+            }
+        } else {
+            uint64_t base = offset - skip;
+            if (base > host->volume_bytes ||
+                sector > host->volume_bytes - base) {
+                result = IFS_FS_INVALID;
+                break;
+            }
+            if (!scratch) {
+                scratch = (uint8_t *)host->allocate(host->context, sector);
+                if (!scratch) {
+                    result = IFS_FS_NO_MEMORY;
+                    break;
+                }
+            }
+            if (host->read_at(host->context, base, scratch, sector) != 0) {
+                result = IFS_FS_IO_ERROR;
+                break;
+            }
+            chunk = sector - skip;
+            if (chunk > bytes) chunk = bytes;
+            for (i = 0u; i < chunk; ++i)
+                out[i] = scratch[skip + i];
+        }
+        out += chunk;
+        offset += chunk;
+        bytes -= chunk;
+    }
+    if (scratch) host->release(host->context, scratch);
+    return result;
+}
+
 typedef struct {
     uint32_t abi_version, structure_bytes, group_id, reserved;
     uint64_t capabilities;
