@@ -9,12 +9,13 @@ import tempfile
 
 ROOT=Path(__file__).resolve().parents[1]
 BASE=ROOT/'native/filesystems/ofs'
-SOURCES=[BASE/'module'/n for n in ('ofs_module.c','ofs_v3.c','ofs_common.c','ofs_memory.c')]+[
+SOURCES=[BASE/'module'/n for n in ('ofs_v3.c','ofs_common.c','ofs_memory.c')]+[
     BASE/'core'/n for n in ('ofs_core.c','ofs_primitives.c','ofs_volume.c','ofs_nodes.c',
     'ofs_files.c','ofs_namespace.c','ofs_check.c','ofs_strings.c','ofs_cache.c')]
 SOURCES += [BASE/'defrag'/n for n in ('ofs_relayout.c','ofs_defrag_module.c')]
 INCLUDES=[BASE/'module',BASE/'core',BASE/'efi',ROOT/'native/include']
-EXPORTS=('infiltrator_filesystem_api_v2',)+tuple('infiltrator_filesystem_module_v'+str(i) for i in (1,2,3))+('infiltrator_filesystem_defrag_v2',)
+EXPORTS=('infiltrator_filesystem_api_v2','infiltrator_filesystem_module_v3',
+         'infiltrator_filesystem_defrag_v2')
 
 def run(args,**kwargs):subprocess.run([str(x) for x in args],check=True,**kwargs)
 
@@ -39,7 +40,8 @@ def inspect(module):
         if 'R_X86_64_' in line and 'R_X86_64_RELATIVE' not in line:
             raise RuntimeError('Unsupported relocation: '+line)
     meta=subprocess.check_output(['readelf','-p','.ifsmeta',str(module)],text=True)
-    if any('IFS-MODULE:ofs:'+str(i) not in meta for i in (1,2,3)) or 'IFS-MODULE:ofs:common2' not in meta:raise RuntimeError('Missing ABI identities')
+    if 'IFS-MODULE:ofs:3' not in meta or 'IFS-MODULE:ofs:common2' not in meta:
+        raise RuntimeError('Missing ABI identities')
     print('OFS-FREESTANDING-BOOT-PROFILE-PASS')
 
 def compile_module(module,flags,training=False):
@@ -52,10 +54,10 @@ def compile_module(module,flags,training=False):
     if not training:inspect(module)
 
 def test(module,full=False):
-    # These legacy tests call the actual DSO exports; the host provides I/O.
+    # Exercise the installed ABI and canonical engine against disposable fixtures.
     exe=module.parent/'ofs-module-test'
     run([os.environ.get('CC','cc'),'-std=c11','-O2','-Wall','-Wextra','-Werror',
-         '-I',BASE/'module',ROOT/'tests/ofs_dropin_module_test.c',module,
+         '-I',ROOT/'native/include',ROOT/'tests/ofs_dropin_module_test.c',module,
          '-Wl,-rpath,$ORIGIN','-o',exe]);run([exe])
     args=[sys.executable,ROOT/'tests/ofs_complete_test.py','--module',module]
     if not full:args+=['--quick']

@@ -15,7 +15,7 @@ Qualification requires supported-target builds, destructive read/write verificat
 ## Authoritative shared engine
 
 `core/ofs_{volume,nodes,files,namespace,check,strings,cache}.c` implements the
-portable read/write engine. The original native adapters, full read/write API and firmware adapter all
+portable read/write engine. Common V2, the full native read/write API and the relocation worker
 use that engine. OFS.so has no libc imports, constructors or platform I/O;
 the host supplies bounded partition-relative byte I/O, heap and persistence.
 
@@ -23,7 +23,7 @@ V3 implements DOS0/2/4/6 at all seven block sizes, unsigned keys, formatting,
 file/directory operations, metadata, file and directory hard links, native
 symbolic targets, ownership verification and explicit bitmap recovery.
 Directory links include cyclic aliases and deletion/promotion with a preserved
-rooted parent route. The original native adapters retain their binary contract.
+rooted parent route.
 
 The Linux VFS and standalone EFI adapters remain transitional separate
 consumers. Their platform qualification and the original DOS0 A–I checklist

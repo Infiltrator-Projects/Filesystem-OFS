@@ -26,7 +26,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential binutils python3 dpkg-dev cmake libssl-dev
       - name: Fetch hash-pinned independent Amiga oracle
         run: python3 tests/fetch-oracle.py --output .qualification/oracle
-      - name: Preserve original interfaces and qualify all OFS variants and geometries
+      - name: Qualify Common V2 and all OFS variants and geometries
         run: |
           make check
           make interop AMITOOLS_SOURCE=.qualification/oracle/amitools-0.8.1

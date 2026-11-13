@@ -29,6 +29,8 @@ int main(int argc,char **argv) {
        !volume->sync || !volume->check ||
        ifs_fs_group_v2(api,IFS_FS_GROUP_DEFRAG) ||
        dlsym(so,"infiltrator_filesystem_api_v1") ||
+       dlsym(so,"infiltrator_filesystem_module_v1") ||
+       dlsym(so,"infiltrator_filesystem_module_v2") ||
        (api->runtime_profiles & IFS_FS_PROFILE_KERNEL)) {
         fputs("OFS strict Common V2 contract rejected\n",stderr);
         dlclose(so);return 1;

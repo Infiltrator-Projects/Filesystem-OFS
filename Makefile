@@ -4,7 +4,7 @@ OFS := native/filesystems/ofs
 CORE := $(OFS)/core/ofs_core.c $(OFS)/core/ofs_primitives.c
 ENGINE := $(addprefix $(OFS)/core/,ofs_volume.c ofs_nodes.c ofs_files.c ofs_namespace.c ofs_check.c ofs_strings.c ofs_cache.c) $(OFS)/defrag/ofs_relayout.c $(OFS)/defrag/ofs_defrag_module.c
 READER := $(OFS)/efi/reader.c
-MODULE := $(OFS)/module/ofs_module.c $(OFS)/module/ofs_v3.c $(OFS)/module/ofs_common.c $(OFS)/module/ofs_memory.c
+MODULE := $(OFS)/module/ofs_v3.c $(OFS)/module/ofs_common.c $(OFS)/module/ofs_memory.c
 INC := -I$(OFS)/core -I$(OFS)/efi -I$(OFS)/module -Inative/include
 OUT ?= build
 PYTHON ?= python3
@@ -41,10 +41,6 @@ test: $(OUT)/OFS.so $(OUT)/ofs-module-test $(OUT)/ofs-reader-test $(OUT)/ofs-cor
 	$(OUT)/ofs-core-test
 	$(OUT)/ofs-primitives-test
 	$(OUT)/ofs-orphan-test
-	readelf -Ws $(OUT)/OFS.so | grep -F 'infiltrator_filesystem_module_v1'
-	readelf -Ws $(OUT)/OFS.so | grep -F 'infiltrator_filesystem_module_v2'
-	readelf -p .ifsmeta $(OUT)/OFS.so | grep -F 'IFS-MODULE:ofs:1'
-	readelf -p .ifsmeta $(OUT)/OFS.so | grep -F 'IFS-MODULE:ofs:2'
 	! readelf -d $(OUT)/OFS.so | grep -q '[(]NEEDED[)]'
 
 check: test

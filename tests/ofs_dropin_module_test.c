@@ -1,9 +1,12 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Independent disposable in-memory OFS DOS\0 fixture. No physical disks. */
-#include "ofs_module.h"
+#include <infiltratr/filesystem_module_v2.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+
+extern const IfsFsModuleApiV2 *infiltrator_filesystem_api_v2(void);
 
 enum { BLOCKS = 1024, BLOCK = 512, ROOT = 512 };
 static uint8_t disk[BLOCKS][BLOCK];
@@ -73,11 +76,15 @@ static int sync_volume(void *ctx)
     ++syncs;
     return 0;
 }
-static int reject_write(void *ctx, uint64_t offset, const void *source,
-                        uint32_t len)
+static void *allocate(void *ctx, size_t bytes)
 {
-    (void)ctx; (void)offset; (void)source; (void)len;
-    return -1;
+    (void)ctx;
+    return malloc(bytes);
+}
+static void release(void *ctx, void *ptr)
+{
+    (void)ctx;
+    free(ptr);
 }
 static void fixture(void)
 {
@@ -138,169 +145,103 @@ static int fail(const char *reason)
 }
 int main(void)
 {
-    const IfsOfsDropInModule *module = infiltrator_filesystem_module_v1();
-    IfsOfsDropInIo io = {read_at, 0, sizeof disk};
-    IfsOfsDropInVolume volume = {0};
-    IfsOfsEfiEntry root, directory, file, listed;
-    IfsOfsEfiDirCursor cursor = {0};
-    IfsOfsEfiFileCursor read_cursor = {0};
-    uint8_t filename[31] = {0}, data[8] = {0};
+    const IfsFsModuleApiV2 *api = infiltrator_filesystem_api_v2();
+    const IfsFsCoreOpsV2 *core =
+        (const IfsFsCoreOpsV2 *)ifs_fs_group_v2(api, IFS_FS_GROUP_CORE);
+    const IfsFsVolumeOpsV2 *volume_ops =
+        (const IfsFsVolumeOpsV2 *)ifs_fs_group_v2(api, IFS_FS_GROUP_VOLUME);
+    if (!ifs_fs_api_v2_valid(api, "ofs") || !core || !volume_ops ||
+        !core->probe || !core->mount || !core->unmount || !core->stat ||
+        !core->directory_entry || !core->read || !core->write || !volume_ops->sync)
+        return fail("Common V2 capabilities missing");
 
-    if (!module || module->abi_version != 1 ||
-        module->structure_bytes != sizeof *module ||
-        strcmp(module->format_id, "ofs") != 0 ||
-        (module->capabilities & (IFS_OFS_CAP_PROBE |
-                                IFS_OFS_CAP_LOOKUP |
-                                IFS_OFS_CAP_ENUMERATE |
-                                IFS_OFS_CAP_FILE_READ |
-                                IFS_OFS_CAP_DOS0)) == 0)
-        return fail("missing OFS C ABI or read capabilities");
+    const IfsFsHostRuntimeV2 read_only = {
+        .abi_version = IFS_FS_HOST_ABI_V2,
+        .structure_bytes = sizeof(IfsFsHostRuntimeV2),
+        .capabilities = IFS_FS_HOST_READ_ONLY,
+        .volume_bytes = sizeof(disk),
+        .logical_sector_bytes = BLOCK,
+        .physical_sector_bytes = BLOCK,
+        .maximum_transfer_bytes = 65536u,
+        .read_at = read_at,
+        .allocate = allocate,
+        .release = release
+    };
+    IfsFsHostRuntimeV2 writable = read_only;
+    writable.capabilities = IFS_FS_HOST_EXCLUSIVE | IFS_FS_HOST_DURABLE;
+    writable.write_at = write_at;
+    writable.flush = sync_volume;
+    IfsFsVolumeInfoV2 info = {.structure_bytes = sizeof(info)};
+    void *volume = NULL;
+    char entry_name[64];
+    IfsFsEntryV2 entry = {
+        .structure_bytes = sizeof(entry), .name = entry_name,
+        .name_capacity = sizeof(entry_name)
+    };
+    const char *path = "/BOOT/KERNEL.EFI";
+    char data[8];
+    uint32_t variant = UINT32_MAX;
+
     fixture();
-    if (module->mount(&volume, &io) != 0)
-        return fail("failed to mount valid DOS0 fixture");
-    root = module->root(&volume);
-    if (root.block != ROOT ||
-        module->lookup(&volume, &root, (const uint8_t *)"BOOT",
-                       4, &directory) != 0)
-        return fail("failed to locate directory by folded name");
-    if (module->lookup(&volume, &directory,
-                       (const uint8_t *)"kernel.efi",
-                       10, &file) != 0 || file.size != 5)
-        return fail("failed to find nested file");
-    if (module->next(&volume, &directory, &cursor, &listed, filename) != 0 ||
-        strcmp((const char *)filename, "kernel.efi") != 0 ||
-        module->next(&volume, &directory, &cursor, &listed, filename) != 1)
-        return fail("directory enumeration failed");
-    if (module->read(&volume, &file, 0, data, 5, &read_cursor) != 0 ||
+    if (core->probe(&read_only, &variant) != IFS_FS_OK || variant != 0 ||
+        core->mount(&read_only, &volume, &info) != IFS_FS_OK ||
+        core->stat(volume, path, &entry) != IFS_FS_OK ||
+        entry.type != IFS_FS_ENTRY_FILE || entry.size_bytes != 5 ||
+        core->directory_entry(volume, "/BOOT", 0, &entry) != IFS_FS_OK ||
+        strcmp(entry.name, "kernel.efi") != 0 ||
+        core->directory_entry(volume, "/BOOT", 1, &entry) != IFS_FS_END ||
+        core->read(volume, path, 0, data, 5) != IFS_FS_OK ||
         memcmp(data, "HELLO", 5) != 0 ||
-        module->read(&volume, &file, 2, data, 3, &read_cursor) != 0 ||
-        memcmp(data, "LLO", 3) != 0)
-        return fail("OFS file read incorrect");
-    if (module->read(&volume, &file, 4, data, 2, 0) == 0)
-        return fail("out of range read was accepted");
+        core->read(volume, path, 2, data, 3) != IFS_FS_OK ||
+        memcmp(data, "LLO", 3) != 0 ||
+        core->read(volume, path, 4, data, 2) == IFS_FS_OK ||
+        core->write(volume, path, 0, "X", 1) != IFS_FS_ACCESS ||
+        core->unmount(volume) != IFS_FS_OK || writes != 0)
+        return fail("read-only nested file, enumeration or bounds");
 
+    /* Extend the independent fixture to two OFS data blocks. The write
+     * crosses their payload boundary and must survive an unmount. */
+    put(disk[5], 2, 2);
+    put(disk[5], 76, 7);
+    put(disk[5], 81, 600);
+    checksum(disk[5]);
+    put(disk[6], 3, 488);
+    put(disk[6], 4, 7);
+    memset(disk[6] + 24, 'A', 488);
+    checksum(disk[6]);
+    put(disk[7], 0, 8);
+    put(disk[7], 1, 5);
+    put(disk[7], 2, 2);
+    put(disk[7], 3, 112);
+    memset(disk[7] + 24, 'B', 112);
+    checksum(disk[7]);
 
-    {
-        const IfsOfsDropInModuleV2 *writer = infiltrator_filesystem_module_v2();
-        const uint8_t bytes[] = {'B', 'Y', 'E'};
-        uint8_t original[512];
-        if (!writer || writer->abi_version != 2U ||
-            writer->structure_bytes != sizeof *writer ||
-            strcmp(writer->format_id, "ofs") != 0 ||
-            !(writer->capabilities & IFS_OFS_CAP_EXISTING_FILE_OVERWRITE))
-            return fail("OFS V2 writer ABI missing");
-        writes = syncs = 0U;
-        if (writer->overwrite_existing(&volume, &file, 1U, bytes, 3U,
-                                       write_at, sync_volume) != 0 ||
-            writes != 1U || syncs != 1U)
-            return fail("bounded OFS V2 writer failed");
-        if (module->read(&volume, &file, 0, data, 5, 0) != 0 ||
-            memcmp(data, "HBYEO", 5) != 0)
-            return fail("OFS V2 writer did not persist validated data");
-        memcpy(original, disk[6], sizeof original);
-        if (writer->overwrite_existing(&volume, &file, 4U, bytes, 3U,
-                                       write_at, sync_volume) == 0 ||
-            writer->overwrite_existing(&volume, &directory, 0U, bytes, 1U,
-                                       write_at, sync_volume) == 0 ||
-            writer->overwrite_existing(&volume, &file, 0U, bytes, 1U,
-                                       reject_write, sync_volume) == 0 ||
-            writes != 1U ||
-            memcmp(original, disk[6], sizeof original) != 0)
-            return fail("OFS V2 violated bounds or modified rejected writes");
-        disk[6][25] ^= 1U;
-        if (writer->overwrite_existing(&volume, &file, 0U, bytes, 1U,
-                                       write_at, sync_volume) == 0 ||
-            writes != 1U)
-            return fail("OFS V2 accepted corrupt data chain");
-        fixture();
-        put(disk[0], 0, UINT32_C(0x444f5301)); /* Hot-swapped FFS after mount. */
-        if (writer->overwrite_existing(&volume, &file, 0U, bytes, 1U,
-                                       write_at, sync_volume) == 0 ||
-            writes != 1U)
-            return fail("OFS V2 wrote stale/foreign-format mounted media");
-        fixture();
-        if (module->mount(&volume, &io) != 0 ||
-            module->lookup(&volume, &(IfsOfsEfiEntry){ROOT, 0, IFS_OFS_EFI_DIRECTORY},
-                           (const uint8_t *)"boot", 4, &directory) != 0 ||
-            module->lookup(&volume, &directory,
-                           (const uint8_t *)"kernel.efi", 10, &file) != 0)
-            return fail("OFS V2 test fixture reset failed");
-    }
+    if (core->mount(&writable, &volume, &info) != IFS_FS_OK ||
+        core->write(volume, path, 487, "XYZW", 4) != IFS_FS_OK ||
+        volume_ops->sync(volume) != IFS_FS_OK ||
+        core->unmount(volume) != IFS_FS_OK || writes == 0 || syncs == 0 ||
+        core->mount(&read_only, &volume, &info) != IFS_FS_OK ||
+        core->read(volume, path, 487, data, 4) != IFS_FS_OK ||
+        memcmp(data, "XYZW", 4) != 0 || core->unmount(volume) != IFS_FS_OK ||
+        disk[6][511] != 'X' || memcmp(disk[7] + 24, "YZW", 3) != 0)
+        return fail("cross-block overwrite or persistence");
 
-    /* A real DOS0 data chain spans 488-byte payload blocks. Verify a
-     * cross-boundary overwrite, independent readback, and whole-span
-     * preflight on a deliberately corrupted trailing block. */
-    {
-        const IfsOfsDropInModuleV2 *writer = infiltrator_filesystem_module_v2();
-        const uint8_t payload[] = {'X','Y','Z','W'};
-        uint8_t out[sizeof payload] = {0};
-        uint32_t count_before;
-        fixture();
-        put(disk[5], 2, 2);
-        put(disk[5], 76, 7);
-        put(disk[5], 81, 600);
-        checksum(disk[5]);
-        put(disk[6], 3, 488);
-        put(disk[6], 4, 7);
-        memset(disk[6]+24, 'A', 488);
-        checksum(disk[6]);
-        put(disk[7], 0, 8);
-        put(disk[7], 1, 5);
-        put(disk[7], 2, 2);
-        put(disk[7], 3, 112);
-        memset(disk[7]+24, 'B', 112);
-        checksum(disk[7]);
-        if (module->mount(&volume, &io) != 0)
-            return fail("cross-block OFS fixture mount");
-        root = module->root(&volume);
-        if (module->lookup(&volume, &root, (const uint8_t *)"boot", 4,
-                           &directory) != 0 ||
-            module->lookup(&volume, &directory,
-                           (const uint8_t *)"kernel.efi", 10, &file) != 0 ||
-            file.size != 600)
-            return fail("cross-block fixture lookup");
-        writes = syncs = 0;
-        if (writer->overwrite_existing(&volume, &file, 487, payload, 4,
-                                       write_at, sync_volume) != 0 ||
-            writes != 2 || syncs != 2 ||
-            module->read(&volume, &file, 487, out, 4, 0) != 0 ||
-            memcmp(out, payload, 4) != 0)
-            return fail("OFS cross-data-block mutation and persistence");
-        count_before = writes;
-        disk[7][30] ^= 1u;
-        if (writer->overwrite_existing(&volume, &file, 487, payload, 4,
-                                       write_at, sync_volume) == 0 ||
-            writes != count_before)
-            return fail("OFS writer partially modified corrupted tail");
-        fixture();
-        if (module->mount(&volume, &io) != 0)
-            return fail("OFS cross-block fixture reset");
-        root = module->root(&volume);
-        if (module->lookup(&volume, &root, (const uint8_t *)"boot", 4,
-                           &directory) != 0 ||
-            module->lookup(&volume, &directory,
-                           (const uint8_t *)"kernel.efi", 10, &file) != 0)
-            return fail("OFS cross-block reset lookup");
-    }
-    disk[6][25] ^= 1;
-    if (module->read(&volume, &file, 0, data, 5, 0) == 0)
-        return fail("corrupt data checksum was accepted");
+    /* Writable Common mounts validate ownership and data before opening
+     * the volume to updates. The backing image is exclusive while mounted. */
+    const uint32_t prior_writes = writes;
+    disk[7][30] ^= 1u;
+    if (core->mount(&writable, &volume, &info) == IFS_FS_OK ||
+        writes != prior_writes || disk[6][511] != 'X')
+        return fail("corrupt tail accepted for writes");
+
     fixture();
     put(disk[0], 0, UINT32_C(0x444f5301));
-    if (module->mount(&volume, &io) == 0)
-        return fail("FFS DOS1 mounted as OFS");
-    fixture();
-    put(disk[0], 0, UINT32_C(0x444f5302));
-    if (module->mount(&volume, &io) != 0)
-        return fail("international OFS DOS2 rejected");
-    fixture();
-    put(disk[0], 0, UINT32_C(0x444f5304));
-    if (module->mount(&volume, &io) != 0)
-        return fail("cache OFS DOS4 rejected");
-    fixture();
-    io.volume_bytes = 512;
-    if (module->mount(&volume, &io) == 0)
+    if (core->probe(&read_only, &variant) == IFS_FS_OK)
+        return fail("foreign FFS detected as OFS");
+    IfsFsHostRuntimeV2 truncated = read_only;
+    truncated.volume_bytes = BLOCK;
+    if (core->mount(&truncated, &volume, &info) == IFS_FS_OK)
         return fail("truncated volume accepted");
-    puts("OFS-DROPIN-READ-AND-IDENTITY-PASS");
+    puts("OFS-COMMON-V2-FIXTURE-READ-WRITE-PASS");
     return 0;
 }

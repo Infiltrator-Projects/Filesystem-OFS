@@ -24,9 +24,7 @@ its 24-byte data header and checksum. Amiga FFS is a separate filesystem.
 V3 is serialized and owns one mount per loaded image. The host provides
 bounded partition-relative I/O, allocation, flush and optional native Amiga
 time callbacks. Its public contract is
-[`ofs_v3.h`](native/filesystems/ofs/module/ofs_v3.h). Earlier native callers keep
-their 512-byte DOS0/2/4 contract; V2 remains bounded existing-file overwrite.
-New filesystem operations use V3. File and user-directory hard links support
+[`ofs_v3.h`](native/filesystems/ofs/module/ofs_v3.h). Applications use Common V2 for ordinary filesystem operations. File and user-directory hard links support
 creation, mutation through aliases, deletion and promotion. Explicit directory
 links may form cycles; traversal is bounded and whole-volume verification visits
 each original once. Removing the sole rooted name of a cyclic directory tree
@@ -65,7 +63,7 @@ module is stored for manual use. Use `--build-only` to produce the package
 without installing it.
 
 ```sh
-bash filesystem-ofs-0.1.15-native-installer.run --build-only --output ./native-package
+bash filesystem-ofs-0.1.16-native-installer.run --build-only --output ./native-package
 ```
 
 InfiltratorOS uses `--system-package-mode` to build the SO and PDF as a package.
