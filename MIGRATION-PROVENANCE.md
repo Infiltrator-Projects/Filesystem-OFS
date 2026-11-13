@@ -54,12 +54,11 @@ The pinned oracle has known limitations, recorded rather than hidden:
   geometry have distinct raw structure tests.
 
 `tests/ofs_boot_loader_test.c` and `tests/test_boot_linux.py` adapt the GPL
-Boot tests from released Boot commit
-`dbc6a710dbe88b78318c8b9afbf47bb64e8706b3`. The loader and UEFI bridge sources
-are compiled directly from that unchanged checkout. The module ABI header is
-byte-identical to its `include/ifs_boot_module.h`. The independent OFS fixture
-replaces the FAT-specific media producer; firmware, kernel, initramfs and
-trust/ELF rejection assertions remain real tests of Boot's consumer.
+Boot tests. The Common V2 tests compile the loader and UEFI bridge directly
+from released Boot 0.1.45, commit `93aed1b866f502ac61f6f23a20c524c7fad62812`.
+The Common V2 headers are byte-identical. An independent OFS producer
+supplies the images used for ELF rejection, volume labels, directory
+enumeration and kernel/initramfs handoff.
 
 This evidence demonstrates disposable-image software compatibility. It does
 not establish interoperability with every original Amiga handler or certify

@@ -65,7 +65,7 @@ module is stored for manual use. Use `--build-only` to produce the package
 without installing it.
 
 ```sh
-bash filesystem-ofs-0.1.9-native-installer.run --build-only --output ./native-package
+bash filesystem-ofs-0.1.15-native-installer.run --build-only --output ./native-package
 ```
 
 InfiltratorOS uses `--system-package-mode` to build the SO and PDF as a package.
@@ -134,7 +134,7 @@ License: GPL-3.0-or-later.
 
 `OFS.so` exposes `infiltrator_filesystem_api_v2` using the canonical OFS
 engine. It supports probe, mount, directories, file I/O, volume query,
-sync, integrity check and format. The host supplies verified geometry and
+labels, sync, integrity check and format. The host supplies verified geometry and
 exclusive access for writes. The Common interface does not yet provide
 bitmap recovery or defragmentation. Those operations retain their
 dedicated interfaces until Common V2 equivalents are qualified.

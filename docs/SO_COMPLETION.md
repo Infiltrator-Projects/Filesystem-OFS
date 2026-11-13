@@ -9,14 +9,14 @@ qualification gates are not redefined by a successful SO test.
 
 The initial independent baseline is
 `386d97969996864a939bd644c500cd6394a348a3`. The module now includes one portable
-engine, reused by the early read and overwrite interfaces, the full read/write API, the firmware adapter and the native kernel module. The separate
-legacy EFI reader is no longer linked into OFS.so. Boot production sources
-remain unchanged at released commit
-`dbc6a710dbe88b78318c8b9afbf47bb64e8706b3` (v0.1.38).
+engine, shared by the full read/write API, Common V2 and the native
+kernel module. Boot 0.1.45 uses Common V2 for read-only OFS access, including
+volume labels. The qualification jobs pin released Boot commit
+`93aed1b866f502ac61f6f23a20c524c7fad62812`.
 
 | Concern | Implementation and reproducible evidence |
 | --- | --- |
-| Source/ABI | Original native layouts preserved and original assertions retained; V3 and Boot use the same engine. Exact Boot header comparison, export/manifest/no-import/relative-relocation inspection in `standalone/build.py` and `tests/check-boot-so.sh`. |
+| Source/ABI | The freestanding object exposes the Common V2 firmware interface. Tests compare the exact Common header and verify the export set, absence of imports and supported relocations. |
 | Seven geometries/four variants | `tests/ofs_v3_test.py`: 56 two-way producer/consumer round trips (seven sizes × DOS0/2/4/6 × own/foreign producer), independent LNFS reader comparisons and remounts. Oracle limitations and the narrowly corrected DOS4 cache-type defect are in the provenance document. |
 | Native OFS file data | Header/owner/sequence/checksum and forward-chain/reversed-pointer agreement; extension rollover and shrink across multiple lists; random and EOF reads, zero-filled growth, overwrite and 32-bit length overflow checks in `tests/ofs_complete_test.py`. |
 | Namespace/metadata | Every variant/size exercises create, mkdir, rename/move/replace, unlink, file and directory hard-link promotion, symbolic targets/loops, protection, uid/gid, comments, exact DateStamps and labels. DOS0 and international high-byte case behavior are distinguished. |
@@ -27,7 +27,7 @@ remain unchanged at released commit
 | High addresses/maximum file length | Virtual read-only fixtures run the actual SO at unsigned keys above 2^31 at every B, with byte offsets above 1 TiB. The 32768-byte fixture reads the end of a UINT32_MAX-byte file through multiple extension lists. These are arithmetic/address tests, not fully populated multi-terabyte media or physical-write evidence. |
 | Failure/recovery | Every write and flush barrier of actual overwrite, growth, mkdir, cross-directory rename and unlink is failed in turn (DOS0/4/6). Successful commands use the dirty/valid bitmap protocol. Explicit recovery rebuilds allocation/counters only after a consistent ownership scan; structural contradictions remain errors. Corrupt data/pointers/checksums/cache/comments and repeated failed bitmap indexing are tested. |
 | Memory/arithmetic | `tests/check-sanitizers.sh` instruments the actual engine with AddressSanitizer and UBSan. Release SO inspection separately requires zero runtime imports. |
-| Boot interface | The actual released generic ELF loader and unchanged UEFI bridge tests consume OFS.so across all 28 variant/size combinations, including UTF-8 names, seek/EOF, whole-disk rejection, read-only operations, trust/memory protection and 26 malformed ELF cases. Portable/native objects follow the same path. |
+| Boot interface | The actual released generic ELF loader and unchanged UEFI bridge tests consume OFS.so across all 28 variant/size combinations, including volume labels, UTF-8 names, seek/EOF, whole-disk rejection, read-only operations, trust/memory protection and malformed ELF rejection. Portable/native objects follow the same path. |
 | Actual firmware handoff | `tests/test_boot_linux.py` independently creates an OFS volume containing a real Linux kernel/initramfs. Released Boot has only OFS.so staged; Linux prints the success marker. CI requires portable/native DOS0 and a 32768-byte DOS6 handoff plus a broken-module/no-fallback rejection. Image hashes must remain unchanged. |
 | Defragmenter | `tests/ofs_defrag_test.py` compiles the exact production generic host, compares both public ABI headers, then drives the packaged SO through analysis, Defrag, Growth Defrag and Recover. All 28 profiles preserve contents, file/directory/cyclic aliases, soft links, ownership, timestamps, comments, cache records and counters. Canonical layouts are idempotent; free Growth gaps are independently read from disk. Tests cross reversed-pointer lists and bitmap extensions, reject insufficient space without source writes, interrupt every journal phase and real source writes, honour Stop and refuse wrong targets, altered precommit sources and corrupt stages. The diagnostic SO and generic host also run under ASan/UBSan. |
 | Native Linux KO | `scripts/build-ofs-kernel.sh` compiles the canonical engine and Linux VFS binding against an explicit kernel tree. `tests/test_kernel_runtime.py` boots the real KO in Linux 6.12.107 for all 28 DOS0/2/4/6 and 512..32768-byte profiles. An independent POSIX client exercises random writes, zero-filled growth/shrink, pointer-list rollover, shared/private mmap, executable loading, hard-link promotion, directory aliases, open unlink/replace/rmdir, case folding, metadata, DOS4 cache updates, DOS6 long names/overflow comments, simultaneous mounts, geometry autodetection and read-only remounts. Device buffers include 4096-byte logical sectors. After unmount, canonical verification and an independent amitools reader inspect the written contents and metadata. Rejected FFS media must remain byte-identical. No host module is installed or loaded. |
@@ -58,8 +58,7 @@ binding, nested reads, disconnect and rejection of incompatible media.
 The public API is `native/filesystems/ofs/module/ofs_v3.h`. Byte callbacks must
 be exact, partition-relative and bounded to `volume_bytes`. A successful flush
 must mean durable host storage completion. Writable mounts require allocation
-callbacks and a successful full ownership/bitmap scan before enabling writes; Boot's read-only streaming path has bounded internal memory and no
-host heap. V3 can take explicit filesystem B/reserved/root options; its normal
+callbacks and a successful full ownership/bitmap scan before enabling writes. Boot supplies bounded read-only Common V2 host services. V3 can take explicit filesystem B/reserved/root options; its normal
 reserved default is two. Device-sector size is not filesystem block size.
 Space reports allocated/free filesystem-block capacity, including the native
 OFS data-header overhead in any eventual payload allocation.

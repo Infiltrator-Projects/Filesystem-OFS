@@ -7,7 +7,7 @@ boot=$(realpath "${2:?pass the canonical Boot checkout}")
 oracle=$(realpath "${3:?pass the pinned amitools source}")
 work=$(mktemp -d)
 trap 'rm -rf -- "$work"' EXIT
-cmp "$root/native/include/infiltratr/fs/boot_module.h" "$boot/include/ifs_boot_module.h"
+cmp "$root/native/include/infiltratr/filesystem_module_v2.h" "$boot/include/infiltratr/filesystem_module_v2.h"
 cc=${CC:-cc}
 sanitizers=()
 if [[ ${IFS_SO_SANITIZE:-0} == 1 ]]; then

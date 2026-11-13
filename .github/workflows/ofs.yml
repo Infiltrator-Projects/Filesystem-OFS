@@ -70,7 +70,7 @@ jobs:
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           repository: Infiltrator-Projects/Boot
-          ref: dbc6a710dbe88b78318c8b9afbf47bb64e8706b3
+          ref: 93aed1b866f502ac61f6f23a20c524c7fad62812
           path: .qualification/Boot
       - name: Install real firmware integration prerequisites
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential binutils python3 gnu-efi qemu-system-x86 ovmf dosfstools mtools busybox-static cpio
@@ -150,7 +150,7 @@ jobs:
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           repository: Infiltrator-Projects/Boot
-          ref: dbc6a710dbe88b78318c8b9afbf47bb64e8706b3
+          ref: 93aed1b866f502ac61f6f23a20c524c7fad62812
           path: .qualification/Boot
       - name: Install isolated kernel qualification tools
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential bc bison flex libelf-dev libssl-dev qemu-system-x86 busybox-static cpio kmod python3
@@ -292,4 +292,4 @@ jobs:
           (cd dist && sha256sum *.deb *.run OFS.so *.ko > SHA256SUMS)
           gh release create "$tag" dist/*.deb dist/*.run dist/OFS.so dist/*.ko dist/SHA256SUMS \
             --target "$GITHUB_SHA" --title "Amiga Original File System ${version}" \
-            --notes "One freestanding OFS.so for V1/V2/V3, generic Boot V1 and Defragmenter V2. DOS0/2/4/6, all seven block sizes, alias/metadata preservation, exact Growth Defrag, durable staged recovery and interruption tests through the production consumer. Portable DEB/direct SO and source-first measured native RUN. Native ofs-linux-6.12.107.ko is independently VM-tested against that pinned kernel; rebuild it for another host ABI. Kernel SO loading remains a later generic bridge. Evidence and original-Amiga qualification limits are in docs/SO_COMPLETION.md. No ESP or host kernel installation is performed."
+            --notes "One freestanding OFS.so with Common V2 for BOOT and the existing OFS relocation and recovery interface. DOS0/2/4/6, all seven block sizes, alias/metadata preservation, exact Growth Defrag, durable staged recovery and interruption tests through the production consumer. Portable DEB/direct SO and source-first measured native RUN. Native ofs-linux-6.12.107.ko is independently VM-tested against that pinned kernel; rebuild it for another host ABI. Kernel SO loading remains a later generic bridge. Evidence and original-Amiga qualification limits are in docs/SO_COMPLETION.md. No ESP or host kernel installation is performed."

@@ -25,7 +25,7 @@ int main(int argc,char **argv) {
        !core->stat || !core->directory_entry || !core->read ||
        !core->write || !core->create || !core->remove ||
        !core->rename || !core->truncate ||
-       !volume || !volume->query || !volume->format ||
+       !volume || !volume->query || !volume->label || !volume->format ||
        !volume->sync || !volume->check ||
        ifs_fs_group_v2(api,IFS_FS_GROUP_DEFRAG) ||
        dlsym(so,"infiltrator_filesystem_api_v1") ||

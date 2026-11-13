@@ -4,11 +4,11 @@ OFS := native/filesystems/ofs
 CORE := $(OFS)/core/ofs_core.c $(OFS)/core/ofs_primitives.c
 ENGINE := $(addprefix $(OFS)/core/,ofs_volume.c ofs_nodes.c ofs_files.c ofs_namespace.c ofs_check.c ofs_strings.c ofs_cache.c) $(OFS)/defrag/ofs_relayout.c $(OFS)/defrag/ofs_defrag_module.c
 READER := $(OFS)/efi/reader.c
-MODULE := $(OFS)/module/ofs_module.c $(OFS)/module/ofs_v3.c $(OFS)/module/ofs_common.c $(OFS)/module/ofs_boot.c $(OFS)/module/ofs_memory.c
+MODULE := $(OFS)/module/ofs_module.c $(OFS)/module/ofs_v3.c $(OFS)/module/ofs_common.c $(OFS)/module/ofs_memory.c
 INC := -I$(OFS)/core -I$(OFS)/efi -I$(OFS)/module -Inative/include
 OUT ?= build
 PYTHON ?= python3
-HEADERS := $(wildcard $(OFS)/core/*.h $(OFS)/module/*.h $(OFS)/efi/*.h $(OFS)/defrag/*.h native/include/infiltratr/fs/*.h native/include/infiltratr/filesystem_module.h native/include/infiltratr/filesystem_module_v2.h)
+HEADERS := $(wildcard $(OFS)/core/*.h $(OFS)/module/*.h $(OFS)/efi/*.h $(OFS)/defrag/*.h native/include/infiltratr/fs/*.h native/include/infiltratr/filesystem_module_v2.h)
 
 .PHONY: all test check interop release native clean efi kernel
 all: $(OUT)/OFS.so

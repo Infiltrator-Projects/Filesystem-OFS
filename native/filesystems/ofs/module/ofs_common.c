@@ -188,6 +188,26 @@ static int volume_query(void *mounted,IfsFsVolumeInfoV2 *info) {
     info->free_bytes=space.free_bytes;
     return IFS_FS_OK;
 }
+static int volume_label(void *mounted, char *out, uint32_t capacity, uint32_t *bytes) {
+    if (!live(mounted) || !out || !capacity || !bytes)
+        return IFS_FS_INVALID;
+    OfsNode root;
+    OfsFs *fs = &ifs_ofs_active;
+    const int status = ofs_node(fs, fs->root, &root, fs->scratch[1]);
+    if (status != IFS_FS_OK)
+        return status;
+
+    uint32_t length = 0;
+    for (uint32_t i = 0; i < root.name_bytes; ++i)
+        length += root.name[i] >= 128u ? 2u : 1u;
+    if (length >= capacity)
+        return IFS_FS_NO_SPACE;
+
+    const int converted = ofs_utf8(root.name, root.name_bytes, out, capacity);
+    if (converted == IFS_FS_OK)
+        *bytes = length;
+    return converted;
+}
 static int volume_sync(void *mounted) {
     if(!live(mounted))return IFS_FS_INVALID;
     return infiltrator_filesystem_module_v3()->flush()==0?
@@ -218,9 +238,9 @@ static const IfsFsCoreOpsV2 core_v2={
 static const IfsFsVolumeOpsV2 volume_v2={
     .header={IFS_FS_GROUP_ABI_V2,sizeof(IfsFsVolumeOpsV2),
        IFS_FS_GROUP_VOLUME,0u,
-       IFS_FS_VOLUME_QUERY|IFS_FS_VOLUME_SYNC|
+       IFS_FS_VOLUME_QUERY|IFS_FS_VOLUME_LABEL_GET|IFS_FS_VOLUME_SYNC|
        IFS_FS_VOLUME_CHECK|IFS_FS_VOLUME_FORMAT},
-    .query=volume_query,.sync=volume_sync,
+    .query=volume_query,.label=volume_label,.sync=volume_sync,
     .check=volume_check,.format=format
 };
 static const IfsFsGroupHeaderV2 *query_v2(
