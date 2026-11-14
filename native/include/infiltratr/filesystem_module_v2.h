@@ -145,7 +145,9 @@ static inline int ifs_fs_host_v2_valid(const IfsFsHostRuntimeV2 *h)
     if (((h->capabilities & IFS_FS_HOST_DISCARD) != 0) !=
          (h->discard != NULL) ||
         ((h->capabilities & IFS_FS_HOST_CLOCK) != 0) !=
-         (h->monotonic_ns != NULL && h->realtime_ns != NULL) ||
+         (h->monotonic_ns != NULL) ||
+        ((h->capabilities & IFS_FS_HOST_CLOCK) != 0) !=
+         (h->realtime_ns != NULL) ||
         ((h->capabilities & IFS_FS_HOST_CANCEL) != 0) !=
          (h->cancelled != NULL) ||
         ((h->capabilities & IFS_FS_HOST_LOG) != 0) !=
