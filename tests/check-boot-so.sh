@@ -15,7 +15,10 @@ if [[ ${IFS_SO_SANITIZE:-0} == 1 ]]; then
 fi
 "$cc" -std=c11 -O2 -Wall -Wextra -Werror "${sanitizers[@]}" \
     -I"$boot/refind" "$boot/refind/so_elf.c" "$root/tests/ofs_boot_loader_test.c" -o "$work/loader"
-python3 "$boot/tests/test_so_malformed.py" "$work/loader" "$module"
+cxx=${CXX:-c++}
+"$cxx" -std=c++17 -O2 -Wall -Wextra -Wpedantic -Werror -pthread \
+    "$boot/tests/so_fixture_test.cpp" -o "$work/so-fixtures"
+"$work/so-fixtures" malformed "$work/loader" "$module"
 prefix=${GNU_EFI_PREFIX:-/usr}
 "$cc" -std=c11 -O2 -fshort-wchar -ffunction-sections -fdata-sections "${sanitizers[@]}" \
     -Wall -Wextra -Werror -D__MAKEWITH_GNUEFI -DEFIX64 \
