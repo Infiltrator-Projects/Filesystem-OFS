@@ -20,14 +20,35 @@ static int live(void *v) {
         (uintptr_t)v == session.handle && ifs_ofs_active.mounted;
 }
 static int can_write(void) { return session.writable && ifs_ofs_active.mounted; }
+/* The OFS engine uses byte-granular requests, but V2 host callbacks accept
+ * only aligned sectors. Preserve the host lease while adapting those requests;
+ * writes use bounded read-modify-write under its exclusive durable lease. */
+static int host_read(void *context,uint64_t at,void *data,uint32_t bytes) {
+    return ifs_fs_host_read_bytes_v2(context,at,data,bytes)==IFS_FS_OK ? 0 : -1;
+}
+static int host_write(void *context,uint64_t at,const void *data,uint32_t bytes) {
+    return ifs_fs_host_write_bytes_v2(context,at,data,bytes)==IFS_FS_OK ? 0 : -1;
+}
+static int host_flush(void *context) {
+    const IfsFsHostRuntimeV2 *h=context;
+    return h->flush(h->context);
+}
+static void *host_allocate(void *context,size_t bytes) {
+    const IfsFsHostRuntimeV2 *h=context;
+    return h->allocate(h->context,bytes);
+}
+static void host_release(void *context,void *data) {
+    const IfsFsHostRuntimeV2 *h=context;
+    h->release(h->context,data);
+}
 static IfsOfsIoV3 native(const IfsFsHostRuntimeV2 *h, int write) {
     IfsOfsIoV3 n = {0};
     n.structure_bytes = sizeof(n);
     n.flags = write ? 0u : IFS_OFS_READ_ONLY;
-    n.context=h->context; n.volume_bytes=h->volume_bytes;
-    n.read_at=h->read_at; n.write_at=write ? h->write_at : NULL;
-    n.flush=write ? h->flush : NULL;
-    n.allocate=h->allocate; n.release=h->release;
+    n.context=(void *)h; n.volume_bytes=h->volume_bytes;
+    n.read_at=host_read; n.write_at=write ? host_write : NULL;
+    n.flush=write ? host_flush : NULL;
+    n.allocate=host_allocate; n.release=host_release;
     return n;
 }
 static int probe(const IfsFsHostRuntimeV2 *h, uint32_t *variant) {

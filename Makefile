@@ -35,6 +35,7 @@ $(OUT)/ofs-orphan-test: tests/ofs_orphan_test.c $(filter-out $(OFS)/defrag/%,$(E
 
 test: $(OUT)/OFS.so $(OUT)/ofs-module-test $(OUT)/ofs-reader-test $(OUT)/ofs-core-test $(OUT)/ofs-primitives-test $(OUT)/ofs-orphan-test
 	$(OUT)/ofs-module-test
+	$(OUT)/ofs-module-test 4096
 	$(CC) $(CFLAGS) -Inative/include tests/ofs_common_abi_test.c -ldl -o $(OUT)/ofs-common-abi-test
 	$(OUT)/ofs-common-abi-test $(OUT)/OFS.so
 	$(OUT)/ofs-reader-test

@@ -10,6 +10,8 @@ extern const IfsFsModuleApiV2 *infiltrator_filesystem_api_v2(void);
 
 enum { BLOCKS = 1024, BLOCK = 512, ROOT = 512 };
 static uint8_t disk[BLOCKS][BLOCK];
+static uint32_t host_sector = BLOCK;
+static int host_context;
 
 static void be32(uint8_t *p, uint32_t x)
 {
@@ -54,8 +56,9 @@ static void name(uint8_t *b, const char *value)
 }
 static int read_at(void *ctx, uint64_t offset, void *buffer, uint32_t len)
 {
-    (void)ctx;
-    if (offset > sizeof disk || len > sizeof disk - offset)
+    if (ctx != &host_context) return -1;
+    if ((offset % host_sector) || (len % host_sector) ||
+        offset > sizeof disk || len > sizeof disk - offset)
         return -1;
     memcpy(buffer, (uint8_t *)disk + (size_t)offset, len);
     return 0;
@@ -63,8 +66,9 @@ static int read_at(void *ctx, uint64_t offset, void *buffer, uint32_t len)
 static uint32_t writes, syncs;
 static int write_at(void *ctx, uint64_t offset, const void *source, uint32_t len)
 {
-    (void)ctx;
-    if (offset > sizeof disk || len > sizeof disk - offset)
+    if (ctx != &host_context) return -1;
+    if ((offset % host_sector) || (len % host_sector) ||
+        offset > sizeof disk || len > sizeof disk - offset)
         return -1;
     memcpy((uint8_t *)disk + (size_t)offset, source, len);
     ++writes;
@@ -72,18 +76,17 @@ static int write_at(void *ctx, uint64_t offset, const void *source, uint32_t len
 }
 static int sync_volume(void *ctx)
 {
-    (void)ctx;
+    if (ctx != &host_context) return -1;
     ++syncs;
     return 0;
 }
 static void *allocate(void *ctx, size_t bytes)
 {
-    (void)ctx;
-    return malloc(bytes);
+    return ctx == &host_context ? malloc(bytes) : NULL;
 }
 static void release(void *ctx, void *ptr)
 {
-    (void)ctx;
+    if (ctx != &host_context) abort();
     free(ptr);
 }
 static void fixture(void)
@@ -143,8 +146,11 @@ static int fail(const char *reason)
     fprintf(stderr, "ofs_dropin_module_test: %s\n", reason);
     return 1;
 }
-int main(void)
+int main(int argc, char **argv)
 {
+    if (argc > 2 || (argc == 2 && strcmp(argv[1], "4096") != 0))
+        return fail("expected optional 4096-byte host sector");
+    if (argc == 2) host_sector = 4096u;
     const IfsFsModuleApiV2 *api = infiltrator_filesystem_api_v2();
     const IfsFsCoreOpsV2 *core =
         (const IfsFsCoreOpsV2 *)ifs_fs_group_v2(api, IFS_FS_GROUP_CORE);
@@ -160,9 +166,10 @@ int main(void)
         .structure_bytes = sizeof(IfsFsHostRuntimeV2),
         .capabilities = IFS_FS_HOST_READ_ONLY,
         .volume_bytes = sizeof(disk),
-        .logical_sector_bytes = BLOCK,
-        .physical_sector_bytes = BLOCK,
+        .logical_sector_bytes = host_sector,
+        .physical_sector_bytes = host_sector,
         .maximum_transfer_bytes = 65536u,
+        .context = &host_context,
         .read_at = read_at,
         .allocate = allocate,
         .release = release
