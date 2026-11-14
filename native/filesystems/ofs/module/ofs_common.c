@@ -4,6 +4,7 @@
 #include "ofs_v3.h"
 #include "../core/ofs_engine.h"
 #include <infiltratr/filesystem_module_v2.h>
+#include <string.h>
 extern OfsFs ifs_ofs_active;
 static struct {
     IfsFsHostRuntimeV2 host;
@@ -58,7 +59,13 @@ static int mount(const IfsFsHostRuntimeV2 *h, void **v, IfsFsVolumeInfoV2 *info)
         (h->capabilities & IFS_FS_HOST_EXCLUSIVE) &&
         (h->capabilities & IFS_FS_HOST_DURABLE) &&
         h->write_at && h->flush;
-    session.host=*h;
+    /* Preserve the caller's size-versioned V2 prefix without reading
+     * optional fields that an earlier host did not allocate. */
+    size_t host_bytes=h->structure_bytes<sizeof(session.host) ?
+        h->structure_bytes : sizeof(session.host);
+    memset(&session.host,0,sizeof(session.host));
+    memcpy(&session.host,h,host_bytes);
+    session.host.structure_bytes=(uint32_t)host_bytes;
     IfsOfsIoV3 io=native(&session.host,write);
     r=m->mount(&io,NULL);
     if(r) return r;

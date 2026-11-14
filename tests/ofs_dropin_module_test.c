@@ -183,6 +183,16 @@ int main(void)
     uint32_t variant = UINT32_MAX;
 
     fixture();
+    volatile size_t short_bytes = IFS_FS_HOST_V2_BASE_BYTES;
+    IfsFsHostRuntimeV2 *short_host = malloc(short_bytes);
+    if (!short_host) return fail("Short V2 host allocation");
+    memcpy(short_host, &read_only, IFS_FS_HOST_V2_BASE_BYTES);
+    short_host->structure_bytes = IFS_FS_HOST_V2_BASE_BYTES;
+    if (core->mount(short_host, &volume, &info) != IFS_FS_OK || !volume ||
+        core->unmount(volume) != IFS_FS_OK)
+        return fail("Original short V2 host rejected");
+    free(short_host);
+    volume = NULL; info.structure_bytes = sizeof(info);
     if (core->probe(&read_only, &variant) != IFS_FS_OK || variant != 0 ||
         core->mount(&read_only, &volume, &info) != IFS_FS_OK ||
         core->stat(volume, path, &entry) != IFS_FS_OK ||

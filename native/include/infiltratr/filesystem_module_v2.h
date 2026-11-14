@@ -108,7 +108,14 @@ typedef struct {
     uint64_t (*realtime_ns)(void *);
     int (*cancelled)(void *);
     void (*log)(void *, uint32_t severity, const char *message);
+    /* Optional entropy supplied by the host. The callback must provide all
+     * requested bytes or fail; callers must not invent substitute entropy. */
+    int (*random_bytes)(void *, void *, uint32_t bytes);
 } IfsFsHostRuntimeV2;
+
+/* V2 hosts advertise their available structure size; this prefix predates the
+ * optional entropy member. Consumers must check size before accessing it. */
+#define IFS_FS_HOST_V2_BASE_BYTES offsetof(IfsFsHostRuntimeV2, random_bytes)
 
 /* A filesystem must not trust an asserted exclusivity flag without the
  * privileged host actually obtaining an unmounted, exclusive device lease.
@@ -118,7 +125,7 @@ static inline int ifs_fs_host_v2_valid(const IfsFsHostRuntimeV2 *h)
 {
     uint32_t l, p;
     if (!h || h->abi_version != IFS_FS_HOST_ABI_V2 ||
-        h->structure_bytes < sizeof(*h) || h->reserved ||
+        h->structure_bytes < IFS_FS_HOST_V2_BASE_BYTES || h->reserved ||
         (h->capabilities & ~IFS_FS_HOST_ALL) ||
         !h->read_at || !h->allocate || !h->release ||
         h->volume_bytes == 0u || h->maximum_transfer_bytes == 0u)
@@ -149,6 +156,18 @@ static inline int ifs_fs_host_v2_valid(const IfsFsHostRuntimeV2 *h)
         (h->create_lock || h->destroy_lock || h->lock || h->unlock))
         return 0;
     return 1;
+}
+
+static inline int ifs_fs_host_random_bytes_v2(
+    const IfsFsHostRuntimeV2 *host, void *destination, uint32_t bytes)
+{
+    if (!ifs_fs_host_v2_valid(host) || (!destination && bytes))
+        return IFS_FS_INVALID;
+    if (!bytes) return IFS_FS_OK;
+    if (host->structure_bytes < sizeof(*host) || !host->random_bytes)
+        return IFS_FS_UNSUPPORTED;
+    return host->random_bytes(host->context, destination, bytes) == 0 ?
+        IFS_FS_OK : IFS_FS_IO_ERROR;
 }
 
 /* Portable byte-range reads over sector-constrained host I/O.
@@ -208,6 +227,57 @@ static inline int ifs_fs_host_read_bytes_v2(
         out += chunk;
         offset += chunk;
         bytes -= chunk;
+    }
+    if (scratch) host->release(host->context, scratch);
+    return result;
+}
+
+/* Sector-aligned writes with bounded read/modify/write for partial sectors.
+ * The caller must serialize overlapping writes, ensure exclusivity and request
+ * durable flushing. Failure may leave a written prefix; recover transactionally. */
+static inline int ifs_fs_host_write_bytes_v2(
+    const IfsFsHostRuntimeV2 *host, uint64_t offset,
+    const void *source, uint32_t bytes)
+{
+    const uint8_t *input = (const uint8_t *)source;
+    uint8_t *scratch = NULL;
+    uint32_t sector, transfer, chunk, skip, i;
+    int result = IFS_FS_OK;
+    if (!ifs_fs_host_v2_valid(host) || (!source && bytes)) return IFS_FS_INVALID;
+    if (host->capabilities & IFS_FS_HOST_READ_ONLY) return IFS_FS_ACCESS;
+    if (offset > host->volume_bytes || bytes > host->volume_bytes - offset)
+        return IFS_FS_INVALID;
+    if (!bytes) return IFS_FS_OK;
+    sector = host->logical_sector_bytes;
+    transfer = (host->maximum_transfer_bytes / sector) * sector;
+    while (bytes) {
+        skip = (uint32_t)(offset % sector);
+        if (!skip && bytes >= sector) {
+            chunk = bytes - bytes % sector;
+            if (chunk > transfer) chunk = transfer;
+            if (host->write_at(host->context, offset, input, chunk) != 0) {
+                result = IFS_FS_IO_ERROR; break;
+            }
+        } else {
+            uint64_t base = offset - skip;
+            if (base > host->volume_bytes || sector > host->volume_bytes - base) {
+                result = IFS_FS_INVALID; break;
+            }
+            if (!scratch) {
+                scratch = (uint8_t *)host->allocate(host->context, sector);
+                if (!scratch) { result = IFS_FS_NO_MEMORY; break; }
+            }
+            if (host->read_at(host->context, base, scratch, sector) != 0) {
+                result = IFS_FS_IO_ERROR; break;
+            }
+            chunk = sector - skip;
+            if (chunk > bytes) chunk = bytes;
+            for (i = 0; i < chunk; ++i) scratch[skip + i] = input[i];
+            if (host->write_at(host->context, base, scratch, sector) != 0) {
+                result = IFS_FS_IO_ERROR; break;
+            }
+        }
+        input += chunk; offset += chunk; bytes -= chunk;
     }
     if (scratch) host->release(host->context, scratch);
     return result;
