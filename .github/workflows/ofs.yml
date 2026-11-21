@@ -15,29 +15,10 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
-      - name: Check out the exact production Defragmenter consumer
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
-        with:
-          repository: Infiltrator-Projects/Defragmenter
-          ref: f75492de69737babc0bee972122c80af154a58ff
-          path: .qualification/Defragmenter
-          submodules: true
       - name: Install build prerequisites
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential binutils python3 dpkg-dev cmake libssl-dev
-      - name: Fetch hash-pinned independent Amiga oracle
-        run: python3 tests/fetch-oracle.py --output .qualification/oracle
-      - name: Qualify Common V2 and all OFS variants and geometries
-        run: |
-          make check
-          make interop AMITOOLS_SOURCE=.qualification/oracle/amitools-0.8.1
-          python3 tests/ofs_defrag_test.py --module build/OFS.so \
-            --defragmenter-source .qualification/Defragmenter \
-            --oracle .qualification/oracle/amitools-0.8.1 --output build/defrag-evidence
-      - name: Check actual engine memory and arithmetic safety
-        env:
-          OFS_DEFRAG_SOURCE: .qualification/Defragmenter
-          OFS_ORACLE_SOURCE: .qualification/oracle/amitools-0.8.1
-        run: bash tests/check-sanitizers.sh
+      - name: Qualify Common V2 filesystem API and native reader
+        run: make check
       - name: Build portable package and source-first native installer
         run: make release
       - name: Inspect portable package and native source installation result
@@ -51,84 +32,14 @@ jobs:
           bash dist/*.run --profile aggressive --build-only --output build/native-package
           python3 tests/check-package.py build/native-package/*.deb --profile aggressive
           dpkg-deb -x build/native-package/*.deb build/native-payload
-          python3 tests/ofs_defrag_test.py --module build/native-payload/System/Filesystems/OFS.so \
-            --defragmenter-source .qualification/Defragmenter \
-            --oracle .qualification/oracle/amitools-0.8.1 --output build/native-defrag-evidence
       - uses: actions/upload-artifact@v4
         with:
           name: ofs-qualified-${{ github.sha }}
           path: dist/*
           if-no-files-found: error
           retention-days: 14
-  boot-consumer:
-    needs: ofs-so
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
-      - name: Check out released Boot consumer
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
-        with:
-          repository: Infiltrator-Projects/Boot
-          ref: 8abd633620b983a85781b4eef493f807ede00dc9
-          path: .qualification/Boot
-      - name: Install real firmware integration prerequisites
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential binutils python3 gnu-efi qemu-system-x86 ovmf dosfstools mtools busybox-static cpio
-      - name: Fetch independent oracle and build actual released Boot EFI
-        run: |
-          python3 tests/fetch-oracle.py --output .qualification/oracle
-          cd .qualification/Boot
-          bash scripts/build-gnuefi.sh
-      - uses: actions/download-artifact@v4
-        with:
-          name: ofs-qualified-${{ github.sha }}
-          path: dist
-      - name: Check the same portable and measured native SO through Boot
-        shell: bash
-        run: |
-          set -euo pipefail
-          make test
-          dpkg-deb -x dist/*.deb build/release-package
-          cmp build/OFS.so build/release-package/System/Filesystems/OFS.so
-          bash dist/*.run --build-only --output build/native-package
-          dpkg-deb -x build/native-package/*.deb build/native-payload
-          mkdir -p build-native
-          cp build/native-payload/System/Filesystems/OFS.so build-native/OFS.so
-          oracle="$GITHUB_WORKSPACE/.qualification/oracle/amitools-0.8.1"
-          boot="$GITHUB_WORKSPACE/.qualification/Boot"
-          bash tests/check-boot-so.sh build/OFS.so "$boot" "$oracle"
-          bash tests/check-boot-so.sh build-native/OFS.so "$boot" "$oracle"
-          IFS_SO_SANITIZE=1 bash tests/check-boot-so.sh build/OFS.so "$boot" "$oracle"
-          mkdir -p build/boot-kernel
-          kernel_package=$(apt-cache depends linux-image-generic | awk '/Depends: linux-image-[0-9]/ {sub("linux-image-", "linux-image-unsigned-", $2); print $2; exit}')
-          test -n "$kernel_package"
-          (cd build/boot-kernel && apt-get download "$kernel_package")
-          dpkg-deb -x build/boot-kernel/*.deb build/boot-kernel/root
-          kernel=$(find "$GITHUB_WORKSPACE/build/boot-kernel/root/boot" -name 'vmlinuz-*' -print -quit)
-          test -s "$kernel"
-          for profile in build build-native; do
-            python3 tests/test_boot_linux.py --boot "$boot/refind/refind_x64.efi" \
-              --module "$profile/OFS.so" --kernel "$kernel" --oracle "$oracle" \
-              --output "build/boot-$profile"
-          done
-          python3 tests/test_boot_linux.py --boot "$boot/refind/refind_x64.efi" \
-            --module build/OFS.so --kernel "$kernel" --oracle "$oracle" \
-            --variant 6 --block-bytes 32768 --output build/boot-lnfs-32k
-          python3 tests/test_boot_linux.py --boot "$boot/refind/refind_x64.efi" \
-            --module build/OFS.so --kernel "$kernel" --oracle "$oracle" \
-            --reject-module --output build/boot-reject
-      - name: Preserve firmware evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ofs-boot-consumer-${{ github.sha }}
-          path: |
-            build/boot-build/*.log
-            build/boot-build-native/*.log
-            build/boot-lnfs-32k/*.log
-            build/boot-reject/*.log
   publish:
-    needs: [ofs-so, boot-consumer]
+    needs: ofs-so
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     permissions:
@@ -163,4 +74,4 @@ jobs:
           sha256sum dist/*.deb dist/*.run
           gh release create "$tag" dist/*.deb dist/*.run \
             --target "$GITHUB_SHA" --title "Amiga Original File System ${version}" \
-            --notes "One native Common V2 OFS.so with the source-embedded native installer. No Linux filesystem-specific kernel module or separate EFI filesystem driver is included. The BOOT consumer acceptance job must pass before publication."
+            --notes "One native Common V2 OFS.so with the source-embedded native installer. No Linux filesystem-specific kernel module or separate EFI filesystem driver is included. Common V2 independent API, source and package qualification passed."

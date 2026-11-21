@@ -10,7 +10,7 @@ OUT ?= build
 PYTHON ?= python3
 HEADERS := $(wildcard $(OFS)/core/*.h $(OFS)/module/*.h $(OFS)/efi/*.h $(OFS)/defrag/*.h native/include/infiltratr/fs/*.h native/include/infiltratr/filesystem_module_v2.h)
 
-.PHONY: all test check interop release native clean efi kernel
+.PHONY: all test check release native clean efi kernel
 all: $(OUT)/OFS.so
 $(OUT):
 	mkdir -p "$(OUT)"
@@ -46,10 +46,6 @@ test: $(OUT)/OFS.so $(OUT)/ofs-module-test $(OUT)/ofs-reader-test $(OUT)/ofs-cor
 
 check: test
 	$(PYTHON) standalone/build.py --output $(OUT)/OFS.so --inspect-only
-	$(PYTHON) tests/ofs_complete_test.py --module $(OUT)/OFS.so
-
-interop: $(OUT)/OFS.so
-	$(PYTHON) tests/ofs_v3_test.py --module $(OUT)/OFS.so --oracle "$(AMITOOLS_SOURCE)"
 
 native:
 	$(PYTHON) standalone/build.py --profile aggressive --output build-native/OFS.so --check

@@ -5,11 +5,7 @@
 #include "../core/ofs_engine.h"
 #include <infiltratr/filesystem_module_v2.h>
 #include <string.h>
-#if defined(IFS_OFS_LEGACY_TEST_MODULE)
-extern OfsFs ifs_ofs_active;
-#else
 OfsFs ifs_ofs_active;
-#endif
 static struct {
     IfsFsHostRuntimeV2 host;
     uintptr_t generation, handle;

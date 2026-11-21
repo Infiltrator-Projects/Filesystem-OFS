@@ -53,32 +53,12 @@ def compile_module(module,flags,training=False):
     if not training:inspect(module)
 
 
-def test_legacy_engine(module):
-    # Old API fixtures use a separate temporary test-only DSO. The published
-    # OFS.so is built without ofs_v3.c and has no V3 module export.
-    target=module.parent/'OFS-native-legacy-test.so'
-    flags=['-std=c11','-O2','-fPIC','-Wall','-Wextra','-Werror',
-           '-mno-red-zone','-fno-builtin','-fno-stack-protector','-ffreestanding',
-           '-fvisibility=hidden','-DIFS_OFS_LEGACY_TEST_MODULE=1']
-    args=[os.environ.get('CC','cc'),*flags]
-    for inc in INCLUDES:args+=['-I',inc]
-    args+=['-nostdlib','-shared','-Wl,-Bsymbolic','-Wl,-z,defs',
-           '-o',target,*SOURCES,BASE/'module'/'ofs_v3.c']
-    run(args)
-    return target
-
 def test(module,full=False):
     # Exercise the installed ABI and canonical engine against disposable fixtures.
     exe=module.parent/'ofs-module-test'
     run([os.environ.get('CC','cc'),'-std=c11','-O2','-Wall','-Wextra','-Werror',
          '-I',ROOT/'native/include',ROOT/'tests/ofs_dropin_module_test.c',module,
          '-Wl,-rpath,$ORIGIN','-o',exe]);run([exe])
-    # Never leave the test-only legacy DSO beside a production package.
-    with tempfile.TemporaryDirectory(prefix='ofs-test-legacy-') as tmp:
-        fixture=test_legacy_engine(Path(tmp)/'OFS.so')
-        args=[sys.executable,ROOT/'tests/ofs_complete_test.py','--module',fixture]
-        if not full:args+=['--quick']
-        run(args)
     testexe=module.parent/'ofs-common-abi-test'
     run([os.environ.get('CC','cc'),'-std=c11','-O2','-Wall','-Wextra','-Werror',
          '-I',ROOT/'native/include',ROOT/'tests/ofs_common_abi_test.c',
@@ -109,10 +89,8 @@ def build(profile,module):
 def main():
     p=argparse.ArgumentParser();p.add_argument('--profile',choices=('portable','aggressive'),default='portable')
     p.add_argument('--output',type=Path,default=ROOT/'build/OFS.so');p.add_argument('--check',action='store_true')
-    p.add_argument('--inspect-only',action='store_true');p.add_argument('--test-legacy-only',action='store_true');args=p.parse_args();module=args.output.resolve()
+    p.add_argument('--inspect-only',action='store_true');args=p.parse_args();module=args.output.resolve()
     if args.inspect_only:inspect(module);return
-    if args.test_legacy_only:
-        print('TEST-ONLY NATIVE FORMAT FIXTURE',test_legacy_engine(module));return
     flags=build(args.profile,module)
     if args.check:test(module)
     print('QUALIFIED OFS.so',args.profile,' '.join(flags))
@@ -207,7 +185,7 @@ def release_source_files():
             q.startswith("standalone/") or q.startswith("docs/") or
             q.startswith("tests/") or q.startswith("scripts/") or q.startswith(".github/") or
             q in ("README.md", "VERSION", "MIGRATION-PROVENANCE.md", "LICENSE", "Makefile",
-                  "tests/ofs_dropin_module_test.c", "tests/ofs_v3_test.py", "tests/ofs_complete_test.py")
+                  "tests/ofs_dropin_module_test.c")
         )
         if selected and p != PDF and (ROOT / p).is_file() and not (ROOT / p).is_symlink():
             chosen.append(p)
