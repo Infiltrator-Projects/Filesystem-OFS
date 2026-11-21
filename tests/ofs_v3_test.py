@@ -75,9 +75,11 @@ class Api:
             # Historical API regression tests run on an isolated test DSO;
             # production OFS.so exports Common V2 only.
             root = Path(__file__).resolve().parents[1]
+            self._legacy_test_dir = tempfile.TemporaryDirectory(prefix="ofs-test-api-")
+            fixture_input = Path(self._legacy_test_dir.name) / "OFS.so"
             subprocess.run([sys.executable,str(root/'standalone/build.py'),
-                            '--test-legacy-only','--output',str(module)],check=True)
-            module = module.with_name("OFS-native-legacy-test.so")
+                            '--test-legacy-only','--output',str(fixture_input)],check=True)
+            module = fixture_input.with_name("OFS-native-legacy-test.so")
         self.lib = C.CDLL(str(module))
         self.lib.infiltrator_filesystem_module_v3.restype = C.POINTER(V3)
         a = self.lib.infiltrator_filesystem_module_v3().contents

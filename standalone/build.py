@@ -73,9 +73,12 @@ def test(module,full=False):
     run([os.environ.get('CC','cc'),'-std=c11','-O2','-Wall','-Wextra','-Werror',
          '-I',ROOT/'native/include',ROOT/'tests/ofs_dropin_module_test.c',module,
          '-Wl,-rpath,$ORIGIN','-o',exe]);run([exe])
-    args=[sys.executable,ROOT/'tests/ofs_complete_test.py','--module',test_legacy_engine(module)]
-    if not full:args+=['--quick']
-    run(args)
+    # Never leave the test-only legacy DSO beside a production package.
+    with tempfile.TemporaryDirectory(prefix='ofs-test-legacy-') as tmp:
+        fixture=test_legacy_engine(Path(tmp)/'OFS.so')
+        args=[sys.executable,ROOT/'tests/ofs_complete_test.py','--module',fixture]
+        if not full:args+=['--quick']
+        run(args)
     testexe=module.parent/'ofs-common-abi-test'
     run([os.environ.get('CC','cc'),'-std=c11','-O2','-Wall','-Wextra','-Werror',
          '-I',ROOT/'native/include',ROOT/'tests/ofs_common_abi_test.c',
