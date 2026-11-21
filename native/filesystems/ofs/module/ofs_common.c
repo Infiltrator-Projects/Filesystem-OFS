@@ -124,13 +124,6 @@ static int native_sync(void) {
     return fs->io.flush(fs->io.context) == 0 ? IFS_OFS_OK : IFS_OFS_IO_ERROR;
 }
 
-/* A rejected native probe can fail after staging indexes but before marking
- * the filesystem mounted. Release any staged ownership before returning. */
-static void discard_failed_probe(void) {
-    if (ifs_ofs_active.bitmap_keys || ifs_ofs_active.cache_dirty ||
-        ifs_ofs_active.orphans || ifs_ofs_active.mounted)
-        ofs_release(&ifs_ofs_active);
-}
 static int probe(const IfsFsHostRuntimeV2 *h, uint32_t *variant) {
     IfsOfsSpaceV3 space = {0};
     int r, closed;
@@ -138,10 +131,7 @@ static int probe(const IfsFsHostRuntimeV2 *h, uint32_t *variant) {
     if (session.mounted || ifs_ofs_active.mounted) return IFS_FS_BUSY;
     IfsOfsIoV3 io=native(h,0);
     r=ofs_probe(&ifs_ofs_active,&io,NULL);
-    if (r) {
-        discard_failed_probe();
-        return r == IFS_OFS_INVALID ? IFS_FS_NOT_FOUND : r;
-    }
+    if (r) return r == IFS_OFS_INVALID ? IFS_FS_NOT_FOUND : r;
     space.structure_bytes=sizeof(space);
     r=ofs_space(&ifs_ofs_active,&space);
     closed=native_unmount();
@@ -170,10 +160,7 @@ static int mount(const IfsFsHostRuntimeV2 *h, void **v, IfsFsVolumeInfoV2 *info)
     session.host.structure_bytes=(uint32_t)host_bytes;
     IfsOfsIoV3 io=native(&session.host,write);
     r=ofs_probe(&ifs_ofs_active,&io,NULL);
-    if(r) {
-        discard_failed_probe();
-        return r;
-    }
+    if(r) return r;
     space.structure_bytes=sizeof(space);
     r=ofs_space(&ifs_ofs_active,&space);
     if(r) { (void)native_unmount(); return r; }

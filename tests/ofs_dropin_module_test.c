@@ -244,6 +244,29 @@ int main(int argc, char **argv)
         disk[6][511] != 'X' || memcmp(disk[7] + 24, "YZW", 3) != 0)
         return fail("cross-block overwrite or persistence");
 
+    /* Exercise failed unmount durability on the already qualified,
+     * allocation-consistent two-block image. The minimal first fixture
+     * intentionally reserves otherwise unreferenced blocks and is not
+     * suitable for an independent writable mount. */
+    volume=NULL;
+    info.structure_bytes=sizeof(info);
+    if (core->mount(&writable,&volume,&info)!=IFS_FS_OK || !volume)
+        return fail("cannot set up failed final-flush test");
+    void *expired=volume;
+    fail_final_flush=1;
+    if (core->unmount(expired)!=IFS_FS_IO_ERROR)
+        return fail("failed final durability barrier not reported");
+    fail_final_flush=0;
+    if (core->unmount(expired)!=IFS_FS_INVALID)
+        return fail("failed unmount retained an active handle");
+    volume=NULL;
+    info.structure_bytes=sizeof(info);
+    if (core->mount(&read_only,&volume,&info)!=IFS_FS_OK || !volume ||
+        core->read(volume,path,487,data,4)!=IFS_FS_OK ||
+        memcmp(data,"XYZW",4)!=0 ||
+        core->unmount(volume)!=IFS_FS_OK)
+        return fail("failed unmount permanently locked or corrupted reader");
+
     /* Writable Common mounts validate ownership and data before opening
      * the volume to updates. The backing image is exclusive while mounted. */
     const uint32_t prior_writes = writes;
@@ -261,28 +284,6 @@ int main(int argc, char **argv)
     if (core->mount(&truncated, &volume, &info) == IFS_FS_OK)
         return fail("truncated volume accepted");
 
-    /* A failed final durable flush must be reported, but the engine has
-     * already released its resources. The stale Common V2 token cannot
-     * keep the next mount BUSY or be reused after its failed unmount. */
-    fixture();
-    info.structure_bytes=sizeof(info);
-    volume=NULL;
-    if (core->mount(&writable,&volume,&info)!=IFS_FS_OK || !volume)
-        return fail("cannot set up failed final-flush test");
-    void *expired=volume;
-    fail_final_flush=1;
-    if (core->unmount(expired)!=IFS_FS_IO_ERROR)
-        return fail("failed final durability barrier not reported");
-    fail_final_flush=0;
-    if (core->unmount(expired)!=IFS_FS_INVALID)
-        return fail("failed unmount retained an active handle");
-    volume=NULL;
-    info.structure_bytes=sizeof(info);
-    if (core->mount(&read_only,&volume,&info)!=IFS_FS_OK || !volume ||
-        core->read(volume,path,0,data,5)!=IFS_FS_OK ||
-        memcmp(data,"HELLO",5)!=0 ||
-        core->unmount(volume)!=IFS_FS_OK)
-        return fail("failed unmount permanently locked or corrupted reader");
     puts("OFS-COMMON-V2-FIXTURE-READ-WRITE-PASS");
     return 0;
 }
