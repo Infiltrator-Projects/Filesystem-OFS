@@ -6,7 +6,6 @@ import io
 import os
 from pathlib import Path
 import re
-import shutil
 import subprocess
 import sys
 import tarfile
@@ -24,8 +23,6 @@ VERSION = (ROOT / "VERSION").read_text().strip()
 if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", VERSION):
     raise SystemExit("Invalid standalone VERSION")
 DIST = ROOT / "dist"
-KERNEL_PATH = Path("System/Kernel/Filesystems/ofs.ko")
-QUALIFIED_KERNEL = "6.12.107"
 
 def run(args):
     subprocess.run([str(a) for a in args], check=True)
@@ -42,7 +39,7 @@ def source_revision():
     return revision
 
 
-def build_deb(profile, dest, kernel_target=None):
+def build_deb(profile, dest):
     with tempfile.TemporaryDirectory(prefix=SLUG + "-package-") as tmp:
         root = Path(tmp) / "root"
         module = root / "System/Filesystems" / MODULE
@@ -58,13 +55,6 @@ def build_deb(profile, dest, kernel_target=None):
         info_dir.mkdir(parents=True)
         manual = info_dir / (REPO + ".pdf")
         fsbuild.build_manual(manual, VERSION)
-        kernel_fields = ""
-        if kernel_target:
-            kernel_build, kernel_release = kernel_target
-            kernel = root / KERNEL_PATH
-            kernel.parent.mkdir(parents=True)
-            run(["bash", ROOT / "scripts/build-ofs-kernel.sh", kernel.parent, kernel_build])
-            kernel_fields = kernel_metadata(kernel, kernel_release)
         digest = hashlib.sha256(module.read_bytes()).hexdigest()
         pdf_digest = hashlib.sha256(manual.read_bytes()).hexdigest()
         revision = source_revision()
@@ -83,10 +73,8 @@ def build_deb(profile, dest, kernel_target=None):
             f"X-Infiltrator-Cflags: {' '.join(flags)}\n"
             f"X-Infiltrator-Resource-SHA256: {digest}\n"
             f"X-Infiltrator-PDF-SHA256: {pdf_digest}\n"
-            f"{kernel_fields}"
             f"Description: Independent {MODULE} filesystem shared object for InfiltratorOS\n"
-            f" Installs {MODULE} and its illustrated PDF.\n"
-            + (" Includes the Linux kernel module for manual use.\n" if kernel_target else ""))
+            f" Installs {MODULE} and its illustrated PDF.\n")
         dest.parent.mkdir(parents=True, exist_ok=True)
         run(["dpkg-deb", "--root-owner-group", "--build", root, dest])
         content = subprocess.check_output(["dpkg-deb", "--contents", str(dest)], text=True)
@@ -96,51 +84,11 @@ def build_deb(profile, dest, kernel_target=None):
             run(["dpkg-deb", "-x", dest, check])
             actual = {p.relative_to(check) for p in Path(check).rglob("*") if p.is_symlink() or not p.is_dir()}
             expected = {Path(f"System/Filesystems/{MODULE}"), Path(f"System/Resources/Documentation/{REPO}.pdf")}
-            if kernel_target:
-                expected.add(KERNEL_PATH)
             if actual != expected:
                 raise RuntimeError("Unexpected filesystem package payload: " + str(sorted(actual)))
     return dest
 
 
-def kernel_metadata(kernel, release):
-    if kernel.is_symlink() or not kernel.is_file():
-        raise ValueError("Expected a regular OFS kernel module")
-    report = subprocess.check_output(["readelf", "-W", "-h", "-p", ".modinfo", kernel],
-                                     text=True, env={**os.environ, "LC_ALL": "C"})
-    if (not re.search(r"^\s*Type:\s+REL\b", report, re.M)
-            or not re.search(r"^\s*Machine:.*X86-64\s*$", report, re.M)
-            or not re.search(r"\bname=ofs\s*$", report, re.M)
-            or not re.search(r"\bvermagic=" + re.escape(release) + r"(?=\s|$)", report)):
-        raise ValueError("Expected the amd64 OFS module for Linux " + release)
-    digest = hashlib.sha256(kernel.read_bytes()).hexdigest()
-    return f"X-Infiltrator-Kernel-SHA256: {digest}\nX-Infiltrator-Kernel-Release: {release}\n"
-
-
-def bundle_kernel(package, kernel, output):
-    """Add the qualified Linux binary to the already built portable package."""
-    kernel_fields = kernel_metadata(kernel, QUALIFIED_KERNEL)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="ofs-kernel-package-", dir=output.parent) as folder:
-        work = Path(folder)
-        image = work / "root"
-        run(["dpkg-deb", "--raw-extract", package, image])
-        control = image / "DEBIAN/control"
-        text = control.read_text()
-        fields = dict(line.split(": ", 1) for line in text.splitlines() if ": " in line and not line.startswith(" "))
-        expected = {"Package": PACKAGE, "Version": VERSION, "Architecture": "amd64",
-                    "X-Infiltrator-Native-Profile": "portable", "X-Infiltrator-Source-Revision": source_revision()}
-        if any(fields.get(key) != value for key, value in expected.items()):
-            raise ValueError("Expected the portable OFS package from this release source")
-        destination = image / KERNEL_PATH
-        if destination.exists() or destination.is_symlink() or "X-Infiltrator-Kernel-SHA256" in fields:
-            raise ValueError("The package already contains an OFS kernel module")
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(kernel, destination)
-        control.write_text(text.rstrip("\n") + "\n Includes the Linux kernel module for manual use.\n" + kernel_fields)
-        bundled = work / "bundled.deb"
-        run(["dpkg-deb", "--root-owner-group", "--build", image, bundled])
-        bundled.replace(output)
 
 def source_files():
     if (ROOT / ".git").exists():
@@ -167,7 +115,9 @@ def source_files():
             chosen.append(p)
     if len(chosen) < 8:
         raise RuntimeError("Insufficient source files for full independent build")
-    return sorted(set(chosen))
+    # Keep the historical Linux builder in the repository, not in RUN.
+    return sorted(set(p for p in chosen
+                      if p.as_posix() != "scripts/build-ofs-kernel.sh"))
 
 def create_run(path):
     with tempfile.TemporaryFile() as temp:
@@ -187,7 +137,7 @@ def create_run(path):
     header = """#!/bin/sh
 set -eu
 if [ "$#" -gt 0 ] && [ "$1" = "--help" ]; then
-    echo "Usage: __NAME__ [--profile aggressive] [--kernel-build DIRECTORY] [--build-only --output DIRECTORY]"
+    echo "Usage: __NAME__ [--profile aggressive] [--build-only --output DIRECTORY]"
     exit 0
 fi
 temp=$(mktemp -d)
@@ -218,19 +168,6 @@ def release():
     if len(list(DIST.iterdir())) != 2:
         raise RuntimeError("Release must contain exactly the DEB and RUN")
 
-def resolve_kernel_target(build_directory):
-    running_release = os.uname().release
-    path = (build_directory or Path("/lib/modules") / running_release / "build").resolve()
-    header = path / "include/generated/utsrelease.h"
-    symbols = path / "Module.symvers"
-    if not header.is_file() or not symbols.is_file() or symbols.stat().st_size == 0:
-        raise RuntimeError(f"Prepared Linux build directory required at {path}. Install matching kernel headers "
-                           "or pass --kernel-build DIRECTORY.")
-    match = re.fullmatch(r'#define UTS_RELEASE "([A-Za-z0-9.+_~-]+)"', header.read_text().strip())
-    if not match or (build_directory is None and match[1] != running_release):
-        raise RuntimeError("Linux build directory does not identify the requested kernel release")
-    return path, match[1]
-
 
 def install(rest):
     parser = argparse.ArgumentParser()
@@ -238,17 +175,13 @@ def install(rest):
     parser.add_argument("--system-package-mode", action="store_true")
     parser.add_argument("--build-only", action="store_true")
     parser.add_argument("--output", type=Path)
-    parser.add_argument("--kernel-build", type=Path)
     opt = parser.parse_args(rest)
     if opt.build_only and not opt.output:
         parser.error("--build-only requires --output DIRECTORY")
-    if opt.system_package_mode and opt.kernel_build:
-        parser.error("--kernel-build applies to the manual installer")
-    kernel_target = None if opt.system_package_mode else resolve_kernel_target(opt.kernel_build)
     version = VERSION + ("+native1" if opt.profile == "aggressive" else "")
     with tempfile.TemporaryDirectory(prefix=SLUG + "-install-") as tmp:
         output = ((opt.output if opt.build_only else Path(tmp)) / f"{PACKAGE}_{version}_amd64.deb").resolve()
-        build_deb(opt.profile, output, kernel_target)
+        build_deb(opt.profile, output)
         if opt.build_only:
             print(output)
             return
@@ -271,12 +204,6 @@ def install(rest):
             "X-Infiltrator-PDF-SHA256": hashlib.sha256(manual.read_bytes()).hexdigest(),
         }
         paths = [installed, manual]
-        if kernel_target:
-            kernel = Path("/") / KERNEL_PATH
-            for line in kernel_metadata(kernel, kernel_target[1]).splitlines():
-                field, value = line.split(": ", 1)
-                expected[field] = value
-            paths.append(kernel)
         if any(metadata.get(k) != v for k, v in expected.items()):
             raise RuntimeError("Installed filesystem Debian metadata mismatch")
         for path in paths:
@@ -287,7 +214,7 @@ def install(rest):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("command", choices=("release", "install", "bundle-kernel"))
+    p.add_argument("command", choices=("release", "install"))
     args, rest = p.parse_known_args()
     if args.command == "release":
         if rest:
@@ -295,13 +222,6 @@ def main():
         release()
     elif args.command == "install":
         install(rest)
-    else:
-        bundle = argparse.ArgumentParser()
-        bundle.add_argument("package", type=Path)
-        bundle.add_argument("kernel", type=Path)
-        bundle.add_argument("output", type=Path)
-        paths = bundle.parse_args(rest)
-        bundle_kernel(paths.package, paths.kernel, paths.output)
 
 if __name__ == "__main__":
     try:
