@@ -127,7 +127,9 @@ static int native_sync(void) {
 static int probe(const IfsFsHostRuntimeV2 *h, uint32_t *variant) {
     IfsOfsSpaceV3 space = {0};
     int r, closed;
-    if (!eligible(h) || !variant) return IFS_FS_INVALID;
+    if (!variant) return IFS_FS_INVALID;
+    *variant = 0u;
+    if (!eligible(h)) return IFS_FS_INVALID;
     if (session.mounted || ifs_ofs_active.mounted) return IFS_FS_BUSY;
     IfsOfsIoV3 io=native(h,0);
     r=ofs_probe(&ifs_ofs_active,&io,NULL);
