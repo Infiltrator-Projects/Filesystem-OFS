@@ -59,7 +59,7 @@ def test_legacy_engine(module):
     target=module.parent/'OFS-native-legacy-test.so'
     flags=['-std=c11','-O2','-fPIC','-Wall','-Wextra','-Werror',
            '-mno-red-zone','-fno-builtin','-fno-stack-protector','-ffreestanding',
-           '-fvisibility=hidden']
+           '-fvisibility=hidden','-DIFS_OFS_LEGACY_TEST_MODULE=1']
     args=[os.environ.get('CC','cc'),*flags]
     for inc in INCLUDES:args+=['-I',inc]
     args+=['-nostdlib','-shared','-Wl,-Bsymbolic','-Wl,-z,defs',
