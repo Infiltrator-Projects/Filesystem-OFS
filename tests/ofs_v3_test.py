@@ -8,6 +8,7 @@ import argparse
 import ctypes as C
 from datetime import date
 import os
+import subprocess
 from pathlib import Path
 import struct
 import sys
@@ -69,6 +70,14 @@ class V3(C.Structure):
 
 class Api:
     def __init__(self, module):
+        module = Path(module).resolve()
+        if module.name == "OFS.so":
+            # Historical API regression tests run on an isolated test DSO;
+            # production OFS.so exports Common V2 only.
+            root = Path(__file__).resolve().parents[1]
+            subprocess.run([sys.executable,str(root/'standalone/build.py'),
+                            '--test-legacy-only','--output',str(module)],check=True)
+            module = module.with_name("OFS-native-legacy-test.so")
         self.lib = C.CDLL(str(module))
         self.lib.infiltrator_filesystem_module_v3.restype = C.POINTER(V3)
         a = self.lib.infiltrator_filesystem_module_v3().contents

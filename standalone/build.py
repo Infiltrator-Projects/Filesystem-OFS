@@ -106,8 +106,10 @@ def build(profile,module):
 def main():
     p=argparse.ArgumentParser();p.add_argument('--profile',choices=('portable','aggressive'),default='portable')
     p.add_argument('--output',type=Path,default=ROOT/'build/OFS.so');p.add_argument('--check',action='store_true')
-    p.add_argument('--inspect-only',action='store_true');args=p.parse_args();module=args.output.resolve()
+    p.add_argument('--inspect-only',action='store_true');p.add_argument('--test-legacy-only',action='store_true');args=p.parse_args();module=args.output.resolve()
     if args.inspect_only:inspect(module);return
+    if args.test_legacy_only:
+        print('TEST-ONLY NATIVE FORMAT FIXTURE',test_legacy_engine(module));return
     flags=build(args.profile,module)
     if args.check:test(module)
     print('QUALIFIED OFS.so',args.profile,' '.join(flags))
