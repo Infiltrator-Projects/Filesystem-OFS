@@ -64,6 +64,7 @@ static int read_at(void *ctx, uint64_t offset, void *buffer, uint32_t len)
     return 0;
 }
 static uint32_t writes, syncs;
+static int fail_final_flush;
 static int write_at(void *ctx, uint64_t offset, const void *source, uint32_t len)
 {
     if (ctx != &host_context) return -1;
@@ -76,7 +77,7 @@ static int write_at(void *ctx, uint64_t offset, const void *source, uint32_t len
 }
 static int sync_volume(void *ctx)
 {
-    if (ctx != &host_context) return -1;
+    if (ctx != &host_context || fail_final_flush) return -1;
     ++syncs;
     return 0;
 }
@@ -259,6 +260,29 @@ int main(int argc, char **argv)
     truncated.volume_bytes = BLOCK;
     if (core->mount(&truncated, &volume, &info) == IFS_FS_OK)
         return fail("truncated volume accepted");
+
+    /* A failed final durable flush must be reported, but the engine has
+     * already released its resources. The stale Common V2 token cannot
+     * keep the next mount BUSY or be reused after its failed unmount. */
+    fixture();
+    info.structure_bytes=sizeof(info);
+    volume=NULL;
+    if (core->mount(&writable,&volume,&info)!=IFS_FS_OK || !volume)
+        return fail("cannot set up failed final-flush test");
+    void *expired=volume;
+    fail_final_flush=1;
+    if (core->unmount(expired)!=IFS_FS_IO_ERROR)
+        return fail("failed final durability barrier not reported");
+    fail_final_flush=0;
+    if (core->unmount(expired)!=IFS_FS_INVALID)
+        return fail("failed unmount retained an active handle");
+    volume=NULL;
+    info.structure_bytes=sizeof(info);
+    if (core->mount(&read_only,&volume,&info)!=IFS_FS_OK || !volume ||
+        core->read(volume,path,0,data,5)!=IFS_FS_OK ||
+        memcmp(data,"HELLO",5)!=0 ||
+        core->unmount(volume)!=IFS_FS_OK)
+        return fail("failed unmount permanently locked or corrupted reader");
     puts("OFS-COMMON-V2-FIXTURE-READ-WRITE-PASS");
     return 0;
 }

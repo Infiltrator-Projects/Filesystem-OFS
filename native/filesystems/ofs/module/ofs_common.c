@@ -175,8 +175,13 @@ static int mount(const IfsFsHostRuntimeV2 *h, void **v, IfsFsVolumeInfoV2 *info)
 }
 static int unmount(void *v) {
     if(!live(v))return IFS_FS_INVALID;
+    /* native_unmount always releases the native engine, even when its
+     * final durability barrier fails. Invalidate the Common V2 handle on
+     * both paths, preserving the I/O failure for the caller. */
     int r=native_unmount();
-    if(!r){session.mounted=0;session.writable=0;session.handle=0;}
+    session.mounted=0;
+    session.writable=0;
+    session.handle=0;
     return r;
 }
 static int assign(const IfsOfsEntryV3 *e, IfsFsEntryV2 *out) {
