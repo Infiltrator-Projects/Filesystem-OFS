@@ -189,6 +189,10 @@ int main(int argc, char **argv)
     const char *path = "/BOOT/KERNEL.EFI";
     char data[8];
     uint32_t variant = UINT32_MAX;
+    IfsFsHostRuntimeV2 invalid_host = read_only;
+    invalid_host.abi_version = 1u;
+    if (core->probe(&invalid_host, &variant) != IFS_FS_INVALID || variant != 0u)
+        return fail("Common V2 probe retained stale variant for invalid host");
 
     fixture();
     volatile size_t short_bytes = IFS_FS_HOST_V2_BASE_BYTES;
