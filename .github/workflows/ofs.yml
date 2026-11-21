@@ -48,7 +48,7 @@ jobs:
           python3 tests/check-package.py dist/*.deb --profile portable
           sudo python3 standalone/check-documentation-upgrade.py dist/*.deb
           bash dist/*.run --help
-          bash dist/*.run --profile aggressive --system-package-mode --build-only --output build/native-package
+          bash dist/*.run --profile aggressive --build-only --output build/native-package
           python3 tests/check-package.py build/native-package/*.deb --profile aggressive
           dpkg-deb -x build/native-package/*.deb build/native-payload
           python3 tests/ofs_defrag_test.py --module build/native-payload/System/Filesystems/OFS.so \
@@ -90,7 +90,7 @@ jobs:
           make test
           dpkg-deb -x dist/*.deb build/release-package
           cmp build/OFS.so build/release-package/System/Filesystems/OFS.so
-          bash dist/*.run --system-package-mode --build-only --output build/native-package
+          bash dist/*.run --build-only --output build/native-package
           dpkg-deb -x build/native-package/*.deb build/native-payload
           mkdir -p build-native
           cp build/native-payload/System/Filesystems/OFS.so build-native/OFS.so
@@ -127,131 +127,8 @@ jobs:
             build/boot-build-native/*.log
             build/boot-lnfs-32k/*.log
             build/boot-reject/*.log
-  ofs-kernel:
-    needs: ofs-so
-    runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - version: '6.12.107'
-            repository: gregkh/linux
-            commit: f717995cb7dcd8998ab15516b8006aea09cfde0d
-            artifact: ofs-kernel
-          - version: '7.0'
-            repository: torvalds/linux
-            commit: 028ef9c96e96197026887c0f092424679298aae8
-            artifact: ofs-kernel-v7
-    steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
-      - name: Check out the released Boot consumer for the OFS root test
-        if: matrix.version == '7.0'
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
-        with:
-          repository: Infiltrator-Projects/Boot
-          ref: 8abd633620b983a85781b4eef493f807ede00dc9
-          path: .qualification/Boot
-      - name: Install isolated kernel qualification tools
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential bc bison flex libelf-dev libssl-dev qemu-system-x86 busybox-static cpio kmod python3
-      - name: Install firmware test tools and build released Boot
-        if: matrix.version == '7.0'
-        run: |
-          sudo apt-get install -y --no-install-recommends gnu-efi ovmf dosfstools mtools
-          bash .qualification/Boot/scripts/build-gnuefi.sh
-      - uses: actions/download-artifact@v4
-        with:
-          name: ofs-qualified-${{ github.sha }}
-          path: dist
-      - name: Build pinned Linux and qualify the manual RUN
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl --fail --location --retry 5 "https://codeload.github.com/${{ matrix.repository }}/tar.gz/${{ matrix.commit }}" -o "$RUNNER_TEMP/linux.tar.gz"
-          mkdir -p "$RUNNER_TEMP/linux" build/kernel
-          tar -xzf "$RUNNER_TEMP/linux.tar.gz" -C "$RUNNER_TEMP/linux" --strip-components=1
-          kernel="$RUNNER_TEMP/linux"
-          make -C "$kernel" tinyconfig
-          "$kernel/scripts/config" --file "$kernel/.config" \
-            --enable 64BIT --enable MULTIUSER --enable MODULES --enable BLOCK --enable BLK_DEV \
-            --enable BLK_DEV_INITRD --enable RD_GZIP --enable BINFMT_ELF --enable BINFMT_SCRIPT \
-            --enable PCI --enable VIRTIO_MENU --enable VIRTIO --enable VIRTIO_PCI --enable VIRTIO_BLK \
-            --enable DEVTMPFS --enable DEVTMPFS_MOUNT --enable TTY --enable SERIAL_8250 \
-            --enable SERIAL_8250_CONSOLE --enable PROC_FS --enable SYSFS --enable SHMEM --enable TMPFS \
-            --enable FAT_FS --enable MSDOS_FS --disable VFAT_FS --enable NLS --enable NLS_CODEPAGE_437 \
-            --enable NLS_ISO8859_1 --disable WERROR --disable DEBUG_INFO --disable STACK_VALIDATION
-          if [[ "${{ matrix.version }}" = 7.0 ]]; then
-            "$kernel/scripts/config" --file "$kernel/.config" \
-              --enable ACPI --enable EFI --enable EFI_STUB --enable EFI_HANDOVER_PROTOCOL
-          fi
-          make -C "$kernel" olddefconfig
-          make -C "$kernel" -j2 bzImage modules
-          kernel_release=$(make -s -C "$kernel" kernelrelease)
-          bash dist/*.run --profile portable --build-only --kernel-build "$kernel" --output build/manual-package
-          python3 tests/check-package.py build/manual-package/*.deb --profile portable --kernel-release "$kernel_release"
-          dpkg-deb -x build/manual-package/*.deb build/kernel/manual
-          install -m 0644 build/kernel/manual/System/Kernel/Filesystems/ofs.ko build/kernel/ofs.ko
-          test "$(modinfo -F name build/kernel/ofs.ko)" = ofs
-          dpkg-deb -x dist/*.deb build/kernel/portable
-          cmp build/kernel/manual/System/Resources/Documentation/Filesystem-OFS.pdf \
-              build/kernel/portable/System/Resources/Documentation/Filesystem-OFS.pdf
-          python3 tests/fetch-oracle.py --output .qualification/oracle
-          python3 tests/test_kernel_runtime.py --kernel "$kernel/arch/x86/boot/bzImage" \
-            --module build/kernel/ofs.ko --so build/kernel/portable/System/Filesystems/OFS.so \
-            --oracle .qualification/oracle/amitools-0.8.1 --output build/kernel-runtime
-      - name: Boot and write to the same OFS disk as Linux root
-        if: matrix.version == '7.0'
-        run: |
-          python3 tests/test_boot_linux.py --boot .qualification/Boot/refind/refind_x64.efi \
-            --kernel "$RUNNER_TEMP/linux/arch/x86/boot/bzImage" --kernel-module build/kernel/ofs.ko \
-            --module build/kernel/portable/System/Filesystems/OFS.so \
-            --oracle .qualification/oracle/amitools-0.8.1 --output build/ofs-root
-      - name: Bundle the qualified Linux module in the portable DEB
-        if: matrix.version == '6.12.107'
-        run: |
-          package="dist/infiltrator-filesystem-ofs_$(cat VERSION)_amd64.deb"
-          bundled="build/qualified-portable/$(basename "$package")"
-          python3 standalone/release.py bundle-kernel "$package" build/kernel/ofs.ko "$bundled"
-          python3 tests/check-package.py "$bundled" --profile portable --kernel-module build/kernel/ofs.ko
-      - uses: actions/upload-artifact@v4
-        if: matrix.version == '6.12.107'
-        with:
-          name: ofs-portable-${{ github.sha }}
-          path: build/qualified-portable/*.deb
-          if-no-files-found: error
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact }}-${{ github.sha }}
-          path: build/kernel/ofs.ko
-          if-no-files-found: error
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: ${{ matrix.artifact }}-evidence-${{ github.sha }}
-          path: |
-            build/kernel-runtime/serial.log
-            build/ofs-root/serial.log
-  ofs-efi:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
-      - name: Install GNU-EFI development libraries
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends gcc binutils gnu-efi file qemu-system-x86 ovmf dosfstools mtools gdisk
-      - name: Preserve build of the transitional native OFS EFI adapter
-        run: make efi
-      - name: Inspect adapter artifact
-        run: |
-          test -s build/uefi/OFS_x64.efi
-          file build/uefi/OFS_x64.efi
-          sha256sum build/uefi/OFS_x64.efi
-      - name: Exercise driver binding, nested read and disconnect in OVMF
-        run: |
-          bash scripts/test-ofs-uefi-ovmf.sh build/uefi/OFS_x64.efi build/efi-production production
-          OFS_EFI_TRACE=1 bash scripts/build-ofs-efi.sh build/uefi-diagnostic
-          bash scripts/test-ofs-uefi-ovmf.sh build/uefi-diagnostic/OFS_x64.efi build/efi-diagnostic
   publish:
-    needs: [ofs-so, boot-consumer, ofs-efi, ofs-kernel]
+    needs: [ofs-so, boot-consumer]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     permissions:
@@ -262,15 +139,7 @@ jobs:
         with:
           name: ofs-qualified-${{ github.sha }}
           path: dist
-      - uses: actions/download-artifact@v4
-        with:
-          name: ofs-kernel-${{ github.sha }}
-          path: build/qualified-kernel
-      - uses: actions/download-artifact@v4
-        with:
-          name: ofs-portable-${{ github.sha }}
-          path: build/qualified-portable
-      - name: Publish exact qualified immutable version
+      - name: Publish the independently qualified OFS Common V2 package only
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -279,17 +148,19 @@ jobs:
           test "$(git rev-parse HEAD)" = "$(git ls-remote origin refs/heads/main | cut -f1)"
           version=$(cat VERSION)
           tag="v${version}"
+          test "$(find dist -maxdepth 1 -type f -name '*.deb' | wc -l)" = 1
+          test "$(find dist -maxdepth 1 -type f -name '*.run' | wc -l)" = 1
+          test "$(find dist -type f | wc -l)" = 2
+          test "$(find dist -name '*.ko' -o -name '*.efi' | wc -l)" = 0
+          mkdir -p build/release-check
+          dpkg-deb -x dist/*.deb build/release-check
+          test "$(find build/release-check -type f | wc -l)" = 2
+          test -s build/release-check/System/Filesystems/OFS.so
           if gh release view "$tag" >/dev/null 2>&1; then
             echo "Immutable $tag already exists; no release update required."
             exit 0
           fi
-          mkdir -p build/package
-          install -m 0644 "build/qualified-portable/infiltrator-filesystem-ofs_${version}_amd64.deb" "dist/infiltrator-filesystem-ofs_${version}_amd64.deb"
-          dpkg-deb -x dist/*.deb build/package
-          cmp build/package/System/Kernel/Filesystems/ofs.ko build/qualified-kernel/ofs.ko
-          install -m 0644 build/package/System/Filesystems/OFS.so dist/OFS.so
-          install -m 0644 build/qualified-kernel/ofs.ko dist/ofs-linux-6.12.107.ko
-          (cd dist && sha256sum *.deb *.run OFS.so *.ko > SHA256SUMS)
-          gh release create "$tag" dist/*.deb dist/*.run dist/OFS.so dist/*.ko dist/SHA256SUMS \
+          sha256sum dist/*.deb dist/*.run
+          gh release create "$tag" dist/*.deb dist/*.run \
             --target "$GITHUB_SHA" --title "Amiga Original File System ${version}" \
-            --notes "One freestanding OFS.so with Common V2 for BOOT and the existing OFS relocation and recovery interface. DOS0/2/4/6, all seven block sizes, alias/metadata preservation, exact Growth Defrag, durable staged recovery and interruption tests through the production consumer. Portable DEB/direct SO and source-first measured native RUN. Native ofs-linux-6.12.107.ko is independently VM-tested against that pinned kernel; rebuild it for another host ABI. Kernel SO loading remains a later generic bridge. Evidence and original-Amiga qualification limits are in docs/SO_COMPLETION.md. No ESP or host kernel installation is performed."
+            --notes "One native Common V2 OFS.so with the source-embedded native installer. No Linux filesystem-specific kernel module or separate EFI filesystem driver is included. The BOOT consumer acceptance job must pass before publication."
