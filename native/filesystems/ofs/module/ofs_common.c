@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Common filesystem interface over the canonical, single-volume OFS V3 engine.
+ * Common V2 interface over the canonical OFS native format engine.
  */
 #include "ofs_v3.h"
 #include "../core/ofs_engine.h"
@@ -51,24 +51,95 @@ static IfsOfsIoV3 native(const IfsFsHostRuntimeV2 *h, int write) {
     n.allocate=host_allocate; n.release=host_release;
     return n;
 }
+
+/* The V2 provider executes the canonical format core directly. The retired
+ * V3 dispatch table is not linked into the production filesystem module. */
+static int native_unmount(void) {
+    OfsFs *f = &ifs_ofs_active;
+    if (!f->mounted) return IFS_OFS_INVALID;
+    int rc = (f->io.flags & IFS_OFS_ORDERED_WRITEBACK) ? ofs_sync_pending(f) :
+        (f->io.flags & IFS_OFS_READ_ONLY) ? IFS_OFS_OK :
+        f->io.flush(f->io.context) == 0 ? IFS_OFS_OK : IFS_OFS_IO_ERROR;
+    ofs_release(f);
+    return rc;
+}
+static int native_stat(const char *path, IfsOfsEntryV3 *out) {
+    OfsNode node;
+    int rc = ofs_path(&ifs_ofs_active, path, 1, &node);
+    return rc ? rc : ofs_entry(&ifs_ofs_active, &node, out);
+}
+static int native_nth(const char *path, uint32_t index, IfsOfsEntryV3 *out) {
+    OfsFs *fs = &ifs_ofs_active;
+    OfsNode directory, child;
+    int rc = ofs_path(fs, path, 1, &directory);
+    if (rc) return rc;
+    if (directory.object_type != IFS_OFS_ROOT &&
+        directory.object_type != IFS_OFS_DIRECTORY) return IFS_OFS_INVALID;
+    OfsDirCursor cursor = {0};
+    uint64_t first = 0;
+    if (fs->enumeration_valid &&
+        fs->enumeration_directory == directory.object &&
+        index >= fs->enumeration_next_index) {
+        cursor = fs->enumeration_cursor;
+        first = fs->enumeration_next_index;
+    }
+    for (uint64_t i = first; i <= (uint64_t)index; ++i) {
+        rc = ofs_next(fs, directory.object, &cursor, &child);
+        if (rc) {
+            fs->enumeration_valid = 0;
+            return rc;
+        }
+    }
+    rc = ofs_entry(fs, &child, out);
+    if (rc || index == UINT32_MAX) {
+        fs->enumeration_valid = 0;
+        return rc;
+    }
+    fs->enumeration_cursor = cursor;
+    fs->enumeration_directory = directory.object;
+    fs->enumeration_next_index = index + 1u;
+    fs->enumeration_valid = 1;
+    return IFS_OFS_OK;
+}
+static int native_read(const char *path, uint32_t offset, void *bytes, uint32_t count) {
+    OfsNode file;
+    int rc = ofs_path(&ifs_ofs_active, path, 1, &file);
+    return rc ? rc : ofs_read_cached(&ifs_ofs_active, &file, offset, bytes, count);
+}
+static int native_write(const char *path, uint32_t offset, const void *bytes, uint32_t count) {
+    OfsNode file;
+    int rc = ofs_path(&ifs_ofs_active, path, 1, &file);
+    return rc ? rc : ofs_write_checked(&ifs_ofs_active, &file, offset, bytes, count);
+}
+static int native_resize(const char *path, uint32_t size) {
+    OfsNode file;
+    int rc = ofs_path(&ifs_ofs_active, path, 1, &file);
+    return rc ? rc : ofs_resize_checked(&ifs_ofs_active, &file, size);
+}
+static int native_sync(void) {
+    OfsFs *fs = &ifs_ofs_active;
+    if (!fs->mounted) return IFS_OFS_INVALID;
+    if (fs->io.flags & IFS_OFS_ORDERED_WRITEBACK) return ofs_sync_pending(fs);
+    if (fs->io.flags & IFS_OFS_READ_ONLY) return IFS_OFS_OK;
+    return fs->io.flush(fs->io.context) == 0 ? IFS_OFS_OK : IFS_OFS_IO_ERROR;
+}
+
 static int probe(const IfsFsHostRuntimeV2 *h, uint32_t *variant) {
-    const IfsOfsModuleV3 *m = infiltrator_filesystem_module_v3();
     IfsOfsSpaceV3 space = {0};
     int r, closed;
     if (!eligible(h) || !variant) return IFS_FS_INVALID;
     if (session.mounted || ifs_ofs_active.mounted) return IFS_FS_BUSY;
     IfsOfsIoV3 io=native(h,0);
-    r=m->mount(&io,NULL);
+    r=ofs_probe(&ifs_ofs_active,&io,NULL);
     if (r) return r == IFS_OFS_INVALID ? IFS_FS_NOT_FOUND : r;
     space.structure_bytes=sizeof(space);
-    r=m->space(&space);
-    closed=m->unmount();
+    r=ofs_space(&ifs_ofs_active,&space);
+    closed=native_unmount();
     if (r || closed) return r ? r : closed;
     *variant=space.variant;
     return IFS_FS_OK;
 }
 static int mount(const IfsFsHostRuntimeV2 *h, void **v, IfsFsVolumeInfoV2 *info) {
-    const IfsOfsModuleV3 *m=infiltrator_filesystem_module_v3();
     IfsOfsSpaceV3 space={0};
     int r,write;
     if (!eligible(h) || !v || !info || info->structure_bytes < sizeof(*info))
@@ -88,11 +159,11 @@ static int mount(const IfsFsHostRuntimeV2 *h, void **v, IfsFsVolumeInfoV2 *info)
     memcpy(&session.host,h,host_bytes);
     session.host.structure_bytes=(uint32_t)host_bytes;
     IfsOfsIoV3 io=native(&session.host,write);
-    r=m->mount(&io,NULL);
+    r=ofs_probe(&ifs_ofs_active,&io,NULL);
     if(r) return r;
     space.structure_bytes=sizeof(space);
-    r=m->space(&space);
-    if(r) { (void)m->unmount(); return r; }
+    r=ofs_space(&ifs_ofs_active,&space);
+    if(r) { (void)native_unmount(); return r; }
     session.mounted=1;session.writable=write;
     session.handle=++session.generation;
     info->variant=space.variant;
@@ -104,7 +175,7 @@ static int mount(const IfsFsHostRuntimeV2 *h, void **v, IfsFsVolumeInfoV2 *info)
 }
 static int unmount(void *v) {
     if(!live(v))return IFS_FS_INVALID;
-    int r=infiltrator_filesystem_module_v3()->unmount();
+    int r=native_unmount();
     if(!r){session.mounted=0;session.writable=0;session.handle=0;}
     return r;
 }
@@ -125,50 +196,49 @@ static int stat_path(void *v, const char *p, IfsFsEntryV2 *out) {
     IfsOfsEntryV3 e={0};
     if(!live(v)||!p||!out)return IFS_FS_INVALID;
     e.structure_bytes=sizeof(e);
-    int r=infiltrator_filesystem_module_v3()->stat(p,&e);
+    int r=native_stat(p,&e);
     return r?r:assign(&e,out);
 }
 static int nth(void *v,const char *p,uint32_t index,IfsFsEntryV2 *out){
     IfsOfsEntryV3 e={0};
     if(!live(v)||!p||!out)return IFS_FS_INVALID;
     e.structure_bytes=sizeof(e);
-    int r=infiltrator_filesystem_module_v3()->directory_entry(p,index,&e);
+    int r=native_nth(p,index,&e);
     return r?r:assign(&e,out);
 }
 static int read_file(void *v,const char *p,uint64_t at,void *b,uint32_t n){
     if(!live(v)||!p||(!b&&n))return IFS_FS_INVALID;
     if(at>UINT32_MAX||n>UINT32_MAX-at)return IFS_FS_UNSUPPORTED;
-    return infiltrator_filesystem_module_v3()->read(p,(uint32_t)at,b,n);
+    return native_read(p,(uint32_t)at,b,n);
 }
 static int write_file(void *v,const char *p,uint64_t at,const void *b,uint32_t n){
     if(!live(v)||!p||(!b&&n))return IFS_FS_INVALID;
     if(!can_write())return IFS_FS_ACCESS;
     if(at>UINT32_MAX||n>UINT32_MAX-at)return IFS_FS_UNSUPPORTED;
-    return infiltrator_filesystem_module_v3()->write(p,(uint32_t)at,b,n);
+    return native_write(p,(uint32_t)at,b,n);
 }
 static int create_path(void *v,const char *p,uint32_t type){
-    const IfsOfsModuleV3 *m=infiltrator_filesystem_module_v3();
     if(!live(v)||!p)return IFS_FS_INVALID;
     if(!can_write())return IFS_FS_ACCESS;
-    if(type==IFS_FS_ENTRY_FILE)return m->create(p);
-    if(type==IFS_FS_ENTRY_DIRECTORY)return m->mkdir(p);
+    if(type==IFS_FS_ENTRY_FILE)return ofs_create(&ifs_ofs_active,p,IFS_OFS_FILE,0,0);
+    if(type==IFS_FS_ENTRY_DIRECTORY)return ofs_create(&ifs_ofs_active,p,IFS_OFS_DIRECTORY,0,0);
     return IFS_FS_UNSUPPORTED;
 }
 static int remove_path(void *v,const char *p) {
     if(!live(v)||!p)return IFS_FS_INVALID;
     if(!can_write())return IFS_FS_ACCESS;
-    return infiltrator_filesystem_module_v3()->unlink(p);
+    return ofs_unlink(&ifs_ofs_active,p);
 }
 static int rename_path(void *v,const char *a,const char *b){
     if(!live(v)||!a||!b)return IFS_FS_INVALID;
     if(!can_write())return IFS_FS_ACCESS;
-    return infiltrator_filesystem_module_v3()->rename(a,b);
+    return ofs_rename(&ifs_ofs_active,a,b);
 }
 static int resize_path(void *v,const char *p,uint64_t bytes){
     if(!live(v)||!p)return IFS_FS_INVALID;
     if(!can_write())return IFS_FS_ACCESS;
     if(bytes>UINT32_MAX)return IFS_FS_UNSUPPORTED;
-    return infiltrator_filesystem_module_v3()->truncate(p,(uint32_t)bytes);
+    return native_resize(p,(uint32_t)bytes);
 }
 static int format(const IfsFsHostRuntimeV2 *h,uint32_t variant,
                   const char *label,uint32_t flags){
@@ -189,13 +259,13 @@ static int format(const IfsFsHostRuntimeV2 *h,uint32_t variant,
     options.block_bytes=h->logical_sector_bytes;
     options.variant=variant;options.label=label;
     IfsOfsIoV3 io=native(h,1);
-    return infiltrator_filesystem_module_v3()->format(&io,&options);
+    return ofs_format(&ifs_ofs_active,&io,&options);
 }
 static int check(void *v,uint32_t *errors){
     IfsOfsCheckV3 report={0};
     if(!live(v)||!errors)return IFS_FS_INVALID;
     report.structure_bytes=sizeof(report);
-    int r=infiltrator_filesystem_module_v3()->verify(&report);
+    int r=ofs_verify(&ifs_ofs_active,&report,OFS_VERIFY_FULL);
     *errors=report.errors;
     return r;
 }
@@ -207,7 +277,7 @@ static int volume_query(void *mounted,IfsFsVolumeInfoV2 *info) {
     if(!live(mounted)||!info||info->structure_bytes<sizeof(*info))
         return IFS_FS_INVALID;
     space.structure_bytes=sizeof(space);
-    int r=infiltrator_filesystem_module_v3()->space(&space);
+    int r=ofs_space(&ifs_ofs_active,&space);
     if(r!=IFS_FS_OK)return r;
     info->variant=space.variant;
     info->block_bytes=space.block_bytes;
@@ -238,7 +308,7 @@ static int volume_label(void *mounted, char *out, uint32_t capacity, uint32_t *b
 }
 static int volume_sync(void *mounted) {
     if(!live(mounted))return IFS_FS_INVALID;
-    return infiltrator_filesystem_module_v3()->flush()==0?
+    return native_sync()==0?
         IFS_FS_OK:IFS_FS_IO_ERROR;
 }
 static int volume_check(void *mounted,uint32_t flags,uint64_t *errors) {
