@@ -115,9 +115,7 @@ def source_files():
             chosen.append(p)
     if len(chosen) < 8:
         raise RuntimeError("Insufficient source files for full independent build")
-    # Keep the historical Linux builder in the repository, not in RUN.
-    return sorted(set(p for p in chosen
-                      if p.as_posix() != "scripts/build-ofs-kernel.sh"))
+    return sorted(set(chosen))
 
 def create_run(path):
     with tempfile.TemporaryFile() as temp:

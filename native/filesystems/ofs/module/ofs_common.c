@@ -133,7 +133,7 @@ static int probe(const IfsFsHostRuntimeV2 *h, uint32_t *variant) {
     if (session.mounted || ifs_ofs_active.mounted) return IFS_FS_BUSY;
     IfsOfsIoV3 io=native(h,0);
     r=ofs_probe(&ifs_ofs_active,&io,NULL);
-    if (r) return r == IFS_OFS_INVALID ? IFS_FS_NOT_FOUND : r;
+    if (r) return r;
     space.structure_bytes=sizeof(space);
     r=ofs_space(&ifs_ofs_active,&space);
     closed=native_unmount();
@@ -357,7 +357,7 @@ static const IfsFsGroupHeaderV2 *query_v2(
 }
 static const IfsFsModuleApiV2 api_v2={
     IFS_FS_COMMON_ABI_V2,sizeof(IfsFsModuleApiV2),"ofs",
-    IFS_FS_PROFILE_HOSTED|IFS_FS_PROFILE_FREESTANDING,
+    IFS_FS_PROFILE_HOSTED|IFS_FS_PROFILE_FREESTANDING|IFS_FS_PROFILE_FIRMWARE,
     IFS_FS_GROUP_BIT(IFS_FS_GROUP_CORE)|
         IFS_FS_GROUP_BIT(IFS_FS_GROUP_VOLUME),query_v2
 };

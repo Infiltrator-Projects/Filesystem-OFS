@@ -41,7 +41,7 @@ def inspect(module):
     meta=subprocess.check_output(['readelf','-p','.ifsmeta',str(module)],text=True)
     if 'IFS-MODULE:ofs:common2' not in meta or 'IFS-MODULE:ofs:3' in meta:
         raise RuntimeError('Missing ABI identities')
-    print('OFS-FREESTANDING-BOOT-PROFILE-PASS')
+    print('OFS-FREESTANDING-ELF-PASS')
 
 def compile_module(module,flags,training=False):
     args=[os.environ.get('CC','cc'),*flags]
@@ -177,15 +177,18 @@ def release_source_files():
     for p in paths:
         q = p.as_posix()
         selected = (
-            q.startswith("native/filesystems/ofs/") or
-            q.startswith("native/include/infiltratr/fs/") or
-            q in ("native/include/infiltratr/filesystem_module.h",
-                  "native/include/infiltratr/filesystem_module_v2.h") or
-            q == "native/platform/linux_kernel/vfs_compat.h" or
-            q.startswith("standalone/") or q.startswith("docs/") or
-            q.startswith("tests/") or q.startswith("scripts/") or q.startswith(".github/") or
-            q in ("README.md", "VERSION", "MIGRATION-PROVENANCE.md", "LICENSE", "Makefile",
-                  "tests/ofs_dropin_module_test.c")
+            q.startswith(("native/filesystems/ofs/core/", "native/filesystems/ofs/module/",
+                          "native/filesystems/ofs/defrag/", "standalone/", "docs/")) or
+            q in ("native/filesystems/ofs/efi/reader.c", "native/filesystems/ofs/efi/reader.h",
+                  "native/include/infiltratr/filesystem_module_v2.h",
+                  "native/include/infiltratr/fs/defrag_module.h",
+                  "tests/fetch-oracle.py", "tests/test-ofs-media.sh", "tests/boot-file-fixtures.sh",
+                  "tests/check-package.py",
+                  "README.md", "VERSION", "MIGRATION-PROVENANCE.md", "LICENSE", "Makefile") or
+            q.startswith("tests/ofs_") and p.name in (
+                "ofs_common_abi_test.c", "ofs_dropin_module_test.c", "ofs_core_test.c",
+                "ofs_primitives_test.c", "ofs_efi_reader_test.c", "ofs_orphan_test.c",
+                "ofs_v2_media_test.c")
         )
         if selected and p != PDF and (ROOT / p).is_file() and not (ROOT / p).is_symlink():
             chosen.append(p)

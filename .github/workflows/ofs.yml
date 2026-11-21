@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
       - name: Install build prerequisites
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential binutils python3 dpkg-dev cmake libssl-dev
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential binutils python3 dpkg-dev cmake libssl-dev busybox-static cpio
       - name: Qualify Common V2 filesystem API and native reader
         run: make check
       - name: Build portable package and source-first native installer
@@ -31,6 +31,17 @@ jobs:
           bash dist/*.run --profile aggressive --build-only --output build/native-package
           python3 tests/check-package.py build/native-package/*.deb --profile aggressive
           dpkg-deb -x build/native-package/*.deb build/native-payload
+      - name: Compare kernel and initramfs bytes through both packaged V2 providers
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/ofs-media"
+          bash tests/boot-file-fixtures.sh "$work"
+          python3 tests/fetch-oracle.py --output "$work/oracle"
+          dpkg-deb -x dist/*.deb "$work/portable"
+          for root in "$work/portable" build/native-payload; do
+            bash tests/test-ofs-media.sh "$root/System/Filesystems/OFS.so" \
+              "$work/oracle/amitools-0.8.1" "$work/vmlinuz" "$work/initramfs"
+          done
       - uses: actions/upload-artifact@v4
         with:
           name: ofs-qualified-${{ github.sha }}

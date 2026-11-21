@@ -12,6 +12,7 @@ enum { BLOCKS = 1024, BLOCK = 512, ROOT = 512 };
 static uint8_t disk[BLOCKS][BLOCK];
 static uint32_t host_sector = BLOCK;
 static int host_context;
+static int fail_root_read;
 
 static void be32(uint8_t *p, uint32_t x)
 {
@@ -59,6 +60,8 @@ static int read_at(void *ctx, uint64_t offset, void *buffer, uint32_t len)
     if (ctx != &host_context) return -1;
     if ((offset % host_sector) || (len % host_sector) ||
         offset > sizeof disk || len > sizeof disk - offset)
+        return -1;
+    if (fail_root_read && offset <= ROOT * BLOCK && ROOT * BLOCK - offset < len)
         return -1;
     memcpy(buffer, (uint8_t *)disk + (size_t)offset, len);
     return 0;
@@ -195,6 +198,16 @@ int main(int argc, char **argv)
         return fail("Common V2 probe retained stale variant for invalid host");
 
     fixture();
+    fail_root_read = 1;
+    if (core->probe(&read_only, &variant) != IFS_FS_IO_ERROR ||
+        core->mount(&read_only, &volume, &info) != IFS_FS_IO_ERROR || volume)
+        return fail("Root-sector I/O error lost during geometry detection");
+    fail_root_read = 0;
+    disk[ROOT][20] ^= 1;
+    if (core->probe(&read_only, &variant) != IFS_FS_CORRUPT ||
+        core->mount(&read_only, &volume, &info) != IFS_FS_CORRUPT || volume)
+        return fail("Recognised OFS root with an invalid checksum accepted");
+    disk[ROOT][20] ^= 1;
     volatile size_t short_bytes = IFS_FS_HOST_V2_BASE_BYTES;
     IfsFsHostRuntimeV2 *short_host = malloc(short_bytes);
     if (!short_host) return fail("Short V2 host allocation");

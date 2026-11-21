@@ -8,7 +8,9 @@ import sys
 import tempfile
 p=argparse.ArgumentParser();p.add_argument('package',type=Path);p.add_argument('--profile',choices=('portable','aggressive'),required=True)
 a=p.parse_args();root=Path(__file__).resolve().parents[1]
-sys.path.insert(0,str(root/'standalone'));import build
+sys.path.insert(0,str(root/'standalone'))
+import build
+import release
 with tempfile.TemporaryDirectory(prefix='ofs-package-') as tmp:
     target=Path(tmp);subprocess.run(['dpkg-deb','-x',str(a.package.resolve()),str(target)],check=True)
     payload=[x for x in (target/'System/Filesystems').iterdir()]
@@ -23,7 +25,7 @@ with tempfile.TemporaryDirectory(prefix='ofs-package-') as tmp:
     assert fields['X-Infiltrator-Native-Profile']==a.profile
     assert fields['X-Infiltrator-Resource-SHA256']==hashlib.sha256(module.read_bytes()).hexdigest()
     assert fields['X-Infiltrator-PDF-SHA256']==hashlib.sha256(manual.read_bytes()).hexdigest()
-    assert len(fields['X-Infiltrator-Source-Revision'])==40
+    assert fields['X-Infiltrator-Source-Revision'] == release.source_revision()
     expected_files = {module, manual}
     assert {x for x in target.rglob('*') if x.is_symlink() or not x.is_dir()} == expected_files
     assert all(x.is_file() and not x.is_symlink() for x in expected_files)

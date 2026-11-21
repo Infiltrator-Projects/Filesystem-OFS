@@ -300,7 +300,7 @@ static int probe(OfsFs *f, const IfsOfsIoV3 *io, const IfsOfsMountV3 *opts,
         return IFS_OFS_IO_ERROR;
     if (boot[0] != 'D' || boot[1] != 'O' || boot[2] != 'S' ||
         (boot[3] != 0 && boot[3] != 2 && boot[3] != 4 && boot[3] != 6))
-        return IFS_OFS_INVALID;
+        return IFS_OFS_NOT_FOUND;
     uint32_t reserved = opts && opts->reserved_blocks ? opts->reserved_blocks : 2u;
     uint32_t requested = opts ? opts->block_bytes : 0;
     if ((requested && !block_size_valid(requested)) || reserved < 1)
@@ -344,7 +344,14 @@ static int probe(OfsFs *f, const IfsOfsIoV3 *io, const IfsOfsMountV3 *opts,
         f->hash_size = b / 4u - 56u;
         ofs_invalidate(f);
         uint8_t *r = f->scratch[6];
-        if (ofs_metadata(f, root, r) == 0 && ofs_word(r, 1) == 0 && ofs_word(r, 2) == 0 &&
+        /* A stored root key can only identify media within this candidate
+         * geometry. A failed device read prevents a unique geometry decision. */
+        if (root < reserved || root >= n)
+            continue;
+        int root_status = ofs_metadata(f, root, r);
+        if (root_status == IFS_OFS_IO_ERROR)
+            return root_status;
+        if (root_status == IFS_OFS_OK && ofs_word(r, 1) == 0 && ofs_word(r, 2) == 0 &&
             ofs_word(r, 3) == f->hash_size && ofs_word(r, 4) == 0 && ofs_be32(r + b - 4u) == 1u &&
             r[b - 80u] <= 30u &&
             (!f->variant || f->variant != 6u || ofs_be32(r + b - 16u) == 0x444f5306u)) {
@@ -356,7 +363,7 @@ static int probe(OfsFs *f, const IfsOfsIoV3 *io, const IfsOfsMountV3 *opts,
             break;
     }
     if (found != 1)
-        return IFS_OFS_INVALID;
+        return IFS_OFS_CORRUPT;
     f->block_bytes = chosen;
     f->blocks = (uint32_t)(io->volume_bytes / chosen);
     f->root = chosen_root;

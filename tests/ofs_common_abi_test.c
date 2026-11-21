@@ -31,7 +31,8 @@ int main(int argc,char **argv) {
        dlsym(so,"infiltrator_filesystem_api_v1") ||
        dlsym(so,"infiltrator_filesystem_module_v1") ||
        dlsym(so,"infiltrator_filesystem_module_v2") ||
-       (api->runtime_profiles & IFS_FS_PROFILE_KERNEL)) {
+       api->runtime_profiles != (IFS_FS_PROFILE_HOSTED | IFS_FS_PROFILE_FREESTANDING |
+                                 IFS_FS_PROFILE_FIRMWARE)) {
         fputs("OFS strict Common V2 contract rejected\n",stderr);
         dlclose(so);return 1;
     }

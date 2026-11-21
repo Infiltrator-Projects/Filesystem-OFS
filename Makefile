@@ -10,7 +10,7 @@ OUT ?= build
 PYTHON ?= python3
 HEADERS := $(wildcard $(OFS)/core/*.h $(OFS)/module/*.h $(OFS)/efi/*.h $(OFS)/defrag/*.h native/include/infiltratr/fs/*.h native/include/infiltratr/filesystem_module_v2.h)
 
-.PHONY: all test check release native clean efi kernel
+.PHONY: all test check release native clean
 all: $(OUT)/OFS.so
 $(OUT):
 	mkdir -p "$(OUT)"
@@ -53,12 +53,20 @@ native:
 release:
 	$(PYTHON) standalone/release.py release
 
+ifneq ($(wildcard scripts/build-ofs-efi.sh),)
+.PHONY: efi
 efi:
 	bash scripts/build-ofs-efi.sh "$(abspath $(OUT))/uefi"
 
+endif
+
+ifneq ($(wildcard scripts/build-ofs-kernel.sh),)
+.PHONY: kernel
 kernel:
 	mkdir -p "$(OUT)/kernel"
 	bash scripts/build-ofs-kernel.sh "$(abspath $(OUT))/kernel" "$(KERNEL_BUILD)"
+
+endif
 
 clean:
 	rm -rf -- "$(OUT)"
