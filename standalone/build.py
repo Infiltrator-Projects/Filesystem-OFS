@@ -12,9 +12,11 @@ BASE=ROOT/'native/filesystems/ofs'
 SOURCES=[BASE/'module'/n for n in ('ofs_common.c','ofs_memory.c')]+[
     BASE/'core'/n for n in ('ofs_core.c','ofs_primitives.c','ofs_volume.c','ofs_nodes.c',
     'ofs_files.c','ofs_namespace.c','ofs_check.c','ofs_strings.c','ofs_cache.c')]
-SOURCES += [BASE/'defrag'/n for n in ('ofs_relayout.c','ofs_defrag_module.c')]
+# The retired private defragmenter entry point is NOT a Common V2 group.
+# Leave its native source for future GROUP_DEFRAG migration and source-owned
+# unit tests, but do not link a second production ABI into OFS.so.
 INCLUDES=[BASE/'module',BASE/'core',BASE/'efi',ROOT/'native/include']
-EXPORTS=('infiltrator_filesystem_api_v2','infiltrator_filesystem_defrag_v2')
+EXPORTS=('infiltrator_filesystem_api_v2',)
 
 def run(args,**kwargs):subprocess.run([str(x) for x in args],check=True,**kwargs)
 
@@ -41,6 +43,8 @@ def inspect(module):
     meta=subprocess.check_output(['readelf','-p','.ifsmeta',str(module)],text=True)
     if 'IFS-MODULE:ofs:common2' not in meta or 'IFS-MODULE:ofs:3' in meta:
         raise RuntimeError('Missing ABI identities')
+    if 'infiltrator_filesystem_defrag_v2' in symbols:
+        raise RuntimeError('Retired private defrag symbol remains in OFS.so')
     print('OFS-FREESTANDING-ELF-PASS')
 
 def compile_module(module,flags,training=False):
