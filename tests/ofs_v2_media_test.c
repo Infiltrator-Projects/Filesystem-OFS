@@ -53,11 +53,7 @@ static void compare_file(const IfsFsCoreOpsV2 *core, void *volume, const char *p
         uint64_t left = entry.size_bytes - offset;
         uint32_t count = left < sizeof(expected) ? (uint32_t)left : sizeof(expected);
         REQUIRE(pread(fd, expected, count, (off_t)offset) == (ssize_t)count);
-        active_volume=volume;
-        unmount_during_read=core;
-        observed_unmount=IFS_FS_INVALID;
         REQUIRE(core->read(volume, path, offset, actual, count) == IFS_FS_OK);
-        REQUIRE(!unmount_during_read && observed_unmount==IFS_FS_BUSY);
         REQUIRE(memcmp(expected, actual, count) == 0);
         offset += count;
     }
@@ -108,8 +104,15 @@ int main(int argc, char **argv)
             else REQUIRE(0);
         }
         REQUIRE(seen == 3);
+        /* Some chunks can be served entirely from the native cache.
+         * Arm once across the full independent payload comparison, so
+         * only an actual host read must observe the reentrant BUSY. */
+        active_volume=volume;
+        unmount_during_read=core;
+        observed_unmount=IFS_FS_INVALID;
         compare_file(core, volume, "/boot/vmlinuz", argv[5]);
         compare_file(core, volume, "/boot/initramfs", argv[6]);
+        REQUIRE(!unmount_during_read && observed_unmount==IFS_FS_BUSY);
     }
     REQUIRE(core->unmount(volume) == IFS_FS_OK);
     REQUIRE(close(disk.fd) == 0 && dlclose(image) == 0);
