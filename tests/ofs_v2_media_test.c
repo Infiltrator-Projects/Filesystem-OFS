@@ -18,8 +18,17 @@ typedef struct {
     uint32_t sector;
 } Disk;
 
+static const IfsFsCoreOpsV2 *unmount_during_read;
+static void *active_volume;
+static int observed_unmount;
 static int read_disk(void *context, uint64_t offset, void *out, uint32_t count)
 {
+    if (unmount_during_read) {
+        const IfsFsCoreOpsV2 *ops=unmount_during_read;
+        unmount_during_read=NULL;
+        observed_unmount=ops->unmount(active_volume);
+        if (observed_unmount!=IFS_FS_BUSY) return -1;
+    }
     Disk *disk = context;
     if (!count || count > 16384 || offset % disk->sector || count % disk->sector)
         return -1;
@@ -44,7 +53,11 @@ static void compare_file(const IfsFsCoreOpsV2 *core, void *volume, const char *p
         uint64_t left = entry.size_bytes - offset;
         uint32_t count = left < sizeof(expected) ? (uint32_t)left : sizeof(expected);
         REQUIRE(pread(fd, expected, count, (off_t)offset) == (ssize_t)count);
+        active_volume=volume;
+        unmount_during_read=core;
+        observed_unmount=IFS_FS_INVALID;
         REQUIRE(core->read(volume, path, offset, actual, count) == IFS_FS_OK);
+        REQUIRE(!unmount_during_read && observed_unmount==IFS_FS_BUSY);
         REQUIRE(memcmp(expected, actual, count) == 0);
         offset += count;
     }

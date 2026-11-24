@@ -5,6 +5,23 @@
 #include "../core/ofs_engine.h"
 #include <infiltratr/filesystem_module_v2.h>
 #include <string.h>
+#include <stdatomic.h>
+
+/* The native engine has one active image and shared scratch/IO state.
+ * Enforce exclusion inside the V2 provider, not merely in its callers.
+ * A reentrant host callback must receive BUSY rather than deadlocking
+ * or replacing the device while a transfer is in progress. */
+static atomic_flag v2_operation_gate=ATOMIC_FLAG_INIT;
+static int v2_enter_operation(void)
+{
+    return !atomic_flag_test_and_set_explicit(&v2_operation_gate,memory_order_acquire);
+}
+static int v2_leave_operation(int rc)
+{
+    atomic_flag_clear_explicit(&v2_operation_gate,memory_order_release);
+    return rc;
+}
+
 OfsFs ifs_ofs_active;
 static struct {
     IfsFsHostRuntimeV2 host;
@@ -141,6 +158,13 @@ static int probe(const IfsFsHostRuntimeV2 *h, uint32_t *variant) {
     *variant=space.variant;
     return IFS_FS_OK;
 }
+static int guarded_probe(const IfsFsHostRuntimeV2 *h, uint32_t *variant)
+{
+    if (variant) *variant=0u;
+    if (!v2_enter_operation()) return IFS_FS_BUSY;
+    return v2_leave_operation(probe(h,variant));
+}
+
 static int mount(const IfsFsHostRuntimeV2 *h, void **v, IfsFsVolumeInfoV2 *info) {
     IfsOfsSpaceV3 space={0};
     int r,write;
@@ -175,6 +199,13 @@ static int mount(const IfsFsHostRuntimeV2 *h, void **v, IfsFsVolumeInfoV2 *info)
     *v=(void *)session.handle;
     return IFS_FS_OK;
 }
+static int guarded_mount(const IfsFsHostRuntimeV2 *h, void **v, IfsFsVolumeInfoV2 *info)
+{
+    if (v) *v=NULL;
+    if (!v2_enter_operation()) return IFS_FS_BUSY;
+    return v2_leave_operation(mount(h,v,info));
+}
+
 static int unmount(void *v) {
     if(!live(v))return IFS_FS_INVALID;
     /* native_unmount always releases the native engine, even when its
@@ -186,6 +217,12 @@ static int unmount(void *v) {
     session.handle=0;
     return r;
 }
+static int guarded_unmount(void *v)
+{
+    if (!v2_enter_operation()) return IFS_FS_BUSY;
+    return v2_leave_operation(unmount(v));
+}
+
 static int assign(const IfsOfsEntryV3 *e, IfsFsEntryV2 *out) {
     uint32_t len=0;
     if(!out || out->structure_bytes<sizeof(*out) ||
@@ -206,6 +243,12 @@ static int stat_path(void *v, const char *p, IfsFsEntryV2 *out) {
     int r=native_stat(p,&e);
     return r?r:assign(&e,out);
 }
+static int guarded_stat_path(void *v, const char *p, IfsFsEntryV2 *out)
+{
+    if (!v2_enter_operation()) return IFS_FS_BUSY;
+    return v2_leave_operation(stat_path(v,p,out));
+}
+
 static int nth(void *v,const char *p,uint32_t index,IfsFsEntryV2 *out){
     IfsOfsEntryV3 e={0};
     if(!live(v)||!p||!out)return IFS_FS_INVALID;
@@ -213,17 +256,35 @@ static int nth(void *v,const char *p,uint32_t index,IfsFsEntryV2 *out){
     int r=native_nth(p,index,&e);
     return r?r:assign(&e,out);
 }
+static int guarded_nth(void *v,const char *p,uint32_t index,IfsFsEntryV2 *out)
+{
+    if (!v2_enter_operation()) return IFS_FS_BUSY;
+    return v2_leave_operation(nth(v,p,index,out));
+}
+
 static int read_file(void *v,const char *p,uint64_t at,void *b,uint32_t n){
     if(!live(v)||!p||(!b&&n))return IFS_FS_INVALID;
     if(at>UINT32_MAX||n>UINT32_MAX-at)return IFS_FS_UNSUPPORTED;
     return native_read(p,(uint32_t)at,b,n);
 }
+static int guarded_read_file(void *v,const char *p,uint64_t at,void *b,uint32_t n)
+{
+    if (!v2_enter_operation()) return IFS_FS_BUSY;
+    return v2_leave_operation(read_file(v,p,at,b,n));
+}
+
 static int write_file(void *v,const char *p,uint64_t at,const void *b,uint32_t n){
     if(!live(v)||!p||(!b&&n))return IFS_FS_INVALID;
     if(!can_write())return IFS_FS_ACCESS;
     if(at>UINT32_MAX||n>UINT32_MAX-at)return IFS_FS_UNSUPPORTED;
     return native_write(p,(uint32_t)at,b,n);
 }
+static int guarded_write_file(void *v,const char *p,uint64_t at,const void *b,uint32_t n)
+{
+    if (!v2_enter_operation()) return IFS_FS_BUSY;
+    return v2_leave_operation(write_file(v,p,at,b,n));
+}
+
 static int create_path(void *v,const char *p,uint32_t type){
     if(!live(v)||!p)return IFS_FS_INVALID;
     if(!can_write())return IFS_FS_ACCESS;
@@ -231,22 +292,46 @@ static int create_path(void *v,const char *p,uint32_t type){
     if(type==IFS_FS_ENTRY_DIRECTORY)return ofs_create(&ifs_ofs_active,p,IFS_OFS_DIRECTORY,0,0);
     return IFS_FS_UNSUPPORTED;
 }
+static int guarded_create_path(void *v,const char *p,uint32_t type)
+{
+    if (!v2_enter_operation()) return IFS_FS_BUSY;
+    return v2_leave_operation(create_path(v,p,type));
+}
+
 static int remove_path(void *v,const char *p) {
     if(!live(v)||!p)return IFS_FS_INVALID;
     if(!can_write())return IFS_FS_ACCESS;
     return ofs_unlink(&ifs_ofs_active,p);
 }
+static int guarded_remove_path(void *v,const char *p)
+{
+    if (!v2_enter_operation()) return IFS_FS_BUSY;
+    return v2_leave_operation(remove_path(v,p));
+}
+
 static int rename_path(void *v,const char *a,const char *b){
     if(!live(v)||!a||!b)return IFS_FS_INVALID;
     if(!can_write())return IFS_FS_ACCESS;
     return ofs_rename(&ifs_ofs_active,a,b);
 }
+static int guarded_rename_path(void *v,const char *a,const char *b)
+{
+    if (!v2_enter_operation()) return IFS_FS_BUSY;
+    return v2_leave_operation(rename_path(v,a,b));
+}
+
 static int resize_path(void *v,const char *p,uint64_t bytes){
     if(!live(v)||!p)return IFS_FS_INVALID;
     if(!can_write())return IFS_FS_ACCESS;
     if(bytes>UINT32_MAX)return IFS_FS_UNSUPPORTED;
     return native_resize(p,(uint32_t)bytes);
 }
+static int guarded_resize_path(void *v,const char *p,uint64_t bytes)
+{
+    if (!v2_enter_operation()) return IFS_FS_BUSY;
+    return v2_leave_operation(resize_path(v,p,bytes));
+}
+
 static int format(const IfsFsHostRuntimeV2 *h,uint32_t variant,
                   const char *label,uint32_t flags){
     IfsOfsFormatV3 options={0};
@@ -268,6 +353,13 @@ static int format(const IfsFsHostRuntimeV2 *h,uint32_t variant,
     IfsOfsIoV3 io=native(h,1);
     return ofs_format(&ifs_ofs_active,&io,&options);
 }
+static int guarded_format(const IfsFsHostRuntimeV2 *h,uint32_t variant,
+                  const char *label,uint32_t flags)
+{
+    if (!v2_enter_operation()) return IFS_FS_BUSY;
+    return v2_leave_operation(format(h,variant,label,flags));
+}
+
 static int check(void *v,uint32_t *errors){
     IfsOfsCheckV3 report={0};
     if(!live(v)||!errors)return IFS_FS_INVALID;
@@ -293,6 +385,12 @@ static int volume_query(void *mounted,IfsFsVolumeInfoV2 *info) {
     info->free_bytes=space.free_bytes;
     return IFS_FS_OK;
 }
+static int guarded_volume_query(void *mounted,IfsFsVolumeInfoV2 *info)
+{
+    if (!v2_enter_operation()) return IFS_FS_BUSY;
+    return v2_leave_operation(volume_query(mounted,info));
+}
+
 static int volume_label(void *mounted, char *out, uint32_t capacity, uint32_t *bytes) {
     if (!live(mounted) || !out || !capacity || !bytes)
         return IFS_FS_INVALID;
@@ -313,11 +411,24 @@ static int volume_label(void *mounted, char *out, uint32_t capacity, uint32_t *b
         *bytes = length;
     return converted;
 }
+static int guarded_volume_label(void *mounted, char *out, uint32_t capacity, uint32_t *bytes)
+{
+    if (bytes) *bytes=0u;
+    if (!v2_enter_operation()) return IFS_FS_BUSY;
+    return v2_leave_operation(volume_label(mounted,out,capacity,bytes));
+}
+
 static int volume_sync(void *mounted) {
     if(!live(mounted))return IFS_FS_INVALID;
     return native_sync()==0?
         IFS_FS_OK:IFS_FS_IO_ERROR;
 }
+static int guarded_volume_sync(void *mounted)
+{
+    if (!v2_enter_operation()) return IFS_FS_BUSY;
+    return v2_leave_operation(volume_sync(mounted));
+}
+
 static int volume_check(void *mounted,uint32_t flags,uint64_t *errors) {
     uint32_t count=0;
     if(flags)return IFS_FS_UNSUPPORTED;
@@ -326,6 +437,13 @@ static int volume_check(void *mounted,uint32_t flags,uint64_t *errors) {
     if(r==IFS_FS_OK)*errors=count;
     return r;
 }
+static int guarded_volume_check(void *mounted,uint32_t flags,uint64_t *errors)
+{
+    if (errors) *errors=0u;
+    if (!v2_enter_operation()) return IFS_FS_BUSY;
+    return v2_leave_operation(volume_check(mounted,flags,errors));
+}
+
 __attribute__((used,section(".ifsmeta")))
 static const char identity_v2[]="IFS-MODULE:ofs:common2";
 static const IfsFsCoreOpsV2 core_v2={
@@ -335,18 +453,18 @@ static const IfsFsCoreOpsV2 core_v2={
        IFS_FS_CORE_LIST|IFS_FS_CORE_READ|IFS_FS_CORE_WRITE|
        IFS_FS_CORE_CREATE|IFS_FS_CORE_REMOVE|IFS_FS_CORE_RENAME|
        IFS_FS_CORE_TRUNCATE},
-    .probe=probe,.mount=mount,.unmount=unmount,
-    .stat=stat_path,.directory_entry=nth,
-    .read=read_file,.write=write_file,.create=create_path,
-    .remove=remove_path,.rename=rename_path,.truncate=resize_path
+    .probe=guarded_probe,.mount=guarded_mount,.unmount=guarded_unmount,
+    .stat=guarded_stat_path,.directory_entry=guarded_nth,
+    .read=guarded_read_file,.write=guarded_write_file,.create=guarded_create_path,
+    .remove=guarded_remove_path,.rename=guarded_rename_path,.truncate=guarded_resize_path
 };
 static const IfsFsVolumeOpsV2 volume_v2={
     .header={IFS_FS_GROUP_ABI_V2,sizeof(IfsFsVolumeOpsV2),
        IFS_FS_GROUP_VOLUME,0u,
        IFS_FS_VOLUME_QUERY|IFS_FS_VOLUME_LABEL_GET|IFS_FS_VOLUME_SYNC|
        IFS_FS_VOLUME_CHECK|IFS_FS_VOLUME_FORMAT},
-    .query=volume_query,.label=volume_label,.sync=volume_sync,
-    .check=volume_check,.format=format
+    .query=guarded_volume_query,.label=guarded_volume_label,.sync=guarded_volume_sync,
+    .check=guarded_volume_check,.format=guarded_format
 };
 static const IfsFsGroupHeaderV2 *query_v2(
     uint32_t id,uint32_t low,uint32_t high){
