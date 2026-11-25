@@ -1,10 +1,10 @@
 %PDF-1.4
-%ASCII-ONLY-PDF
+%‚„œ”
 1 0 obj
 << /Type /Catalog /Pages 2 0 R >>
 endobj
 2 0 obj
-<< /Type /Pages /Kids [6 0 R 8 0 R 10 0 R 12 0 R 14 0 R 16 0 R 18 0 R 20 0 R 22 0 R 24 0 R 26 0 R 28 0 R 30 0 R] /Count 13 >>
+<< /Type /Pages /Kids [6 0 R 8 0 R 10 0 R 12 0 R 14 0 R 16 0 R 18 0 R 20 0 R 22 0 R 24 0 R 26 0 R 28 0 R 30 0 R 32 0 R 34 0 R] /Count 15 >>
 endobj
 3 0 obj
 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
@@ -387,42 +387,129 @@ BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 360.5 Tm (8. The original AmigaDOS for
 BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 344 Tm (support must be verified independently by tests.) Tj ET
 endstream
 endobj
+32 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 33 0 R >>
+endobj
+33 0 obj
+<< /Length 3222 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.04 0.54 0.60 rg 50 747 115 4 re f
+0.78 0.82 0.86 RG 0.6 w 50 50 m 545 50 l S
+BT /F2 9 Tf 0.62 0.86 0.90 rg 1 0 0 1 50 801 Tm (INFILTRATOR / IMPLEMENTATION REFERENCE) Tj ET
+BT /F2 19 Tf 1 1 1 rg 1 0 0 1 50 771 Tm (OFS / Common V2 provider) Tj ET
+BT /F1 8 Tf 0.34 0.40 0.44 rg 1 0 0 1 50 34 Tm (Implementation appendix / source revision 530e8284a6cc) Tj ET
+BT /F1 8 Tf 0.34 0.40 0.44 rg 1 0 0 1 505 34 Tm (PAGE 14) Tj ET
+BT /F2 13 Tf 0.02 0.45 0.50 rg 1 0 0 1 50 710 Tm (1. PURPOSE AND FORMAT SCOPE) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 686 Tm (Amiga Original File System \(DOS0, DOS2, DOS4 and DOS6\), distinct from FFS.) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 671 Tm (This repository owns the format-specific implementation of OFS.so for) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 656 Tm (InfiltratorOS.) Tj ET
+BT /F2 13 Tf 0.02 0.45 0.50 rg 1 0 0 1 50 626 Tm (2. ON-DISK ARCHITECTURE AND INVARIANTS) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 602 Tm (OFS retains its 24-byte data-block header and checksum. The native) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 587 Tm (geometry includes block sizes from 512 to 32768 bytes, 32-bit block keys) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 572 Tm (and 64-bit volume offsets. File headers use reversed pointer tables and) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 557 Tm (extension chains; directory hashes, bitmap allocation, native links and) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 542 Tm (cache records must remain consistent. DOS6 supports long names and) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 527 Tm (overflow comments; UTF-8 API capacities are measured in bytes, not on-disk) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 512 Tm (Latin-1 characters.) Tj ET
+BT /F2 13 Tf 0.02 0.45 0.50 rg 1 0 0 1 50 482 Tm (3. COMMON V2 IMPLEMENTATION AND CAPABILITIES) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 458 Tm (Common V2 declares probe, mount, stat, enumeration, read, write, create,) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 443 Tm (remove, rename, check and format; the native engine also owns file growth,) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 428 Tm (truncate, links, metadata and volume operations. Dedicated) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 413 Tm (relocation/recovery provides Analyse/map, staged Defrag, 10% Growth) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 398 Tm (reserve, stop and bound-target recovery. The freestanding read profile) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 383 Tm (supports streaming and seek. Consult exact masks for each operation. The) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 368 Tm (canonical entry point is infiltrator_filesystem_api_v2. Consumers must) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 353 Tm (negotiate the actual profile and operation masks and use bounded,) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 338 Tm (partition-relative host I/O. A source-level callback does not by itself) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 323 Tm (establish that every format variant or host profile is qualified.) Tj ET
+endstream
+endobj
+34 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 35 0 R >>
+endobj
+35 0 obj
+<< /Length 3999 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.04 0.54 0.60 rg 50 747 115 4 re f
+0.78 0.82 0.86 RG 0.6 w 50 50 m 545 50 l S
+BT /F2 9 Tf 0.62 0.86 0.90 rg 1 0 0 1 50 801 Tm (INFILTRATOR / IMPLEMENTATION REFERENCE) Tj ET
+BT /F2 19 Tf 1 1 1 rg 1 0 0 1 50 771 Tm (OFS / Common V2 provider) Tj ET
+BT /F1 8 Tf 0.34 0.40 0.44 rg 1 0 0 1 50 34 Tm (Implementation appendix / source revision 530e8284a6cc) Tj ET
+BT /F1 8 Tf 0.34 0.40 0.44 rg 1 0 0 1 505 34 Tm (PAGE 15) Tj ET
+BT /F2 13 Tf 0.02 0.45 0.50 rg 1 0 0 1 50 710 Tm (4. INTEGRITY, MUTATION, ALLOCATION AND RECOVERY) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 686 Tm (Directory links can form cycles, so traversal must be bounded; refuse) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 671 Tm (removal of the only rooted name of a cyclic directory tree. DOS4 cache and) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 656 Tm (DOS6 block-count/comment changes must accompany namespace mutation.) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 641 Tm (Whole-volume structural validation precedes explicit bitmap recovery.) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 626 Tm (Independent Amiga media comparison does not establish physical BOOT) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 611 Tm (handoff or every crash scenario. For destructive operations, require the) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 596 Tm (applicable exclusive writable host, durability contract and) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 581 Tm (format-specific validation. Never silently substitute a kernel or FUSE) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 566 Tm (driver or treat a rejected or unavailable operation as success. Preserve) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 551 Tm (original disk-format semantics; relocation and recovery are separate from) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 536 Tm (ordinary file I/O.) Tj ET
+BT /F2 13 Tf 0.02 0.45 0.50 rg 1 0 0 1 50 506 Tm (5. BUILD, INSTALLATION AND RELEASE) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 482 Tm (The target installation is /System/Filesystems/OFS.so and) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 467 Tm (/System/Resources/Documentation/Filesystem-OFS.pdf. The project release) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 452 Tm (policy is a portable amd64 DEB and a CPU-native source-first RUN, with) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 437 Tm (GitHub's automatic source archive; do not treat this policy statement as) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 422 Tm (verification of the current installer payload. The release workflow is the) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 407 Tm (authoritative executable build and package specification. Historical) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 392 Tm (adapters and test artifacts are not additional production filesystem) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 377 Tm (authorities.) Tj ET
+BT /F2 13 Tf 0.02 0.45 0.50 rg 1 0 0 1 50 347 Tm (6. QUALIFICATION AND LIMITATIONS) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 323 Tm (Recorded qualification workflow) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 308 Tm (\(https://github.com/Infiltrator-Projects/Filesystem-OFS/actions/runs/45526) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 293 Tm (928256\) | Current workflows) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 278 Tm (\(https://github.com/Infiltrator-Projects/Filesystem-OFS/actions?query=bran) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 263 Tm (ch%3Amain\). A successful workflow establishes the tested scope only, not) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 248 Tm (complete original-format parity, physical-media crash safety, or) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 233 Tm (production BOOT/kernel integration. Use disposable images for destructive) Tj ET
+BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 218 Tm (qualification.) Tj ET
+endstream
+endobj
 xref
-0 32
+0 36
 0000000000 65535 f 
-0000000025 00000 n 
-0000000074 00000 n 
-0000000215 00000 n 
-0000000285 00000 n 
-0000000360 00000 n 
-0000000428 00000 n 
-0000000574 00000 n 
-0000003565 00000 n 
-0000003711 00000 n 
-0000005858 00000 n 
-0000006006 00000 n 
-0000008185 00000 n 
-0000008333 00000 n 
-0000010378 00000 n 
-0000010526 00000 n 
-0000012564 00000 n 
-0000012712 00000 n 
-0000014636 00000 n 
-0000014784 00000 n 
-0000016543 00000 n 
-0000016691 00000 n 
-0000019046 00000 n 
-0000019194 00000 n 
-0000021159 00000 n 
-0000021307 00000 n 
-0000023064 00000 n 
-0000023212 00000 n 
-0000025160 00000 n 
-0000025308 00000 n 
-0000028278 00000 n 
-0000028426 00000 n 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000219 00000 n 
+0000000289 00000 n 
+0000000364 00000 n 
+0000000432 00000 n 
+0000000578 00000 n 
+0000003569 00000 n 
+0000003715 00000 n 
+0000005862 00000 n 
+0000006010 00000 n 
+0000008189 00000 n 
+0000008337 00000 n 
+0000010382 00000 n 
+0000010530 00000 n 
+0000012568 00000 n 
+0000012716 00000 n 
+0000014640 00000 n 
+0000014788 00000 n 
+0000016547 00000 n 
+0000016695 00000 n 
+0000019050 00000 n 
+0000019198 00000 n 
+0000021163 00000 n 
+0000021311 00000 n 
+0000023068 00000 n 
+0000023216 00000 n 
+0000025164 00000 n 
+0000025312 00000 n 
+0000028282 00000 n 
+0000028430 00000 n 
+0000031277 00000 n 
+0000031425 00000 n 
+0000034699 00000 n 
+0000034847 00000 n 
 trailer
-<< /Size 32 /Root 1 0 R >>
+<< /Size 36 /Root 1 0 R >>
 startxref
-31273
+38898
 %%EOF
