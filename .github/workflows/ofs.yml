@@ -19,7 +19,13 @@ jobs:
       - name: Qualify Common V2 filesystem API and native reader
         run: make check
       - name: Build portable package and source-first native installer
-        run: make release
+        run: |
+          make release
+          bootstrap="$(find dist -maxdepth 1 -type f -name '*.run' -print -quit)"
+          test -s "$bootstrap"
+          test "$(wc -c < "$bootstrap")" -lt 8192
+          if grep -aF '__IFS_SOURCE_PAYLOAD_BELOW__' "$bootstrap"; then exit 1; fi
+          grep -F "$GITHUB_SHA" "$bootstrap"
       - name: Inspect portable package and native source installation result
         shell: bash
         run: |
@@ -84,4 +90,4 @@ jobs:
           sha256sum dist/*.deb dist/*.run
           gh release create "$tag" dist/*.deb dist/*.run \
             --target "$GITHUB_SHA" --title "Amiga Original File System ${version}" \
-            --notes "One native Common V2 OFS.so with the source-embedded native installer. No Linux filesystem-specific kernel module or separate EFI filesystem driver is included. Common V2 independent API, source and package qualification passed."
+            --notes "One native Common V2 OFS.so with the source-first native installer. No Linux filesystem-specific kernel module or separate EFI filesystem driver is included. Common V2 independent API, source and package qualification passed."
