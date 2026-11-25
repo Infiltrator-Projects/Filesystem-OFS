@@ -1,5 +1,4 @@
 %PDF-1.4
-%‚„œ”
 1 0 obj
 << /Type /Catalog /Pages 2 0 R >>
 endobj
@@ -216,7 +215,7 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 21 0 R >>
 endobj
 21 0 obj
-<< /Length 2303 >>
+<< /Length 2297 >>
 stream
 0.05 0.13 0.22 rg 0 749 595 93 re f
 0.01 0.52 0.56 rg 50 747 116 5 re f
@@ -235,8 +234,8 @@ BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 556.0 Tm (2. AmigaOS technical docum
 BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 527.0 Tm (https://wiki.amigaos.net/wiki/DCFS_and_LNFS_Low_Level_Data_Structures) Tj ET
 BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 498.0 Tm (3. AmigaOS file system capability and compatibility table) Tj ET
 BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 469.0 Tm (https://wiki.amigaos.net/wiki/UserDoc%3AAmigaOS_File_Systems) Tj ET
-BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 440.0 Tm (Implementation boundary: the installed InfiltratorOS .so, the optional Linux kernel .ko,) Tj ET
-BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 423.0 Tm (and the source-first installer are distinct products. The original filesystem design is) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 440.0 Tm (Implementation boundary: one installed Common V2 .so; no separate per-format driver.) Tj ET
+BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 423.0 Tm (The source-download installer builds that provider. The original filesystem design is) Tj ET
 BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 406.0 Tm (documented above; claims about the adapter's qualification require its own source, tests) Tj ET
 BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 389.0 Tm (and release evidence.) Tj ET
 endstream
@@ -473,43 +472,43 @@ endobj
 xref
 0 36
 0000000000 65535 f 
-0000000015 00000 n 
-0000000064 00000 n 
-0000000219 00000 n 
-0000000289 00000 n 
-0000000364 00000 n 
-0000000432 00000 n 
-0000000578 00000 n 
-0000003569 00000 n 
-0000003715 00000 n 
-0000005862 00000 n 
-0000006010 00000 n 
-0000008189 00000 n 
-0000008337 00000 n 
-0000010382 00000 n 
-0000010530 00000 n 
-0000012568 00000 n 
-0000012716 00000 n 
-0000014640 00000 n 
-0000014788 00000 n 
-0000016547 00000 n 
-0000016695 00000 n 
-0000019050 00000 n 
-0000019198 00000 n 
-0000021163 00000 n 
-0000021311 00000 n 
-0000023068 00000 n 
-0000023216 00000 n 
-0000025164 00000 n 
-0000025312 00000 n 
-0000028282 00000 n 
-0000028430 00000 n 
-0000031277 00000 n 
-0000031425 00000 n 
-0000034699 00000 n 
-0000034847 00000 n 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000213 00000 n 
+0000000283 00000 n 
+0000000358 00000 n 
+0000000426 00000 n 
+0000000572 00000 n 
+0000003563 00000 n 
+0000003709 00000 n 
+0000005856 00000 n 
+0000006004 00000 n 
+0000008183 00000 n 
+0000008331 00000 n 
+0000010376 00000 n 
+0000010524 00000 n 
+0000012562 00000 n 
+0000012710 00000 n 
+0000014634 00000 n 
+0000014782 00000 n 
+0000016541 00000 n 
+0000016689 00000 n 
+0000019038 00000 n 
+0000019186 00000 n 
+0000021151 00000 n 
+0000021299 00000 n 
+0000023056 00000 n 
+0000023204 00000 n 
+0000025152 00000 n 
+0000025300 00000 n 
+0000028270 00000 n 
+0000028418 00000 n 
+0000031265 00000 n 
+0000031413 00000 n 
+0000034687 00000 n 
+0000034835 00000 n 
 trailer
 << /Size 36 /Root 1 0 R >>
 startxref
-38898
+38886
 %%EOF
