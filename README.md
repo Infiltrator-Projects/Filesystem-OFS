@@ -1,55 +1,38 @@
-# Amiga Original File System — OFS.so
+# Filesystem-OFS
 
-OFS provides a single x86-64 shared object with a freestanding native
-reader. A Common V2 host supplies sector I/O and allocation callbacks.
+## 1. Purpose and format scope
 
-`OFS.so` exports Common V2 for filesystem operations, alongside the
-dedicated relocation and recovery interface. It handles OFS `DOS0`, international
-`DOS2`, directory-cache `DOS4`, and long-name `DOS6`. OFS data always retains
-its 24-byte data header and checksum. Amiga FFS is a separate filesystem.
+Amiga Original File System (DOS0, DOS2, DOS4 and DOS6), distinct from FFS. This repository owns the format-specific implementation of `OFS.so` for InfiltratorOS.
 
-| Surface | Implemented behavior |
-| --- | --- |
-| Geometry | 512, 1024, 2048, 4096, 8192, 16384 and 32768-byte filesystem blocks; unsigned 32-bit block keys and 64-bit volume byte offsets; explicit reserved/root geometry in V3 |
-| Files | Read, random overwrite, append, zero-filled growth, truncate, reversed header pointer tables and multiple extension blocks; 32-bit file lengths |
-| Namespace | Lookup, enumeration, create, mkdir, rename/move/replace, unlink/rmdir, file/directory hard links with promotion and native Amiga symbolic targets |
-| Metadata | Latin-1 on disk/UTF-8 at the API, DOS-specific case folding, protection bits, uid/gid, comments, DateStamps, labels and allocation space |
-| DOS4 | Cache creation, validation and updates after namespace, file-size and metadata changes |
-| DOS6 | Long names, inline/overflow comments and allocated-block counter maintenance; 106-byte writer/107-byte reader name limits |
-| Volume management | Explicit unmounted format, whole-volume ownership/bitmap verification and explicit bitmap recovery after a structurally valid scan |
-| Boot | Read-only streaming, directories, seeks, filenames and labels; firmware-compatible Common V2 profile; no runtime library imports or constructors |
-| Defragmenter | Analyse/map, metadata and data relocation, exact 10% Growth reserve, verified staging, durable journals, Stop and bound-target Recover; filesystem semantics stay in OFS.so |
+## 2. On-disk architecture and invariants
 
-V3 is serialized and owns one mount per loaded image. The host provides
-bounded partition-relative I/O, allocation, flush and optional native Amiga
-time callbacks. Its public contract is
-[`ofs_v3.h`](native/filesystems/ofs/module/ofs_v3.h). Applications use Common V2 for ordinary filesystem operations. File and user-directory hard links support
-creation, mutation through aliases, deletion and promotion. Explicit directory
-links may form cycles; traversal is bounded and whole-volume verification visits
-each original once. Removing the sole rooted name of a cyclic directory tree
-is refused before writes, preserving reachability. The volume root itself is
-not a user directory and cannot be hard-linked.
+OFS retains its 24-byte data-block header and checksum. The native geometry includes block sizes from 512 to 32768 bytes, 32-bit block keys and 64-bit volume offsets. File headers use reversed pointer tables and extension chains; directory hashes, bitmap allocation, native links and cache records must remain consistent. DOS6 supports long names and overflow comments; UTF-8 API capacities are measured in bytes, not on-disk Latin-1 characters.
 
-Build and test the portable and CPU-native modules on x86-64 Linux.
+## 3. Common V2 implementation and capabilities
 
-```sh
-make check
-make native
-make release
-```
+Common V2 declares probe, mount, stat, enumeration, read, write, create, remove, rename, check and format; the native engine also owns file growth, truncate, links, metadata and volume operations. Dedicated relocation/recovery provides Analyse/map, staged Defrag, 10% Growth reserve, stop and bound-target recovery. The freestanding read profile supports streaming and seek. Consult exact masks for each operation. The canonical entry point is `infiltrator_filesystem_api_v2`. Consumers must negotiate the actual profile and operation masks and use bounded, partition-relative host I/O. A source-level callback does not by itself establish that every format variant or host profile is qualified.
 
-The Debian package installs `/System/Filesystems/OFS.so` and
-`/System/Resources/Documentation/Filesystem-OFS.pdf`. The native RUN builds
-the same source and uses measured two-pass profile-guided optimisation.
-The installed module has no dynamic library imports. Its second exported
-entry point preserves the dedicated V2 relocation and recovery interface
-used by Defragmenter.
+## 4. Integrity, mutation, allocation and recovery
 
-The read-only media test uses an independent Amiga image producer. It
-compares files from an OFS volume against their originals through Common
-V2 on 512-byte and 4096-byte hosts, exercises checksum failures, and verifies
-that the image stays byte-for-byte unchanged. Acceptance by the rebuilt
-BOOT loader and a kernel handoff from this module in OVMF remain open.
+Directory links can form cycles, so traversal must be bounded; refuse removal of the only rooted name of a cyclic directory tree. DOS4 cache and DOS6 block-count/comment changes must accompany namespace mutation. Whole-volume structural validation precedes explicit bitmap recovery. Independent Amiga media comparison does not establish physical BOOT handoff or every crash scenario. For destructive operations, require the applicable exclusive writable host, durability contract and format-specific validation. Never silently substitute a kernel or FUSE driver or treat a rejected or unavailable operation as success. Preserve original disk-format semantics; relocation and recovery are separate from ordinary file I/O.
 
-Earlier format and interoperability work is recorded in
-[MIGRATION-PROVENANCE.md](MIGRATION-PROVENANCE.md).
+## 5. Build, installation and release
+
+The target installation is `/System/Filesystems/OFS.so` and `/System/Resources/Documentation/Filesystem-OFS.pdf`. The project release policy is a portable amd64 DEB and a CPU-native source-first RUN, with GitHub's automatic source archive; do not treat this policy statement as verification of the current installer payload. The release workflow is the authoritative executable build and package specification. Historical adapters and test artifacts are not additional production filesystem authorities.
+
+## 6. Qualification and limitations
+
+[Recorded qualification workflow](https://github.com/Infiltrator-Projects/Filesystem-OFS/actions/runs/45526928256) · [Current workflows](https://github.com/Infiltrator-Projects/Filesystem-OFS/actions?query=branch%3Amain). A successful workflow establishes the tested scope only, not complete original-format parity, physical-media crash safety, or production BOOT/kernel integration. Use disposable images for destructive qualification.
+
+## 7. Technical references and provenance
+
+- [Provider implementation](native/filesystems/ofs/module/ofs_common.c)
+- [Native design or source provenance](native/filesystems/ofs/OFS_SPECIFICATION.md)
+- [Migration and source history](MIGRATION-PROVENANCE.md)
+- [Original-format reference source](docs/OFS-manual.pages) and [PDF](docs/OFS.pdf)
+- [Project philosophy](docs/PHILOSOPHY.md)
+- [Common ABI](https://github.com/Infiltrator-Projects/Libraries)
+- [Native completion matrix](docs/OFS_DOS0_COMPLETION_MATRIX.md)
+- [Shared-object qualification](docs/SO_COMPLETION.md)
+
+The original-format reference and historical migration notes describe different evidence from the current production provider. When descriptions disagree, the current exported descriptor, implementation, executable tests and exact-revision release evidence take precedence.
