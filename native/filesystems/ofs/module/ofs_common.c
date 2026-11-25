@@ -194,7 +194,8 @@ static int mount(const IfsFsHostRuntimeV2 *h, void **v, IfsFsVolumeInfoV2 *info)
     session.handle=++session.generation;
     info->variant=space.variant;
     info->block_bytes=space.block_bytes;
-    info->max_name_bytes=space.variant==6u?106u:30u;
+    /* Latin-1 disk characters may occupy two UTF-8 bytes. */
+    info->max_name_bytes=space.variant==6u?212u:60u;
     info->total_bytes=space.total_bytes;info->free_bytes=space.free_bytes;
     *v=(void *)session.handle;
     return IFS_FS_OK;
@@ -380,7 +381,8 @@ static int volume_query(void *mounted,IfsFsVolumeInfoV2 *info) {
     if(r!=IFS_FS_OK)return r;
     info->variant=space.variant;
     info->block_bytes=space.block_bytes;
-    info->max_name_bytes=space.variant==6u?106u:30u;
+    /* Latin-1 disk characters may occupy two UTF-8 bytes. */
+    info->max_name_bytes=space.variant==6u?212u:60u;
     info->total_bytes=space.total_bytes;
     info->free_bytes=space.free_bytes;
     return IFS_FS_OK;

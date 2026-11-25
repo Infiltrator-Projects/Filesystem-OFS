@@ -86,6 +86,10 @@ int main(int argc, char **argv)
     void *volume = NULL;
     REQUIRE(core->probe(&host, &variant) == IFS_FS_OK && variant == 0);
     REQUIRE(core->mount(&host, &volume, &info) == IFS_FS_OK && volume);
+    REQUIRE(info.max_name_bytes == 60u);
+    const IfsFsVolumeOpsV2 *ops = (const void *)ifs_fs_group_v2(api, IFS_FS_GROUP_VOLUME);
+    REQUIRE(ops && ops->query && ops->query(volume,&info)==IFS_FS_OK);
+    REQUIRE(info.max_name_bytes == 60u);
     if (!strcmp(argv[4], "bad-data")) {
         uint8_t byte = 0;
         REQUIRE(core->read(volume, "/boot/vmlinuz", 0, &byte, 1) == IFS_FS_CORRUPT);
