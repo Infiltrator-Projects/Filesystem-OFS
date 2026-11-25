@@ -26,7 +26,7 @@ OfsFs ifs_ofs_active;
 static struct {
     IfsFsHostRuntimeV2 host;
     uintptr_t generation, handle;
-    int mounted, writable;
+    int mounted, writable, allocation_verified;
 } session;
 static int eligible(const IfsFsHostRuntimeV2 *host) {
     return host && ifs_fs_host_v2_valid(host) &&
@@ -190,7 +190,7 @@ static int mount(const IfsFsHostRuntimeV2 *h, void **v, IfsFsVolumeInfoV2 *info)
     space.structure_bytes=sizeof(space);
     r=ofs_space(&ifs_ofs_active,&space);
     if(r) { (void)native_unmount(); return r; }
-    session.mounted=1;session.writable=write;
+    session.mounted=1;session.writable=write;session.allocation_verified=0;
     session.handle=++session.generation;
     info->variant=space.variant;
     info->block_bytes=space.block_bytes;
@@ -283,6 +283,7 @@ static int write_file(void *v,const char *p,uint64_t at,const void *b,uint32_t n
 static int guarded_write_file(void *v,const char *p,uint64_t at,const void *b,uint32_t n)
 {
     if (!v2_enter_operation()) return IFS_FS_BUSY;
+    session.allocation_verified=0;
     return v2_leave_operation(write_file(v,p,at,b,n));
 }
 
@@ -296,6 +297,7 @@ static int create_path(void *v,const char *p,uint32_t type){
 static int guarded_create_path(void *v,const char *p,uint32_t type)
 {
     if (!v2_enter_operation()) return IFS_FS_BUSY;
+    session.allocation_verified=0;
     return v2_leave_operation(create_path(v,p,type));
 }
 
@@ -307,6 +309,7 @@ static int remove_path(void *v,const char *p) {
 static int guarded_remove_path(void *v,const char *p)
 {
     if (!v2_enter_operation()) return IFS_FS_BUSY;
+    session.allocation_verified=0;
     return v2_leave_operation(remove_path(v,p));
 }
 
@@ -318,6 +321,7 @@ static int rename_path(void *v,const char *a,const char *b){
 static int guarded_rename_path(void *v,const char *a,const char *b)
 {
     if (!v2_enter_operation()) return IFS_FS_BUSY;
+    session.allocation_verified=0;
     return v2_leave_operation(rename_path(v,a,b));
 }
 
@@ -330,6 +334,7 @@ static int resize_path(void *v,const char *p,uint64_t bytes){
 static int guarded_resize_path(void *v,const char *p,uint64_t bytes)
 {
     if (!v2_enter_operation()) return IFS_FS_BUSY;
+    session.allocation_verified=0;
     return v2_leave_operation(resize_path(v,p,bytes));
 }
 
@@ -524,6 +529,79 @@ static int guarded_map_file(void *mounted,const char *path,uint64_t first,
     if(!v2_enter_operation())return IFS_FS_BUSY;
     return v2_leave_operation(map_file(mounted,path,first,out,capacity,written));
 }
+/* Allocation is obtained from the native verified bitmap, never inferred
+ * from a file map. The exclusive writable lease or immutable read snapshot
+ * bounds the validity of the cached ownership check. All mutations revoke it.
+ * Limit each page's scan even for a completely empty multi-gigabyte volume.
+ */
+static int allocation_map(void *mounted,uint64_t first,
+                          IfsFsAllocationRangeV2 *out,uint32_t capacity,
+                          uint32_t *written)
+{
+    if(!written)return IFS_FS_INVALID;
+    *written=0u;
+    if(!live(mounted)||!out||!capacity||capacity>64u)return IFS_FS_INVALID;
+    OfsFs *f=&ifs_ofs_active;
+    const uint64_t limit=session.host.volume_bytes;
+    if(first>limit)return IFS_FS_INVALID;
+    if(f->failed||f->mutation||!f->bitmap_valid)return IFS_FS_CORRUPT;
+    if(!first||!session.allocation_verified) {
+        IfsOfsCheckV3 report={0};
+        int rc=ofs_verify(f,&report,OFS_VERIFY_ALLOCATION);
+        if(rc)return rc;
+        session.allocation_verified=1;
+    }
+    if(first==limit)return IFS_FS_END;
+    IfsFsAllocationRangeV2 page[64]={{0}};
+    uint32_t count=0u, scanned=0u;
+    uint64_t at=first;
+    while(at<limit && scanned<65536u) {
+        if(session.host.cancelled && session.host.cancelled(session.host.context))
+            return IFS_FS_BUSY;
+        const uint64_t block=at/f->block_bytes;
+        uint64_t end;
+        uint32_t state;
+        if(block<f->reserved) {
+            state=IFS_FS_SPACE_RESERVED;
+            end=(uint64_t)f->reserved*f->block_bytes;
+        } else if(block>=f->blocks) {
+            state=IFS_FS_SPACE_RESERVED;
+            end=limit;
+        } else {
+            int is_free=0;
+            int rc=ofs_bitmap_free(f,(uint32_t)block,&is_free);
+            if(rc)return rc;
+            state=is_free?IFS_FS_SPACE_FREE:IFS_FS_SPACE_ALLOCATED;
+            end=(block+1u)*f->block_bytes;
+        }
+        if(end>limit)end=limit;
+        if(count && page[count-1u].state==state) {
+            page[count-1u].length+=end-at;
+        } else {
+            if(count==capacity)break;
+            page[count++]=(IfsFsAllocationRangeV2){
+                .physical_offset=at,.length=end-at,.state=state};
+        }
+        at=end;
+        ++scanned;
+    }
+    memcpy(out,page,count*sizeof(*page));
+    *written=count;
+    return IFS_FS_OK;
+}
+static int guarded_allocation_map(void *mounted,uint64_t first,
+                          IfsFsAllocationRangeV2 *out,uint32_t capacity,
+                          uint32_t *written)
+{
+    if(written)*written=0u;
+    if(!v2_enter_operation())return IFS_FS_BUSY;
+    return v2_leave_operation(allocation_map(mounted,first,out,capacity,written));
+}
+static const IfsFsAllocationOpsV2 allocation_v2={
+    .header={IFS_FS_GROUP_ABI_V2,sizeof(IfsFsAllocationOpsV2),
+             IFS_FS_GROUP_ALLOCATION,0u,IFS_FS_ALLOCATION_MAP},
+    .map=guarded_allocation_map
+};
 static const IfsFsDefragOpsV2 map_v2={
     .header={IFS_FS_GROUP_ABI_V2,sizeof(IfsFsDefragOpsV2),
              IFS_FS_GROUP_DEFRAG,0u,IFS_FS_DEFRAG_MAP},
@@ -557,6 +635,7 @@ static const IfsFsGroupHeaderV2 *query_v2(
     if(id==IFS_FS_GROUP_CORE)return &core_v2.header;
     if(id==IFS_FS_GROUP_VOLUME)return &volume_v2.header;
     if(id==IFS_FS_GROUP_DEFRAG)return &map_v2.header;
+    if(id==IFS_FS_GROUP_ALLOCATION)return &allocation_v2.header;
     return NULL;
 }
 static const IfsFsModuleApiV2 api_v2={
@@ -564,7 +643,8 @@ static const IfsFsModuleApiV2 api_v2={
     IFS_FS_PROFILE_HOSTED|IFS_FS_PROFILE_FREESTANDING|IFS_FS_PROFILE_FIRMWARE,
     IFS_FS_GROUP_BIT(IFS_FS_GROUP_CORE)|
         IFS_FS_GROUP_BIT(IFS_FS_GROUP_VOLUME)|
-        IFS_FS_GROUP_BIT(IFS_FS_GROUP_DEFRAG),query_v2
+        IFS_FS_GROUP_BIT(IFS_FS_GROUP_DEFRAG)|
+        IFS_FS_GROUP_BIT(IFS_FS_GROUP_ALLOCATION),query_v2
 };
 __attribute__((visibility("default")))
 const IfsFsModuleApiV2 *infiltrator_filesystem_api_v2(void){

@@ -71,7 +71,8 @@ static inline int ifs_fs_format_id_equal(const char *a, const char *b)
 #define IFS_FS_GROUP_STREAMS    5u
 #define IFS_FS_GROUP_SNAPSHOTS  6u
 #define IFS_FS_GROUP_CORE       7u
-#define IFS_FS_GROUP_MAX        7u
+#define IFS_FS_GROUP_ALLOCATION 8u
+#define IFS_FS_GROUP_MAX        8u
 #define IFS_FS_GROUP_BIT(id) (UINT64_C(1) << ((id) - 1u))
 #define IFS_FS_GROUP_ALL ((UINT64_C(1) << IFS_FS_GROUP_MAX) - 1u)
 
@@ -487,6 +488,75 @@ typedef struct {
     void (*release_plan)(void *volume, void *plan);
 } IfsFsDefragOpsV2;
 
+/* Whole-volume physical allocation is independent of per-object DEFRAG.MAP.
+ * The provider classifies a mounted partition, including filesystem metadata,
+ * internal reservations and unused tail geometry. All offsets are partition-
+ * relative bytes. Never infer FREE from absent file mappings or a partial
+ * metadata scan. UNKNOWN is an explicit classification, not free space.
+ *
+ * A page begins at the supplied physical byte cursor and consists of
+ * consecutive, nonoverlapping, positive-length ranges. It may contain fewer
+ * than capacity entries. END is valid only at exactly host.volume_bytes
+ * and must return zero entries. On error, written must be zero. A consumer
+ * must validate every page, observe END, and reject any UNKNOWN range before
+ * claiming complete allocation knowledge. A cursor is valid only for the
+ * same mounted snapshot; discard it after any filesystem mutation.
+ *
+ * RESERVED denotes bytes the allocator cannot offer to ordinary objects
+ * (including outside filesystem geometry). ALLOCATED denotes known owned
+ * bytes, whether file data or metadata. FREE denotes provider-confirmed
+ * available allocator space. Neither ALLOCATED nor RESERVED is movable
+ * solely because it appears in this map.
+ */
+#define IFS_FS_ALLOCATION_MAP (UINT64_C(1) << 0)
+#define IFS_FS_ALLOCATION_ALL IFS_FS_ALLOCATION_MAP
+#define IFS_FS_SPACE_UNKNOWN   0u
+#define IFS_FS_SPACE_FREE      1u
+#define IFS_FS_SPACE_ALLOCATED 2u
+#define IFS_FS_SPACE_RESERVED  3u
+typedef struct {
+    uint64_t physical_offset, length;
+    uint32_t state, reserved;
+} IfsFsAllocationRangeV2;
+typedef struct {
+    IfsFsGroupHeaderV2 header;
+    int (*map)(void *volume, uint64_t first_byte,
+               IfsFsAllocationRangeV2 *ranges, uint32_t capacity,
+               uint32_t *written);
+} IfsFsAllocationOpsV2;
+
+/* Shared defensive validation for one provider page. The caller owns the
+ * cursor and unknown-space accumulator; neither is advanced on failure.
+ * An explicit terminal END remains mandatory even after the final range.
+ */
+static inline int ifs_fs_allocation_page_v2_valid(
+    uint64_t volume_bytes, uint64_t first, int result,
+    const IfsFsAllocationRangeV2 *ranges, uint32_t capacity, uint32_t written,
+    uint64_t *next, uint64_t *unknown_bytes)
+{
+    uint64_t at=first, unknown=0u;
+    uint32_t i;
+    if (!volume_bytes || first>volume_bytes || !next || !unknown_bytes ||
+        !capacity || !ranges || *unknown_bytes>first) return 0;
+    if (result==IFS_FS_END) {
+        if (written || first!=volume_bytes) return 0;
+        *next=first;
+        return 1;
+    }
+    if (result!=IFS_FS_OK || !written || written>capacity) return 0;
+    for (i=0u;i<written;++i) {
+        const IfsFsAllocationRangeV2 *r=&ranges[i];
+        if (r->reserved || r->state>IFS_FS_SPACE_RESERVED ||
+            r->physical_offset!=at || !r->length ||
+            r->length>volume_bytes-at) return 0;
+        if (r->state==IFS_FS_SPACE_UNKNOWN) unknown+=r->length;
+        at+=r->length;
+    }
+    *next=at;
+    *unknown_bytes+=unknown;
+    return 1;
+}
+
 /* Filesystems with named streams can export them without consumers parsing
  * NTFS ADS, macOS resource forks or format-specific stream metadata. */
 #define IFS_FS_STREAM_LIST     (UINT64_C(1) << 0)
@@ -572,6 +642,8 @@ static inline const IfsFsGroupHeaderV2 *ifs_fs_group_v2(
         capabilities=IFS_FS_SNAPSHOT_ALL; break;
     case IFS_FS_GROUP_CORE: bytes=sizeof(IfsFsCoreOpsV2);
         capabilities=IFS_FS_CORE_ALL; break;
+    case IFS_FS_GROUP_ALLOCATION: bytes=sizeof(IfsFsAllocationOpsV2);
+        capabilities=IFS_FS_ALLOCATION_ALL; break;
     default: return NULL;
     }
     g = module->query_group(id, IFS_FS_GROUP_ABI_V2, IFS_FS_GROUP_ABI_V2);
@@ -675,6 +747,10 @@ static inline int ifs_fs_group_v2_callbacks_valid(
             IFS_MATCH(IFS_FS_SNAPSHOT_DELETE,p->remove) &&
             IFS_MATCH(IFS_FS_SNAPSHOT_REVERT,p->revert);
     }
+    case IFS_FS_GROUP_ALLOCATION: {
+        const IfsFsAllocationOpsV2 *p=(const IfsFsAllocationOpsV2 *)g;
+        return IFS_MATCH(IFS_FS_ALLOCATION_MAP,p->map);
+    }
     default: return 0;
     }
 #undef IFS_MATCH
@@ -708,7 +784,8 @@ static inline int ifs_fs_api_v2_valid(
          IFS_FS_GROUP_BIT(IFS_FS_GROUP_METADATA) |
          IFS_FS_GROUP_BIT(IFS_FS_GROUP_DEFRAG) |
          IFS_FS_GROUP_BIT(IFS_FS_GROUP_STREAMS) |
-         IFS_FS_GROUP_BIT(IFS_FS_GROUP_SNAPSHOTS))) {
+         IFS_FS_GROUP_BIT(IFS_FS_GROUP_SNAPSHOTS) |
+         IFS_FS_GROUP_BIT(IFS_FS_GROUP_ALLOCATION))) {
         if (!(core->header.capabilities & IFS_FS_CORE_MOUNT))
             return 0;
     }

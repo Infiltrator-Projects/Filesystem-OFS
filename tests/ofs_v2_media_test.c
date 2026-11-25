@@ -118,6 +118,33 @@ int main(int argc, char **argv)
         REQUIRE(core->read(volume, "/boot/vmlinuz", 0, &byte, 1) == IFS_FS_CORRUPT);
     } else {
         REQUIRE(!strcmp(argv[4], "clean"));
+        const IfsFsAllocationOpsV2 *allocation=(const void *)
+            ifs_fs_group_v2(api,IFS_FS_GROUP_ALLOCATION);
+        REQUIRE(allocation && allocation->map);
+        uint64_t at=0u,unknown=0u,free_bytes=0u,reserved=0u,allocated=0u;
+        for(;;) {
+            IfsFsAllocationRangeV2 ranges[3]={{0}};
+            uint32_t count=99u;
+            uint64_t next=at;
+            int rc=allocation->map(volume,at,ranges,3u,&count);
+            REQUIRE(ifs_fs_allocation_page_v2_valid(host.volume_bytes,at,rc,
+                        ranges,3u,count,&next,&unknown));
+            if(rc==IFS_FS_END)break;
+            for(uint32_t i=0;i<count;++i) {
+                if(ranges[i].state==IFS_FS_SPACE_FREE)free_bytes+=ranges[i].length;
+                if(ranges[i].state==IFS_FS_SPACE_RESERVED)reserved+=ranges[i].length;
+                if(ranges[i].state==IFS_FS_SPACE_ALLOCATED)allocated+=ranges[i].length;
+            }
+            REQUIRE(next>at);
+            at=next;
+        }
+        REQUIRE(at==host.volume_bytes && !unknown && free_bytes==info.free_bytes);
+        REQUIRE(reserved>=2u*info.block_bytes && allocated>0u);
+        REQUIRE(free_bytes+reserved+allocated==host.volume_bytes);
+        IfsFsAllocationRangeV2 invalid={0};
+        uint32_t invalid_count=99u;
+        REQUIRE(allocation->map(volume,host.volume_bytes+1u,&invalid,1u,
+                    &invalid_count)==IFS_FS_INVALID && !invalid_count);
         char name[128];
         IfsFsEntryV2 file = {.structure_bytes = sizeof(file), .name = name, .name_capacity = sizeof(name)};
         unsigned seen = 0;
