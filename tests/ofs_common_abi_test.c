@@ -27,7 +27,7 @@ int main(int argc,char **argv) {
        !core->rename || !core->truncate ||
        !volume || !volume->query || !volume->label || !volume->format ||
        !volume->sync || !volume->check ||
-       ifs_fs_group_v2(api,IFS_FS_GROUP_DEFRAG) ||
+       !ifs_fs_group_v2(api,IFS_FS_GROUP_DEFRAG) ||
        dlsym(so,"infiltrator_filesystem_api_v1") ||
        dlsym(so,"infiltrator_filesystem_module_v1") ||
        dlsym(so,"infiltrator_filesystem_module_v2") ||
@@ -37,6 +37,9 @@ int main(int argc,char **argv) {
         fputs("OFS strict Common V2 contract rejected\n",stderr);
         dlclose(so);return 1;
     }
+    const IfsFsDefragOpsV2 *map=(const void *)ifs_fs_group_v2(api,IFS_FS_GROUP_DEFRAG);
+    if(!map || map->header.capabilities!=IFS_FS_DEFRAG_MAP || !map->map ||
+       map->plan || map->execute || map->verify || map->recover) {dlclose(so);return 1;}
     puts("OFS-STRICT-COMMON-V2-CONTRACT-PASS");
     dlclose(so);return 0;
 }

@@ -38,8 +38,8 @@ static int read_disk(void *context, uint64_t offset, void *out, uint32_t count)
 static void *allocate(void *context, size_t bytes) { (void)context; return malloc(bytes); }
 static void release(void *context, void *p) { (void)context; free(p); }
 
-static void compare_file(const IfsFsCoreOpsV2 *core, void *volume, const char *path,
-                         const char *source)
+static void compare_file(const IfsFsCoreOpsV2 *core,const IfsFsDefragOpsV2 *map,
+                         void *volume,int media_fd,const char *path,const char *source)
 {
     int fd = open(source, O_RDONLY);
     struct stat ref;
@@ -57,6 +57,27 @@ static void compare_file(const IfsFsCoreOpsV2 *core, void *volume, const char *p
         REQUIRE(memcmp(expected, actual, count) == 0);
         offset += count;
     }
+    uint64_t logical=0u,first=0u;
+    for(;;) {
+        IfsFsExtentV2 page[32]={{0}};
+        uint32_t count=0u;
+        int rc=map->map(volume,path,first,page,32u,&count);
+        if(rc==IFS_FS_END) {
+            REQUIRE(count==0u && logical==entry.size_bytes);
+            break;
+        }
+        REQUIRE(rc==IFS_FS_OK && count>0u && count<=32u);
+        for(uint32_t i=0u;i<count;++i) {
+            const IfsFsExtentV2 *e=&page[i];
+            REQUIRE(e->logical_offset==logical && e->length>0u &&
+                    e->length<=sizeof(expected) && e->length<=entry.size_bytes-logical);
+            REQUIRE(pread(fd,expected,(size_t)e->length,(off_t)logical)==(ssize_t)e->length);
+            REQUIRE(pread(media_fd,actual,(size_t)e->length,(off_t)e->physical_offset)==(ssize_t)e->length);
+            REQUIRE(memcmp(expected,actual,(size_t)e->length)==0);
+            logical+=e->length;
+        }
+        first+=count;
+    }
     REQUIRE(close(fd) == 0);
 }
 
@@ -72,6 +93,8 @@ int main(int argc, char **argv)
     const IfsFsModuleApiV2 *api = entry();
     REQUIRE(ifs_fs_api_v2_valid(api, "ofs") && (api->runtime_profiles & IFS_FS_PROFILE_FIRMWARE));
     const IfsFsCoreOpsV2 *core = (const void *)ifs_fs_group_v2(api, IFS_FS_GROUP_CORE);
+    const IfsFsDefragOpsV2 *map=(const void *)ifs_fs_group_v2(api,IFS_FS_GROUP_DEFRAG);
+    REQUIRE(map && map->map && map->header.capabilities==IFS_FS_DEFRAG_MAP);
     Disk disk = {open(argv[2], O_RDONLY), (uint32_t)strtoul(argv[3], NULL, 10)};
     struct stat media;
     REQUIRE(disk.fd >= 0 && fstat(disk.fd, &media) == 0);
@@ -114,8 +137,8 @@ int main(int argc, char **argv)
         active_volume=volume;
         unmount_during_read=core;
         observed_unmount=IFS_FS_INVALID;
-        compare_file(core, volume, "/boot/vmlinuz", argv[5]);
-        compare_file(core, volume, "/boot/initramfs", argv[6]);
+        compare_file(core,map,volume,disk.fd,"/boot/vmlinuz",argv[5]);
+        compare_file(core,map,volume,disk.fd,"/boot/initramfs",argv[6]);
         REQUIRE(!unmount_during_read && observed_unmount==IFS_FS_BUSY);
     }
     REQUIRE(core->unmount(volume) == IFS_FS_OK);

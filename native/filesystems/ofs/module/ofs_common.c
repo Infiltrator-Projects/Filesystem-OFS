@@ -371,7 +371,7 @@ static int check(void *v,uint32_t *errors){
 }
 /* Common V2 is the sole exported format-neutral contract. Its operations
  * use the authoritative OFS V3 engine and the verified V2 host lease.
- * Recovery/defrag remain unadvertised until translated to DEFRAG V2. */
+ * Relocation and recovery remain unadvertised; DEFRAG V2 exposes only native file mapping. */
 static int volume_query(void *mounted,IfsFsVolumeInfoV2 *info) {
     IfsOfsSpaceV3 space={0};
     if(!live(mounted)||!info||info->structure_bytes<sizeof(*info))
@@ -446,6 +446,89 @@ static int guarded_volume_check(void *mounted,uint32_t flags,uint64_t *errors)
     return v2_leave_operation(volume_check(mounted,flags,errors));
 }
 
+/* Native OFS file extent mapping. A physical extent identifies the payload
+ * following the 24-byte OFS data header, not an FFS-style raw data block.
+ * Reuse the checked native chain cursor; metadata mutations already
+ * invalidate these read cursors. A complete successful page is published
+ * only after validating its table pointers, headers and block checksums.
+ */
+static int map_file(void *mounted,const char *path,uint64_t first,
+                    IfsFsExtentV2 *out,uint32_t capacity,uint32_t *written)
+{
+    if(!written)return IFS_FS_INVALID;
+    *written=0u;
+    if(!live(mounted)||!path||!out||!capacity||capacity>64u)
+        return IFS_FS_INVALID;
+    OfsFs *f=&ifs_ofs_active;
+    OfsNode node;
+    int rc=ofs_path(f,path,1,&node);
+    if(rc)return rc;
+    if(node.object_type!=IFS_OFS_FILE)return IFS_FS_UNSUPPORTED;
+    if(node.protection&8u)return IFS_FS_ACCESS;
+    if(f->block_bytes<=24u)return IFS_FS_CORRUPT;
+    const uint32_t unit=f->block_bytes-24u;
+    const uint32_t total=node.bytes?((node.bytes-1u)/unit+1u):0u;
+    if(first>=total)return IFS_FS_END;
+    const uint32_t count=(uint32_t)((total-first)<capacity?total-first:capacity);
+    OfsFileCursor cursor={0};
+    cursor.owner=node.object;cursor.size=node.bytes;
+    uint32_t slot=f->read_cursor_count;
+    for(uint32_t i=0u;i<f->read_cursor_count;++i) {
+        if(f->read_cursors[i].owner==node.object &&
+           f->read_cursors[i].size==node.bytes) {
+            slot=i;
+            if(f->read_cursors[i].sequence<=first)cursor=f->read_cursors[i];
+            break;
+        }
+    }
+    IfsFsExtentV2 page[64]={{0}};
+    uint8_t *data=f->scratch[4];
+    for(uint32_t i=0u;i<count;++i) {
+        const uint32_t index=(uint32_t)first+i;
+        uint32_t key=0u;
+        rc=ofs_pointer(f,node.object,index,total,&cursor,&key);
+        if(rc)return rc;
+        if(cursor.sequence==index && cursor.sequence && cursor.next!=key)
+            return IFS_FS_CORRUPT;
+        rc=ofs_data(f,node.object,node.bytes,index,key,data);
+        if(rc)return rc;
+        int free_block=0;
+        rc=ofs_bitmap_free(f,key,&free_block);
+        if(rc)return rc;
+        if(free_block)return IFS_FS_CORRUPT;
+        const uint64_t logical=(uint64_t)index*unit;
+        const uint64_t physical=(uint64_t)key*f->block_bytes+24u;
+        const uint64_t length=node.bytes-logical<unit?node.bytes-logical:unit;
+        if(physical>f->io.volume_bytes ||
+           length>f->io.volume_bytes-physical)return IFS_FS_CORRUPT;
+        page[i].logical_offset=logical;
+        page[i].physical_offset=physical;
+        page[i].length=length;
+        cursor.sequence=index+1u;
+        cursor.block=key;
+        cursor.next=ofs_word(data,4u);
+    }
+    if(slot==f->read_cursor_count) {
+        if(slot<OFS_APPEND_CACHE_SLOTS)++f->read_cursor_count;
+        else slot=(f->read_cursor_next++)%OFS_APPEND_CACHE_SLOTS;
+    }
+    f->read_cursors[slot]=cursor;
+    memcpy(out,page,count*sizeof(*page));
+    *written=count;
+    return IFS_FS_OK;
+}
+static int guarded_map_file(void *mounted,const char *path,uint64_t first,
+                    IfsFsExtentV2 *out,uint32_t capacity,uint32_t *written)
+{
+    if(written)*written=0u;
+    if(!v2_enter_operation())return IFS_FS_BUSY;
+    return v2_leave_operation(map_file(mounted,path,first,out,capacity,written));
+}
+static const IfsFsDefragOpsV2 map_v2={
+    .header={IFS_FS_GROUP_ABI_V2,sizeof(IfsFsDefragOpsV2),
+             IFS_FS_GROUP_DEFRAG,0u,IFS_FS_DEFRAG_MAP},
+    .map=guarded_map_file
+};
 __attribute__((used,section(".ifsmeta")))
 static const char identity_v2[]="IFS-MODULE:ofs:common2";
 static const IfsFsCoreOpsV2 core_v2={
@@ -473,13 +556,15 @@ static const IfsFsGroupHeaderV2 *query_v2(
     if(low>IFS_FS_GROUP_ABI_V2||high<IFS_FS_GROUP_ABI_V2)return NULL;
     if(id==IFS_FS_GROUP_CORE)return &core_v2.header;
     if(id==IFS_FS_GROUP_VOLUME)return &volume_v2.header;
+    if(id==IFS_FS_GROUP_DEFRAG)return &map_v2.header;
     return NULL;
 }
 static const IfsFsModuleApiV2 api_v2={
     IFS_FS_COMMON_ABI_V2,sizeof(IfsFsModuleApiV2),"ofs",
     IFS_FS_PROFILE_HOSTED|IFS_FS_PROFILE_FREESTANDING|IFS_FS_PROFILE_FIRMWARE,
     IFS_FS_GROUP_BIT(IFS_FS_GROUP_CORE)|
-        IFS_FS_GROUP_BIT(IFS_FS_GROUP_VOLUME),query_v2
+        IFS_FS_GROUP_BIT(IFS_FS_GROUP_VOLUME)|
+        IFS_FS_GROUP_BIT(IFS_FS_GROUP_DEFRAG),query_v2
 };
 __attribute__((visibility("default")))
 const IfsFsModuleApiV2 *infiltrator_filesystem_api_v2(void){
