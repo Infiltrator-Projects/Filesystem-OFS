@@ -1,5 +1,15 @@
 # OFS shared-module implementation and qualification
 
+## Current production architecture
+
+Common V2 declares probe, mount, stat, enumeration, read, write, create, remove, rename, check and format; the native engine also owns file growth, truncate, links, metadata and volume operations. Dedicated relocation/recovery provides Analyse/map, staged Defrag, 10% Growth reserve, stop and bound-target recovery. The freestanding read profile supports streaming and seek. Consult exact masks for each operation. The canonical entry point is `infiltrator_filesystem_api_v2`. Consumers must negotiate the actual profile and operation masks and use bounded, partition-relative host I/O. A source-level callback does not by itself establish that every format variant or host profile is qualified.
+
+The canonical package installs one Common V2 shared object and its technical PDF. The native RUN downloads and verifies the exact source revision. No independent filesystem-specific kernel or EFI driver or FUSE substitute is distributed. See the [current provider README](../README.md) for current scope and the linked qualification evidence.
+
+## Historical source and qualification record
+
+> The following material preserves inherited design, original-format semantics, source attribution and earlier qualification evidence. Earlier implementation status, separate driver layouts, packaging instructions and ABI statements are historical, not the present release contract. No new test result is claimed by this record.
+
 This release implements the shared module, generic Boot consumer, mandatory
 Defragmenter integration and a separately built native Linux KO. Kernel SO
 loading remains a later generic bridge.
