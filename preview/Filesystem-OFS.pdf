@@ -1,10 +1,9 @@
 %PDF-1.4
-%‚„œ”
 1 0 obj
 << /Type /Catalog /Pages 2 0 R >>
 endobj
 2 0 obj
-<< /Type /Pages /Kids [6 0 R 8 0 R 10 0 R 12 0 R 14 0 R 16 0 R 18 0 R 20 0 R 22 0 R 24 0 R 26 0 R 28 0 R 30 0 R 32 0 R 34 0 R 36 0 R 38 0 R 40 0 R 42 0 R 44 0 R 46 0 R 48 0 R 50 0 R] /Count 23 >>
+<< /Type /Pages /Kids [6 0 R 8 0 R 10 0 R 12 0 R 14 0 R 16 0 R 18 0 R 20 0 R 22 0 R 24 0 R 26 0 R 28 0 R 30 0 R 32 0 R 34 0 R 36 0 R 38 0 R 40 0 R 42 0 R 44 0 R 46 0 R 48 0 R 50 0 R 52 0 R 54 0 R 56 0 R 58 0 R 60 0 R 62 0 R 64 0 R 66 0 R 68 0 R 70 0 R 72 0 R 74 0 R 76 0 R 78 0 R 80 0 R 82 0 R 84 0 R 86 0 R 88 0 R 90 0 R 92 0 R 94 0 R 96 0 R 98 0 R 100 0 R 102 0 R 104 0 R 106 0 R 108 0 R 110 0 R 112 0 R 114 0 R 116 0 R 118 0 R 120 0 R 122 0 R 124 0 R 126 0 R] /Count 61 >>
 endobj
 3 0 obj
 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
@@ -19,6 +18,1737 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 7 0 R >>
 endobj
 7 0 obj
+<< /Length 835 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (Reading this reference) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(The integrated source specification below preserves the previously published) Tj
+T* (original-format definitions and historical project conformance requirements.) Tj
+T* (Statements naming old drivers or packaging paths are historical project) Tj
+T* (policy, not an on-disk requirement or current ABI qualification. The worked) Tj
+T* (exercises are independent of any particular provider.) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 1 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 9 0 R >>
+endobj
+9 0 obj
+<< /Length 1439 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (AmigaDOS Original File System \(OFS\) - Canonical Format Specification) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(**Revision:** 1.0 \(24 October 2026\) ) Tj
+T* (**Location and ownership:** `native/filesystems/ofs/OFS_SPECIFICATION.md` ) Tj
+T* (**Purpose:** Define the OFS **on-disk format, algorithms, semantics and) Tj
+T* (compatibility requirements** independently of any current implementation.) Tj
+T* (This document is the source-level conformance target for the formatter,) Tj
+T* (Linux `ofs.ko`, Windows drivers, the UEFI `OFS_x64.efi` reader and test) Tj
+T* (fixtures. ) Tj
+T* (**Profiles:** original OFS `DOS\\0`; international OFS `DOS\\2`;) Tj
+T* (directory-cache OFS `DOS\\4`; and long-name OFS `DOS\\6` \(LNFS\). **All four) Tj
+T* (are OFS**, not FFS. LNFS uses distinct on-disk entry and root metadata) Tj
+T* (defined in [U+a7]13A. ) Tj
+T* (**Certification status:** The format is externally documented; **the project) Tj
+T* (implementation is not yet fully certified against this specification**.) Tj
+T* (Track implementation status elsewhere.) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 2 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+10 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 11 0 R >>
+endobj
+11 0 obj
+<< /Length 2370 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (1. Source authority and interpretation) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(Original format descriptions and cross-checks:) Tj
+T* () Tj
+T* (1. Laurent Cl[U+e9]vy, **The .ADF \(Amiga Disk File\) Format FAQ**, v1.14,) Tj
+T* (``4.1-4.7, 5.1-5.4, 6: https://adflib.github.io/FAQ/adf_info.html -) Tj
+T* (comprehensive independent block tables, algorithms, examples and Amiga) Tj
+T* (hard-disk layout.) Tj
+T* (2. **Amiga ROM Kernel Reference Manual: AmigaDOS**, filesystem structures) Tj
+T* (and variants:) Tj
+T* (https://developer.amigaos3.net/sites/default/files/downloads/2024-10/Amiga_R) Tj
+T* (OM_Kernel_Reference_Manual_DOS.pdf) Tj
+T* (3. **Linux AFFS documentation** \(specification/driver-limit distinction and) Tj
+T* (official DOS variants\):) Tj
+T* (https://www.kernel.org/doc/html/v6.7/filesystems/affs.html) Tj
+T* (4. Linux AFFS and ADFlib source are useful **secondary interoperability) Tj
+T* (witnesses**, not licenses to substitute FFS storage mechanics for OFS.) Tj
+T* () Tj
+T* (**[FORMAT]** below denotes original on-media structure/rule. **[VARIANT]**) Tj
+T* (denotes a supported OFS subformat. **[POLICY]** denotes additional project) Tj
+T* (safety, validation or qualification requirements, not an assertion about) Tj
+T* (historical AmigaDOS. **[OPEN]** indicates an aspect for which historical) Tj
+T* (implementations or sources differ and where independent test images are) Tj
+T* (still necessary.) Tj
+T* () Tj
+T* (**MUST** and **MUST NOT** govern a conforming implementation of the selected) Tj
+T* (profile. A reader MAY support a declared read-only subset but MUST reject) Tj
+T* (unsupported input without silently misidentifying it. A **writer** must) Tj
+T* (preserve every invariant required for the profile it creates. When code and) Tj
+T* (this contract disagree, resolve the question using original sources and) Tj
+T* (independent fixtures; never redefine the format to suit the code. An) Tj
+T* (implementation's current limitations are **not** format limits.) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 3 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+12 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 13 0 R >>
+endobj
+13 0 obj
+<< /Length 3050 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (2. Canonical OFS identifiers) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(A filesystem volume begins with the four-byte DOSType; bytes 0..2 are ASCII) Tj
+T* (`D`, `O`, `S` and byte 3 is a binary version byte, **not** the printable) Tj
+T* (character '0'.) Tj
+T* () Tj
+T* (| DOSType \(BE32\) | OFS format | Name and on-disk extension |) Tj
+T* (| --- | --- | --- |) Tj
+T* (| `0x444F5300` / `DOS\\0` | Original OFS | Original 30-byte names and OFS) Tj
+T* (data blocks |) Tj
+T* (| `0x444F5302` / `DOS\\2` | International OFS | International Latin-1) Tj
+T* (folding; classic metadata layout |) Tj
+T* (| `0x444F5304` / `DOS\\4` | Directory-cache OFS | International folding,) Tj
+T* (classic metadata, additional directory-cache blocks |) Tj
+T* (| `0x444F5306` / `DOS\\6` | Long-name OFS \(LNFS\) | International folding; new) Tj
+T* (112-byte NaC name/comment field, comment overflow blocks and root accounting) Tj
+T* (fields |) Tj
+T* () Tj
+T* (All **four** are bona fide OFS on-disk profiles. No FFS identifiers belong) Tj
+T* (in the OFS profile table; those live in) Tj
+T* ([FFS_SPECIFICATION.md]\(../ffs/FFS_SPECIFICATION.md\). A DOS-type value not) Tj
+T* (listed above must not be silently mounted as one of these four formats.) Tj
+T* () Tj
+T* (**`DOS\\4`** always uses international name handling and directory-cache) Tj
+T* (metadata. **`DOS\\6`** uses international name handling **without** a) Tj
+T* (directory cache \(LNFS and DCFS are separate alternatives, not stackable) Tj
+T* (flags\). All OFS versions retain OFS's 24-byte regular-file data-block header) Tj
+T* (and `B-24` byte payload. The on-disk name/comment and root metadata must be) Tj
+T* (decoded according to the variant; the classic 30-byte entry-name layout is) Tj
+T* (**not valid** for `DOS\\6`. Source: Olaf Barthel, [DCFS and LNFS Low Level) Tj
+T* (Data) Tj
+T* (Structures]\(https://wiki.amigaos.net/wiki/DCFS_and_LNFS_Low_Level_Data_Struc) Tj
+T* (tures\).) Tj
+T* () Tj
+T* (**[VARIANT]** muFS types are distinct later compatibility modes with) Tj
+T* (additional ownership semantics and their own DOSTypes. They should not be) Tj
+T* (accepted by applying the plain DOS0/2/4/6 profile blindly.) Tj
+T* () Tj
+T* (### Formatting profile selection - a required writer interface) Tj
+T* () Tj
+T* (**[POLICY]** The OFS formatter MUST accept an explicit **--variant) Tj
+T* (dos0|dos2|dos4|dos6** choice for new volumes, with **dos0 as the default**) Tj
+T* (when no variant is provided. This is a *format profile*, not a software) Tj
+T* (release/version string, and must be independent of block size, label, and) Tj
+T* (whether a target is a disposable image or an explicitly confirmed physical) Tj
+T* (partition.) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 4 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+14 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 15 0 R >>
+endobj
+15 0 obj
+<< /Length 2302 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (2. Canonical OFS identifiers \(continued\)) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+() Tj
+T* (- **dos0** must write DOS\\0, classic OFS 24-byte data headers and) Tj
+T* (ASCII-style name hashing.) Tj
+T* (- **dos2** must write DOS\\2, the same OFS block layout and international) Tj
+T* (Latin-1 name rules for all subsequent create/lookup/rename operations.) Tj
+T* (- **dos4** must write DOS\\4, the same OFS data format and international) Tj
+T* (names **and** an initial valid T_DIRCACHE=33 block for the root \(even if) Tj
+T* (there are zero entries\), linked through the root's directory-cache pointer) Tj
+T* (and marked allocated in the bitmap. Every later writable directory mutation) Tj
+T* (must keep the cache consistent.) Tj
+T* (- **dos6** must write DOS\\6 with **LNFS root type confirmation and) Tj
+T* (used-block counter**, the international name hash and the distinct) Tj
+T* (NaC/comment metadata shape detailed in [U+a7]13A. A new empty root still has) Tj
+T* (a 30-byte volume label and does **not** acquire a DOS4 directory-cache) Tj
+T* (block. Any subsequent writable entry creation, rename, lookup, enumeration,) Tj
+T* (unlink or comment update must use the LNFS metadata fields; a writer that) Tj
+T* (only knows the classic fields MUST decline writable DOS6 mounts.) Tj
+T* () Tj
+T* (Selecting dos4 **or dos6** must **never** be implemented by changing the) Tj
+T* (four-byte identifier alone. Creation must fail closed if required cache) Tj
+T* (metadata cannot be created and verified. A reader/verifier must discover and) Tj
+T* (validate the actual stored variant, not silently assume the formatter's) Tj
+T* (default. A tool must reject unknown variants, avoid converting existing) Tj
+T* (volumes implicitly, and preserve all physical-target confirmation, geometry) Tj
+T* (and capacity safety gates. Variant selection alone must not waive an) Tj
+T* (unqualified physical disk or boot configuration limit.) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 5 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+16 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 17 0 R >>
+endobj
+17 0 obj
+<< /Length 3272 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (3. Terminology, encoding, units and geometry) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(| Symbol | Definition |) Tj
+T* (| --- | --- |) Tj
+T* (| `B` | Logical OFS filesystem block size, in bytes |) Tj
+T* (| `W` | `B/4`, longwords per logical filesystem block |) Tj
+T* (| `N` | Total number of logical filesystem blocks, keys `0..N-1` |) Tj
+T* (| `R` | Number of reserved initial OFS blocks; ordinary floppy/default value) Tj
+T* (**2** |) Tj
+T* (| `K` | Partition-relative filesystem block key, stored as BE32 |) Tj
+T* (| `H` | Hash/data-block-pointer table capacity per header: `W-56` |) Tj
+T* (| `P` | Usable payload per OFS data block: `B-24` |) Tj
+T* (| `Q` | Bits per allocation bitmap block: `8B-32` |) Tj
+T* () Tj
+T* (**[FORMAT]** All numeric multibyte disk fields are **big-endian**. Standard) Tj
+T* (longword is four bytes and word is two bytes. A negative block secondary) Tj
+T* (type uses a signed, two's-complement 32-bit field. On-disk pointers \(keys\)) Tj
+T* (are *zero-based, partition-relative* unsigned 32-bit values, and **zero) Tj
+T* (denotes a null pointer**. The host's 512-byte logical sectors, UEFI Block) Tj
+T* (I/O LBAs, Linux pages, DMA buffers and OFS logical filesystem blocks are not) Tj
+T* (interchangeable.) Tj
+T* () Tj
+T* (**[FORMAT]** The recognized OFS family permits filesystem block sizes **512,) Tj
+T* (1024, 2048, 4096, 8192, 16384 and 32768 bytes**. In this project these seven) Tj
+T* (are the block-size **format-conformance targets**. A formatter must honor) Tj
+T* (the logical block size when writing root/hash/bitmap/tail structures,) Tj
+T* (checksums and data payloads; it must never just write a 512-byte block) Tj
+T* (padded to `B`. Determine `B` from an authoritative partition environment) Tj
+T* (where available or by independently verifying candidate geometries; the) Tj
+T* (classic `DOS` ID alone **does not encode `B`**.) Tj
+T* () Tj
+T* (`w[i]` denotes the BE32 stored at byte `4*i` from the **start** of the) Tj
+T* (current block. Expressions of the form `B-200`, `B-80` and `B-4` are **byte) Tj
+T* (offsets relative to that block's end**, and move with `B`. At `B=512`,) Tj
+T* (`H=72`, `P=488` and `Q=4064`. At `B=32768`, `H=8136`, `P=32744` and) Tj
+T* (`Q=262112`.) Tj
+T* () Tj
+T* (**[FORMAT]** `K * B` is the partition-relative byte offset of a filesystem) Tj
+T* (block. The storage adapter adds the actual partition start in checked, wide) Tj
+T* (arithmetic. Amiga RDB filesystem partition entries, GPT/MBR sectors,) Tj
+T* (FSHD/LSEG and physical device geometry are **outside** the OFS volume) Tj
+T* (proper. A plain hardfile may contain only the filesystem partition's bytes.) Tj
+T* () Tj
+T* (**[LIMIT]** A 32-bit key and 32-bit file-length field imply *arithmetic*) Tj
+T* (limits: fewer than `2^32` addressed logical blocks \(subject to reserved) Tj
+T* (keys\) and a maximal individual file length of `2^32-1` bytes. `\(2^32-1\)*B`) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 6 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+18 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 19 0 R >>
+endobj
+19 0 obj
+<< /Length 883 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (3. Terminology, encoding, units and geometry \(continued\)) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(is an addressing bound \(just below **2 TiB at B=512**, just below **128 TiB) Tj
+T* (at B=32768**\), **not** a verified filesystem capacity, firmware transfer) Tj
+T* (limit, classical device-driver guarantee or Linux boot qualification. No) Tj
+T* (universal signed 31-bit limitation follows from the on-disk key type. A) Tj
+T* (32-bit file size does **not** turn into 128 TiB just because `B` grows.) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 7 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+20 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 21 0 R >>
+endobj
+21 0 obj
+<< /Length 2460 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (4. Boot area and root placement) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(The first `R` reserved logical blocks comprise the classic boot area;) Tj
+T* (normally `R=2`. The default classic 512-byte boot area is therefore **1024) Tj
+T* (bytes**, not one generic "boot sector".) Tj
+T* () Tj
+T* (| Boot-area byte offset | Size | Meaning |) Tj
+T* (| --- | --- | --- |) Tj
+T* (| `0` | 4 | Binary DOSType identifier |) Tj
+T* (| `4` | 4 | **Bootblock** checksum, special algorithm |) Tj
+T* (| `8` | 4 | Boot/root hint used by Amiga boot code; an unbootable disk need) Tj
+T* (not rely on it |) Tj
+T* (| `12..\(boot_area_bytes-1\)` | remainder | Optional executable Amiga boot) Tj
+T* (code or unused bytes |) Tj
+T* () Tj
+T* (The **boot checksum** differs from the metadata checksum. Zero bytes 4..7,) Tj
+T* (sum all BE32 words of the configured bootblock length with one's-complement) Tj
+T* (**end-around carry**, and store one's complement of the final sum at bytes) Tj
+T* (4..7. An empty/unbootable boot area can legitimately have a DOSType and no) Tj
+T* (usable boot code; mounting OFS is separate from classic AmigaOS bootability.) Tj
+T* (Do not require an arbitrary executable bootblock or invent bootcode during) Tj
+T* (formatting.) Tj
+T* () Tj
+T* (The canonical root block key is:) Tj
+T* () Tj
+T* (`rootKey = floor\(\(R + N - 1\) / 2\)`, with `R=2` normally.) Tj
+T* () Tj
+T* (Examples: `N=1760 -> 880`, `N=2048 -> 1024`, and **`N=2049 -> 1025`**.) Tj
+T* (`floor\(N/2\)` is therefore **wrong for an odd count** with `R=2`. Compute) Tj
+T* (this using an intermediate wider than 32 bits and check all bounds.) Tj
+T* (Alternative Amiga DOS environment fields and custom reserved geometry must) Tj
+T* (be interpreted explicitly, rather than inferred from a random first-sector) Tj
+T* (number.) Tj
+T* () Tj
+T* (**[POLICY]** A strict writer puts the root at this canonical position. A) Tj
+T* (recovery reader MAY expose a bounded diagnostic search for nonconforming) Tj
+T* (misplaced root blocks; it must not silently treat such output as a) Tj
+T* (standards-conforming formatted volume.) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 8 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+22 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 23 0 R >>
+endobj
+23 0 obj
+<< /Length 2020 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (5. Common metadata, checksums and time values) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(**[FORMAT]** Root, directory, file header, file pointer extension, OFS data) Tj
+T* (block and directory-cache block contain a checksum over the **entire) Tj
+T* (`B`-byte logical block**. With the relevant checksum longword zeroed,) Tj
+T* (compute the sum of all `W` BE32 words modulo `2^32` and write `\(-sum\) mod) Tj
+T* (2^32` at the checksum offset. A valid block has a modulo-`2^32` sum of) Tj
+T* (**zero** including its checksum.) Tj
+T* () Tj
+T* (| Block | Checksum BE32 byte offset |) Tj
+T* (| --- | --- |) Tj
+T* (| Root, directory, file header, file extension, OFS file data, cache block |) Tj
+T* (`20` |) Tj
+T* (| Bitmap block | `0` |) Tj
+T* (| Boot area | `4`, **different end-around-carry algorithm** |) Tj
+T* () Tj
+T* (All metadata parsers must distinguish these two algorithms, validate the) Tj
+T* (block's identity/ownership/position, bound every pointer and reject cycles.) Tj
+T* (A numerically valid checksum **alone does not prove** a block is a correct) Tj
+T* (member of the requested directory or file. New writers should initialize all) Tj
+T* (unused fields to zero, except for explicitly defined flag/mask values.) Tj
+T* () Tj
+T* (The classic `DateStamp` is **three BE32 fields**: days since **1 January) Tj
+T* (1978**, minutes since local midnight \(normally `0..1439`\), and ticks in) Tj
+T* (**1/50 seconds** \(normally `0..2999`\). DateStamp uses no stored timezone.) Tj
+T* (The root has separate **root change**, **volume change** and **volume) Tj
+T* (creation** timestamps; these must not be accidentally collapsed into one.) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 9 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+24 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 25 0 R >>
+endobj
+25 0 obj
+<< /Length 2589 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (6. Root block: canonical byte layout) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(This table is the classic root. In **DOS6**, two reserved positions acquire) Tj
+T* (mandated values: the used-block counter at `B-44` and root DOSType at `B-16`) Tj
+T* (\([U+a7]13A.2\). All other root geometry remains OFS.) Tj
+T* () Tj
+T* (All offset expressions are relative to a single `B`-byte filesystem block.) Tj
+T* (`H = B/4 - 56`.) Tj
+T* () Tj
+T* (| Offset | Length | Field / invariant |) Tj
+T* (| --- | --- | --- |) Tj
+T* (| `0` | 4 | Primary type `T_HEADER = 2` |) Tj
+T* (| `4` | 4 | Root header key = 0 |) Tj
+T* (| `8` | 4 | Sequence = 0 |) Tj
+T* (| `12` | 4 | Hash table size = `H` |) Tj
+T* (| `16` | 4 | First data = 0 |) Tj
+T* (| `20` | 4 | Metadata checksum |) Tj
+T* (| `24..B-201` | `4H` | Array `hash[H]` of BE32 child keys; zero = empty) Tj
+T* (bucket |) Tj
+T* (| `B-200` | 4 | Bitmap validity flag; `0xFFFFFFFF` denotes valid |) Tj
+T* (| `B-196..B-97` | 100 | 25 BE32 bitmap-page keys |) Tj
+T* (| `B-96` | 4 | First bitmap extension key, or 0 |) Tj
+T* (| `B-92` | 12 | Root-change DateStamp |) Tj
+T* (| `B-80` | 1 | Volume name length, `0..30` |) Tj
+T* (| `B-79..B-50` | 30 | Volume name bytes, padded; Latin-1-compatible) Tj
+T* (single-byte naming |) Tj
+T* (| `B-49` | 1 | Reserved = 0 |) Tj
+T* (| `B-48` | 8 | Reserved = 0 |) Tj
+T* (| `B-40` | 12 | Whole-volume-change DateStamp |) Tj
+T* (| `B-28` | 12 | Volume-creation DateStamp |) Tj
+T* (| `B-16` | 4 | Reserved root hash-chain key = 0 |) Tj
+T* (| `B-12` | 4 | Reserved root parent key = 0 |) Tj
+T* (| `B-8` | 4 | First `DOS\\4` directory-cache key, or 0 |) Tj
+T* (| `B-4` | 4 | Secondary type `ST_ROOT = +1` |) Tj
+T* () Tj
+T* (For `B=512` the bitmap flag is at `0x138`, its first bitmap pointer is at) Tj
+T* (`0x13C`, bitmap extension at `0x1A0`, volume-name length at `0x1B0`, and) Tj
+T* (secondary type at `0x1FC`. For larger `B` **none of these end-relative) Tj
+T* (positions is fixed at its 512-byte offset**.) Tj
+T* () Tj
+T* (Validate root type, hash size, correct root location, checksum, legal label) Tj
+T* (length, non-overlapping bitmap/root pointers, and that each referenced) Tj
+T* (directory entry really belongs under the referenced root.) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 10 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+26 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 27 0 R >>
+endobj
+27 0 obj
+<< /Length 2878 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (7. Allocation bitmap blocks, extensions and free-space accounting) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(**[FORMAT]** Every nonreserved filesystem block from `R` to `N-1` is) Tj
+T* (represented by **one bitmap bit**. A **set** bit means **FREE**; a **clear**) Tj
+T* (bit means **ALLOCATED**. The `R` reserved initial boot blocks **do not have) Tj
+T* (allocation bits**. Do not reverse this meaning or accidentally include boot) Tj
+T* (blocks in the bitmap bit numbering.) Tj
+T* () Tj
+T* (A bitmap block has:) Tj
+T* () Tj
+T* (| Offset | Length | Meaning |) Tj
+T* (| --- | --- | --- |) Tj
+T* (| `0` | 4 | Whole-bitmap-block checksum |) Tj
+T* (| `4..B-1` | `B-4` | `W-1` BE32 bitmap words, 32 bits each |) Tj
+T* () Tj
+T* (Each bitmap block covers `Q = \(W-1\)*32 = 8B-32` volume block keys. For) Tj
+T* (nonreserved block `k`:) Tj
+T* () Tj
+T* (`relative = k - R`; `bitmapIndex = floor\(relative/Q\)`; `within = relative) Tj
+T* (mod Q`; `word = floor\(within/32\)`; `bit = within mod 32`.) Tj
+T* () Tj
+T* (Bitmap data words are big-endian, but the **lowest-numbered covered block) Tj
+T* (corresponds to bit 0 \(LSB\)** of its 32-bit word. To allocate, clear the) Tj
+T* (relevant bit; to free, set it. Root, bitmap pages, bitmap extensions,) Tj
+T* (directories, file headers, file extensions, data blocks and cache/link) Tj
+T* (records must all be marked allocated. Cross-check a block's bitmap state) Tj
+T* (with its actual use.) Tj
+T* () Tj
+T* (First 25 bitmap-page keys live in the root. Additional bitmap-page keys come) Tj
+T* (from the bitmap **extension** linked list:) Tj
+T* () Tj
+T* (| Bitmap-extension offset | Meaning |) Tj
+T* (| --- | --- |) Tj
+T* (| `0..B-5` | `W-1` BE32 bitmap-page keys |) Tj
+T* (| `B-4` | Next bitmap-extension key; 0 ends chain |) Tj
+T* () Tj
+T* (The bitmap extension is **not an ordinary metadata header**, and its words) Tj
+T* (are **not a directory hash**. The chain must terminate and must not cycle.) Tj
+T* (Number of bitmap pages needed is `ceil\(\(N-R\)/Q\)`. A conforming writer must) Tj
+T* (not lose track of partial final coverage, uninitialized tail bits,) Tj
+T* (bitmap-page ownership or extension bookkeeping. **[POLICY]** Tail bits) Tj
+T* (beyond the volume end are ignored for free-space accounting and should be) Tj
+T* (marked not-free in newly created media; compatibility readers must not treat) Tj
+T* (out-of-volume bits as allocatable, whatever their stored values.) Tj
+T* () Tj
+T* (A valid bitmap checksum means its bit contents are internally) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 11 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+28 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 29 0 R >>
+endobj
+29 0 obj
+<< /Length 885 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (7. Allocation bitmap blocks, extensions and free-space accounting \(continued) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(checksum-consistent, **not** necessarily in agreement with real allocated) Tj
+T* (metadata or data; whole-volume verification has to perform that separate) Tj
+T* (cross-check. The bitmap-valid root flag and its update protocol matter for) Tj
+T* (crash recovery; a full writer must manage it and durable writes coherently) Tj
+T* (rather than treating the flag as an aesthetic field.) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 12 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+30 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 31 0 R >>
+endobj
+31 0 obj
+<< /Length 2988 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (8. Directory header, hash tables, name rules and lookup) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(The tail positions and 30-byte name field in this section apply to) Tj
+T* (**DOS0/2/4** only. DOS6 uses the replacement nonroot NaC layout in) Tj
+T* ([U+a7]13A.) Tj
+T* () Tj
+T* (**[FORMAT]** A regular directory block is `T_HEADER=2` with secondary) Tj
+T* (`ST_USERDIR=+2`. Its head has the same 24-byte common prefix as a file) Tj
+T* (header: own key at `4`, checksum at `20`, and a table of `H` BE32) Tj
+T* (**hash-bucket** keys at `24..B-201`. **Unlike a root block**, its three BE32) Tj
+T* (fields at offsets `8`, `12` and `16` are reserved and **must all be zero**;) Tj
+T* (in particular, offset `12` is **not** the hash-table size. A verifier that) Tj
+T* (demands `H` at offset `12` in every user directory rejects valid original) Tj
+T* (AmigaDOS media. This distinction is specified by the original AmigaOS) Tj
+T* (UserDirectoryBlock structure and ADFlib's DOS0 layout. The standard tail is:) Tj
+T* () Tj
+T* (| Offset | Size | Directory tail |) Tj
+T* (| --- | --- | --- |) Tj
+T* (| `B-200` | 4 | Reserved |) Tj
+T* (| `B-196` | 2 | UID \(BE16\) |) Tj
+T* (| `B-194` | 2 | GID \(BE16\) |) Tj
+T* (| `B-192` | 4 | Protection bits |) Tj
+T* (| `B-188` | 4 | Directory file-size field unused |) Tj
+T* (| `B-184` | 1 | Comment length `0..79` |) Tj
+T* (| `B-183..B-105` | 79 | Comment bytes |) Tj
+T* (| `B-104..B-93` | 12 | Reserved |) Tj
+T* (| `B-92..B-81` | 12 | Change DateStamp |) Tj
+T* (| `B-80` | 1 | Name length `1..30` |) Tj
+T* (| `B-79..B-50` | 30 | Name bytes |) Tj
+T* (| `B-49..B-41` | 9 | Reserved |) Tj
+T* (| `B-40` | 4 | First hard-link key where supported |) Tj
+T* (| `B-36..B-17` | 20 | Reserved |) Tj
+T* (| `B-16` | 4 | **Hash chain**: next entry with same bucket |) Tj
+T* (| `B-12` | 4 | Parent directory/root key |) Tj
+T* (| `B-8` | 4 | `DOS\\4` first directory-cache key, otherwise zero |) Tj
+T* (| `B-4` | 4 | Secondary type `ST_USERDIR=2` |) Tj
+T* () Tj
+T* (The root and user directory **share the name-hash algorithm**; their **tails) Tj
+T* (differ**, notably in bitmap versus file metadata.) Tj
+T* () Tj
+T* (**[FORMAT]** Names are length-prefixed **single-byte** strings, usually) Tj
+T* (Amiga Latin-1. For DOS0/2/4, maximum **30 bytes** per entry; for DOS6 use) Tj
+T* (the NaC layout of [U+a7]13A and a 106-byte interoperable writer limit. A) Tj
+T* (name is *not* an arbitrary UTF-8 sequence. `:` and `/` are not legal literal) Tj
+T* (filename/volume-name characters; a reader must validate length before) Tj
+T* (reading or folding and not assume a NUL terminator. International OFS is) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 13 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+32 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 33 0 R >>
+endobj
+33 0 obj
+<< /Length 2287 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (8. Directory header, hash tables, name rules and lookup \(continued\)) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(still the same 30-byte structural profile, not a long-filename extension.) Tj
+T* () Tj
+T* (Directory hash:) Tj
+T* () Tj
+T* (1. Begin `h = nameLength`.) Tj
+T* (2. For each byte `c` in the name, `h = \(13*h + fold\(c\)\) & 0x7FF`.) Tj
+T* (3. Select `bucket = h mod H`.) Tj
+T* (4. The directory/root hash array contains the first child block key in that) Tj
+T* (bucket, or zero.) Tj
+T* (5. Follow the child's **hash chain** field at `B-16` until a folded-name) Tj
+T* (match is found or a null key ends the chain. Each entry must have this) Tj
+T* (directory as its parent; its own computed bucket must equal the chain) Tj
+T* (bucket. Reject cycles, out-of-range references, duplicate-folded names in) Tj
+T* (the same directory and checksum/type mismatches.) Tj
+T* () Tj
+T* (**Original OFS `DOS\\0` folding:** ASCII lowercase `a..z` to uppercase) Tj
+T* (`A..Z`. High Latin-1 bytes retain original case semantics as required by the) Tj
+T* (selected original character table.) Tj
+T* () Tj
+T* (**International `DOS\\2` and `DOS\\4` folding:** ASCII `a..z` additionally) Tj
+T* (Latin-1 lowercase `0xE0..0xFE` is mapped by subtracting `0x20` **except) Tj
+T* (`0xF7`** \(division sign\). Do not use locale-dependent C `toupper\(\)` on host) Tj
+T* (Unicode input or set `DOS\\4` to ASCII-only merely because its ID's) Tj
+T* (international bit is not set.) Tj
+T* () Tj
+T* (**[POLICY]** Directory enumeration must cap work for a damaged hash chain) Tj
+T* (without globally inventing a limit on **valid** directory size: apply) Tj
+T* (bounded traversal/visited-key cycle detection and a controlled error. A) Tj
+T* (512-entry limit is a particular EFI-reader policy, **not** an OFS filesystem) Tj
+T* (format limit. Search and readdir must agree on the same bucket) Tj
+T* (representation and hash case rules.) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 14 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+34 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 35 0 R >>
+endobj
+35 0 obj
+<< /Length 2651 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (9. Regular file header and extension blocks) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(The traditional file-header tail/name/date fields here apply to) Tj
+T* (**DOS0/2/4**. DOS6 replaces them with the NaC and long-name) Tj
+T* (timestamp/comment metadata \([U+a7]13A\); file data block sequence and) Tj
+T* (extension-pointer storage remain OFS.) Tj
+T* () Tj
+T* (A file begins with a header block `T_HEADER=2` and `ST_FILE=-3`. It is a) Tj
+T* (metadata object, not the payload itself.) Tj
+T* () Tj
+T* (| Offset | Size | Regular-file header |) Tj
+T* (| --- | --- | --- |) Tj
+T* (| `0` | 4 | `T_HEADER=2` |) Tj
+T* (| `4` | 4 | Own header key |) Tj
+T* (| `8` | 4 | `highSeq` = number of data-block pointers in this header |) Tj
+T* (| `12` | 4 | Reserved |) Tj
+T* (| `16` | 4 | **firstData** key, first OFS data block or 0 |) Tj
+T* (| `20` | 4 | Metadata checksum |) Tj
+T* (| `24..B-201` | `4H` | `H` BE32 data-block keys |) Tj
+T* (| `B-200` | 4 | Reserved |) Tj
+T* (| `B-196` | 2 | UID |) Tj
+T* (| `B-194` | 2 | GID |) Tj
+T* (| `B-192` | 4 | Protection bits |) Tj
+T* (| `B-188` | 4 | **File length in bytes**, BE32 |) Tj
+T* (| `B-184` | 1 | Comment length `0..79` |) Tj
+T* (| `B-183..B-105` | 79 | Comment bytes |) Tj
+T* (| `B-104..B-93` | 12 | Reserved |) Tj
+T* (| `B-92..B-81` | 12 | Last change DateStamp |) Tj
+T* (| `B-80` | 1 | File name length `1..30` |) Tj
+T* (| `B-79..B-50` | 30 | File name |) Tj
+T* (| `B-49..B-45` | 5 | Reserved |) Tj
+T* (| `B-44` | 4 | Real-entry pointer / reserved except supported hardlink) Tj
+T* (context |) Tj
+T* (| `B-40` | 4 | First hard-link key where supported |) Tj
+T* (| `B-36..B-17` | 20 | Reserved |) Tj
+T* (| `B-16` | 4 | Next entry in containing directory hash chain |) Tj
+T* (| `B-12` | 4 | Parent directory/root key |) Tj
+T* (| `B-8` | 4 | First file **extension** key or zero |) Tj
+T* (| `B-4` | 4 | `ST_FILE=-3` |) Tj
+T* () Tj
+T* (**[FORMAT]** The data-block key table is interpreted **in reverse order**:) Tj
+T* (the first file data block is in the **last** table entry \(`table[H-1]`\), the) Tj
+T* (second at `table[H-2]`, etc. For `B=512`, the first is `table[71]`.) Tj
+T* (`highSeq` must be in `0..H`. Do not assume `table[0]` is the first logical) Tj
+T* (data block, and do not treat spare entries as valid data.) Tj
+T* () Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 15 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+36 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 37 0 R >>
+endobj
+37 0 obj
+<< /Length 2377 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (9. Regular file header and extension blocks \(continued\)) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(When a file uses more than `H` data blocks, file-extension blocks) Tj
+T* (\(`T_LIST=16`\) chain from header byte `B-8`. Their structure is:) Tj
+T* () Tj
+T* (| Offset | Size | File pointer extension |) Tj
+T* (| --- | --- | --- |) Tj
+T* (| `0` | 4 | `T_LIST=16` |) Tj
+T* (| `4` | 4 | Own extension key |) Tj
+T* (| `8` | 4 | `highSeq`: valid data pointers in this extension |) Tj
+T* (| `12` | 4 | Reserved, written as zero |) Tj
+T* (| `16` | 4 | Reserved in the Amiga ROM Kernel Reference Manual. Some) Tj
+T* (implementations store a copy of the first data key in this table |) Tj
+T* (| `20` | 4 | Metadata checksum |) Tj
+T* (| `24..B-201` | `4H` | BE32 data block keys, **last valid table entries) Tj
+T* (first** |) Tj
+T* (| `B-200..B-17` | 184 | Unused/reserved metadata area |) Tj
+T* (| `B-16` | 4 | Reserved |) Tj
+T* (| `B-12` | 4 | Parent/owner **file-header** key |) Tj
+T* (| `B-8` | 4 | Next file extension key, 0 if final |) Tj
+T* (| `B-4` | 4 | `ST_FILE=-3` |) Tj
+T* () Tj
+T* (The [Amiga ROM Kernel Reference Manual, DOS) Tj
+T* ([U+a7]13.6.8]\(https://developer.amigaos3.net/sites/default/files/downloads/2) Tj
+T* (024-10/Amiga_ROM_Kernel_Reference_Manual_DOS.pdf\) specifies zero at byte 16.) Tj
+T* (The [earlier AmigaDOS Technical Reference Manual, Figure) Tj
+T* (1-D]\(https://www.pagetable.com/docs/amigados_tripos/amigados_manual.pdf\)) Tj
+T* (labels that word as a first-data key, and Linux AFFS fills it. InfiltratorOS) Tj
+T* (creates extensions with zero there and uses the reversed table for lookup.) Tj
+T* (When relocating an existing extension, it preserves zero or updates the) Tj
+T* (populated copy to the new first data key.) Tj
+T* () Tj
+T* (The owning file header and any extensions must agree about referenced data) Tj
+T* (block keys and file size. An empty file has a file header, length zero and) Tj
+T* (**no data blocks**; do not allocate an empty spurious data chain.) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 16 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+38 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 39 0 R >>
+endobj
+39 0 obj
+<< /Length 2527 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (10. OFS data block - the essential non-FFS layout) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(Every nonempty regular file contains a sequence of `T_DATA=8` blocks with) Tj
+T* (**exactly 24 bytes of structure** followed by at most `P=B-24` file-data) Tj
+T* (bytes.) Tj
+T* () Tj
+T* (| Byte offset | Size | Mandatory content |) Tj
+T* (| --- | --- | --- |) Tj
+T* (| `0` | 4 | `T_DATA=8` |) Tj
+T* (| `4` | 4 | Owning file-header block key |) Tj
+T* (| `8` | 4 | **1-based** data-block sequence number |) Tj
+T* (| `12` | 4 | Valid payload byte count `0..P` \(normally `P` except final) Tj
+T* (block\) |) Tj
+T* (| `16` | 4 | Next OFS data block key, 0 at end |) Tj
+T* (| `20` | 4 | Metadata/data-block checksum |) Tj
+T* (| `24..B-1` | `P` | Data payload; bytes beyond valid count are not part of) Tj
+T* (file |) Tj
+T* () Tj
+T* (For a 512-byte OFS block `P=488`. A 17,029,512-byte file requires) Tj
+T* (`ceil\(17029512/488\)` OFS data blocks, **not** `ceil\(17029512/512\)`. Every) Tj
+T* (linked block must have sequential sequence number, matching file owner,) Tj
+T* (valid payload size and checksum. The file's stored 32-bit length governs) Tj
+T* (EOF. The first block is reached via the file header's `firstData` and/or its) Tj
+T* (reversed pointer table; all file pointer arrays/extension chains should) Tj
+T* (independently agree with the data linked chain.) Tj
+T* () Tj
+T* (**[FORMAT]** OFS can be traversed by its sequential `nextData` links as well) Tj
+T* (as by file metadata/extension pointer tables. FFS does **not** have the) Tj
+T* (former. This is a material functional distinction, not an implementation) Tj
+T* (option to erase. When writing, maintain **both** OFS traversals coherently;) Tj
+T* (a reader must fail safely on cycles, out-of-volume links, wrong) Tj
+T* (owner/sequence, holes inconsistent with the selected profile or) Tj
+T* (contradictory checksums.) Tj
+T* () Tj
+T* (**[POLICY]** Invalid media must not cause unchecked unsigned) Tj
+T* (multiplication/subtraction, buffer overread, nonterminating traversal, or) Tj
+T* (speculative block reads beyond partition bounds. Per-file upper length is) Tj
+T* (still `UINT32_MAX` bytes.) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 17 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+40 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 41 0 R >>
+endobj
+41 0 obj
+<< /Length 2397 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (11. Hard links and symbolic links \(version-sensitive\)) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(**[VARIANT]** Historically link support and interoperability differed among) Tj
+T* (filesystem-handler/AmigaDOS revisions and had known compatibility issues. Do) Tj
+T* (not claim that every original DOS\\0 floppy handler can write or follow all) Tj
+T* (link types. An implementation that declares **link support** uses the) Tj
+T* (established AmigaDOS metadata records, independently tests them and handles) Tj
+T* (cycles.) Tj
+T* () Tj
+T* (Hard links use primary `T_HEADER=2`, secondary `ST_LINKFILE=-4` or) Tj
+T* (`ST_LINKDIR=+4`, and a metadata tail with name, parent, `hashChain`,) Tj
+T* (**realEntry** at `B-44` and **nextLink** at `B-40`. An original object's) Tj
+T* (link-chain head is also held at `B-40`. All link targets must be within the) Tj
+T* (appropriate owning volume. Creating/deleting one link must maintain) Tj
+T* (directory hashes and the original entry's separate link list, and must) Tj
+T* (**not** free a file's shared data while any hard link still needs it. Hard) Tj
+T* (links to directories can form traversal cycles.) Tj
+T* () Tj
+T* (Soft links use primary `T_HEADER=2`, secondary `ST_SOFTLINK=+3`, and their) Tj
+T* (symbolic pathname is a **NUL-terminated Amiga path** beginning at byte) Tj
+T* (**24** \(not a 32-bit block key\). The tail includes softlink's own metadata,) Tj
+T* (name, hash chain and parent. Amiga path syntax \(device/volume prefix) Tj
+T* (followed by `:`, repeated `/` for parent semantics\) is **not identical** to) Tj
+T* (POSIX path syntax. Translation on a Linux mount is a separate adapter) Tj
+T* (responsibility and must preserve meaningful relative/absolute semantics;) Tj
+T* (unsupported cases must fail rather than write incorrect targets. Resolve) Tj
+T* (softlinks with a bounded traversal depth.) Tj
+T* () Tj
+T* (Link support must be listed per DOS profile and validated with authentic) Tj
+T* (fixtures; do not silently treat unknown `ST_*` records as files.) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 18 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+42 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 43 0 R >>
+endobj
+43 0 obj
+<< /Length 2710 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (12. DOS\\4: directory-cache block layout and semantics) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(**[VARIANT]** `DOS\\4` is **international OFS with an additional) Tj
+T* (directory-cache layer**, not FFS. The ordinary root/user directory **hash) Tj
+T* (tables remain valid and authoritative**. Directory-cache records are) Tj
+T* (auxiliary accelerators. Each directory/root tail's `B-8` field points to the) Tj
+T* (first cache block, or 0.) Tj
+T* () Tj
+T* (| Cache-block offset | Length | Meaning |) Tj
+T* (| --- | --- | --- |) Tj
+T* (| `0` | 4 | Primary type `T_DIRCACHE=33` |) Tj
+T* (| `4` | 4 | Own cache key |) Tj
+T* (| `8` | 4 | Owning directory/root key |) Tj
+T* (| `12` | 4 | Count of variable-length cached records |) Tj
+T* (| `16` | 4 | Next cache key, 0 ends chain |) Tj
+T* (| `20` | 4 | Metadata checksum |) Tj
+T* (| `24..B-1` | `B-24` | Packed, variable-length records |) Tj
+T* () Tj
+T* (Each record begins at an even-aligned offset:) Tj
+T* () Tj
+T* (| Record-relative offset | Size | Meaning |) Tj
+T* (| --- | --- | --- |) Tj
+T* (| `0` | 4 | Referenced entry header/link key |) Tj
+T* (| `4` | 4 | File length; zero for directories/links |) Tj
+T* (| `8` | 4 | Protection flags |) Tj
+T* (| `12` | 2 | UID |) Tj
+T* (| `14` | 2 | GID |) Tj
+T* (| `16` | 2 | Date days \(short\) |) Tj
+T* (| `18` | 2 | Date minutes \(short\) |) Tj
+T* (| `20` | 2 | Date ticks \(short\) |) Tj
+T* (| `22` | 1 | Secondary entry type |) Tj
+T* (| `23` | 1 | Name length, `1..30` |) Tj
+T* (| `24` | variable | Name bytes |) Tj
+T* (| `24+nameLength` | 1 | Comment length, `0..22` |) Tj
+T* (| `25+nameLength` | variable | Short comment bytes |) Tj
+T* (| after record | 0 or 1 | Alignment padding to even byte boundary |) Tj
+T* () Tj
+T* (A directory-cache reader must validate every record's length, alignment,) Tj
+T* (ownership, checksum, cache chain and referenced entry key. **[POLICY]** A) Tj
+T* (read-only driver may ignore caches and enumerate through the authoritative) Tj
+T* (hash tables after validating that the volume is truly OFS; this avoids) Tj
+T* (trusting inconsistent caches. A writer for `DOS\\4` **must** maintain cache) Tj
+T* (records whenever it creates, removes, renames or updates directory entries,) Tj
+T* (or else decline writable mounting. Do not write `DOS\\4` as though it were) Tj
+T* (`DOS\\0` and leave stale caches.) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 19 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+44 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 45 0 R >>
+endobj
+45 0 obj
+<< /Length 1970 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (13. Names, attributes, ownership and timestamps) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(- Root labels and normal file/directory names have **length-prefixed**) Tj
+T* (single-byte encoding and **30-byte** classic maximum. The forbidden `:` and) Tj
+T* (`/` delimiters cannot appear as literal names. Validate length before) Tj
+T* (reading; unused array bytes are padding.) Tj
+T* (- Directory lookup is case-insensitive according to the selected DOS) Tj
+T* (profile. The identifier affects both **hash generation** and **name) Tj
+T* (comparison**; converting UTF-8 to Latin-1, replacement policy and display) Tj
+T* (case belong to host adapters.) Tj
+T* (- A metadata `protect` BE32 field contains Amiga permission/protection flags) Tj
+T* (\(e.g. low bits: delete, execute, write and read **prohibited** when set;) Tj
+T* (archive/script/pure and owner/group/other flags are separate\). Do not invert) Tj
+T* (Amiga's low four negative logic into POSIX mode bits or assume that POSIX) Tj
+T* (uid/gid owns the on-disk semantics. Mapping to Linux chmod/chown and EFI) Tj
+T* (FileInfo is adapter-specific and must be round-trip tested.) Tj
+T* (- File/directory comments are length-prefixed: up to **79 bytes** in the) Tj
+T* (main header. DOS\\4` cached comments are shorter and must not be mistaken for) Tj
+T* (authoritative full comments.) Tj
+T* (- Root timestamp fields distinguish creation, root change and entire-volume) Tj
+T* (change; file/directory DateStamps record changes. Never change creation time) Tj
+T* (when simply renaming a file; document consistency policy for crash/recovery.) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 20 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+46 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 47 0 R >>
+endobj
+47 0 obj
+<< /Length 3206 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (13A. DOS\\6 - canonical OFS Long Name File System \(LNFS\)) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(**[FORMAT]** LNFS is an OFS variant added by Olaf Barthel during the later) Tj
+T* (Amiga filesystem redevelopment. Its original 2001 low-level definition is) Tj
+T* (independently described in the official AmigaOS documentation: [DCFS and) Tj
+T* (LNFS Low Level Data Structures - Long Name File) Tj
+T* (System]\(https://wiki.amigaos.net/wiki/DCFS_and_LNFS_Low_Level_Data_Structure) Tj
+T* (s#Long_Name_File_System_.28LNFS.29\). It is **not** a directory-cache mode,) Tj
+T* (and it is **not** FFS. Only the metadata **changes below**; OFS data header,) Tj
+T* (data checksum, file sequence and allocation bitmap semantics remain) Tj
+T* (mandatory.) Tj
+T* () Tj
+T* (### 13A.1 Name and comment layout - file, directory and links) Tj
+T* () Tj
+T* (For **all nonroot directory entries** \(regular file header, directory) Tj
+T* (header, soft link, hard link\), the classic **separate** comment/date/name) Tj
+T* (fields are replaced. Offsets are from the end of a `B`-byte block:) Tj
+T* () Tj
+T* (| Offset | Length | Meaning in DOS6 |) Tj
+T* (| --- | --- | --- |) Tj
+T* (| `B-184` \(`w[W-46]`\) | 112 | `NaC`: name and comment, two back-to-back) Tj
+T* (**BCPL length-prefixed** byte strings |) Tj
+T* (| `B-72` \(`w[W-18]`\) | 4 | `CommentBlock`: pointer to an optional) Tj
+T* (overflow-comment block, or zero |) Tj
+T* (| `B-68..B-61` | 8 | Reserved; must be zero on new media |) Tj
+T* (| `B-60..B-49` \(`w[W-15..W-13]`\) | 12 | DateStamp \(days, minutes, ticks\):) Tj
+T* (**moved** from the classic position |) Tj
+T* (| `B-48..B-17` | 32 | Existing hard-link fields/reserved positions, same) Tj
+T* (logical meaning as applicable |) Tj
+T* (| `B-16`, `B-12`, `B-8`, `B-4` | 4 each | Hash chain, parent, file) Tj
+T* (extension/directory pointer, secondary type, same as classic |) Tj
+T* () Tj
+T* (`NaC` begins with the name length byte `n`, then `n` Latin-1 name bytes,) Tj
+T* (then a comment length byte `c`, followed by `c` comment bytes **if space) Tj
+T* (permits**. The contents may occupy no more than 112 bytes in total; overflow) Tj
+T* (comments use a separate block. International case folding and name hashing) Tj
+T* (apply to the **actual NaC name** and are unchanged by LNFS. The AmigaOS API) Tj
+T* (can carry 107 name characters; Hyperion's AmigaOS 3.1.4 format guidance) Tj
+T* (specifies a conservative **106-character interoperable writer limit**. Our) Tj
+T* (format reader should safely handle up to 107 if independently verified,) Tj
+T* (while the writer must cap at **106 bytes** until cross-implementation) Tj
+T* (qualification. Volume/root names remain **30 bytes**.) Tj
+T* () Tj
+T* (If the name and full comment cannot both fit, store the comment in a) Tj
+T* (separately allocated and checksum-valid block:) Tj
+T* () Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 21 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+48 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 49 0 R >>
+endobj
+49 0 obj
+<< /Length 2817 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (13A. DOS\\6 - canonical OFS Long Name File System \(LNFS\) \(continued\)) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(| Comment block field | Offset | Meaning |) Tj
+T* (| --- | --- | --- |) Tj
+T* (| Type | 0 | `T_COMMENT = 64` |) Tj
+T* (| OwnKey | 4 | This comment block's own key |) Tj
+T* (| HeaderKey | 8 | The directory entry header owning the comment |) Tj
+T* (| Reserved | 12..19 | Zero |) Tj
+T* (| Checksum | 20 | Whole-block metadata checksum |) Tj
+T* (| Comment | 24..103 | 80-byte BCPL comment area: length byte + up to 79) Tj
+T* (bytes |) Tj
+T* (| Reserved | 104..B-1 | Zero on new images |) Tj
+T* () Tj
+T* (The comment-block key is stored at `B-72` in the owning entry and must be) Tj
+T* (allocated in the normal OFS bitmap. This separate block is **never** a file) Tj
+T* (data block. On rename, comment replacement, deletion and recovery,) Tj
+T* (update/free it consistently. A root directory has **no LNFS NaC field**,) Tj
+T* (only the usual classic 30-byte volume label.) Tj
+T* () Tj
+T* (### 13A.2 LNFS root extensions) Tj
+T* () Tj
+T* (The DOS6 root uses the classic root layout **except** these two extra) Tj
+T* (fields:) Tj
+T* () Tj
+T* (| Offset | Length | LNFS root field |) Tj
+T* (| --- | --- | --- |) Tj
+T* (| `B-44` \(`w[W-11]`\) | 4 | `NumBlocksUsed`: count of allocated blocks) Tj
+T* (recorded in the filesystem bitmap |) Tj
+T* (| `B-16` \(`w[W-4]`\) | 4 | `FileSystemType` = BE32 `0x444F5306`; must match) Tj
+T* (the bootblock DOSType |) Tj
+T* () Tj
+T* (`NumBlocksUsed` is meaningful only when the bitmap-valid root flag says the) Tj
+T* (bitmap is valid. **Zero** is a sentinel meaning the count must be) Tj
+T* (recalculated, not necessarily that no blocks are allocated. Writes that) Tj
+T* (allocate or free blocks must keep this counter in sync with the bitmap;) Tj
+T* (validation must restore it after bitmap reconstruction. A newly formatted) Tj
+T* (empty volume must record the actual occupied **nonreserved** blocks \(root,) Tj
+T* (bitmap pages and bitmap extensions, etc.\), not a guessed zero or a) Tj
+T* (device-sector count. An absent or mismatched root `FileSystemType` on a) Tj
+T* (supposed DOS6 volume is a format error, not permission to reinterpret it as) Tj
+T* (DOS0.) Tj
+T* () Tj
+T* (### 13A.3 Invariants and conformance tests) Tj
+T* () Tj
+T* (- The boot signature is `DOS\\6`; the root echo equals `DOS\\6`; the metadata) Tj
+T* (checksum validates **including** the two nonzero LNFS root fields.) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 22 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+50 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 51 0 R >>
+endobj
+51 0 obj
+<< /Length 1790 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (13A. DOS\\6 - canonical OFS Long Name File System \(LNFS\) \(continued\)) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(- The root volume label stays at `B-80` and uses classic 30-byte semantics.) Tj
+T* (Nonroot names use **NaC**, not the old `B-80` 30-byte field.) Tj
+T* (- The international name hash is identical to DOS2; no DOS4 directory cache) Tj
+T* (is required or permitted by the LNFS mode.) Tj
+T* (- A short filename and a 79-byte comment may require a separate) Tj
+T* (`T_COMMENT=64` block; test the exact NaC boundary, overflows, allocation,) Tj
+T* (cleanup and corruption.) Tj
+T* (- Independently create and read 30-, 31-, 106-, and where supported 107-byte) Tj
+T* (names, ensure folded hashes and lookups agree, and refuse embedded) Tj
+T* (colon/slash or invalid lengths.) Tj
+T* (- Read/write/remount/rename/delete and bitmap-counter change/recovery must) Tj
+T* (be tested with genuine LNFS fixtures, not a re-labelled DOS2 image.) Tj
+T* (- Implementations without an LNFS-capable namespace reader or writer MUST) Tj
+T* (fail closed for DOS6 rather than report all names as empty or write to the) Tj
+T* (old classic offsets.) Tj
+T* () Tj
+T* (These requirements are drawn from the original low-level LNFS author) Tj
+T* (documentation, not guessed from FFS behavior. They must be independently) Tj
+T* (validated on real Amiga-created LNFS media before a product claims full) Tj
+T* (interoperability.) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 23 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+52 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 53 0 R >>
+endobj
+53 0 obj
+<< /Length 3293 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (14. Required read, write and namespace behaviour) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(A conforming implementation must preserve this sequence of semantics;) Tj
+T* (storage system calls or UI callbacks are not the format:) Tj
+T* () Tj
+T* (**Mount \(read-only\):** validate partition bounds and geometry, DOS identity,) Tj
+T* (canonical root, root checksum/type/hash size and bitmap metadata as) Tj
+T* (appropriate. A partially degraded volume can be exposed only by an explicit) Tj
+T* (recovery mode with clear diagnostics. Reject every DOSType outside the four) Tj
+T* (OFS identifiers listed in [U+a7]2, even if its metadata has common AmigaDOS) Tj
+T* (features.) Tj
+T* () Tj
+T* (**Lookup / readdir:** follow the exact hash function, variant folding and) Tj
+T* (bucket chains. Enumerate files, directories, recognized links and other) Tj
+T* (supported entries, with deterministic cycle detection. All reported entry) Tj
+T* (sizes and types must reflect metadata and not a cached guess.) Tj
+T* () Tj
+T* (**Read / seek:** calculate `ceil\(fileLength/P\)`, map each logical extent to) Tj
+T* (its OFS data blocks using the pointer table and/or linked list, verify) Tj
+T* (owner/sequence/checksums, return exactly the requested bytes up to EOF,) Tj
+T* (support unaligned cross-block ranges and large files up to the 32-bit length) Tj
+T* (boundary. A reader must not demand the file's whole contents in memory.) Tj
+T* () Tj
+T* (**Create / write / append:** allocate metadata/data keys in the bitmap,) Tj
+T* (initialize and checksum each block, update OFS `T_DATA` headers and forward) Tj
+T* (links, the reversed pointer arrays, file extensions, file-length and) Tj
+T* (timestamp fields, directory hash chain, and cache if `DOS\\4`. Handle full) Tj
+T* (volume, short write, allocation failure and overwrite without shared-block) Tj
+T* (corruption.) Tj
+T* () Tj
+T* (**Truncate / extend:** maintain data-block counts, last `data_size` and) Tj
+T* (terminal `nextData=0` correctly; free surplus keys, pointer extensions and) Tj
+T* (bitmap bits on shrink. When extending, returned bytes between old EOF and) Tj
+T* (new writes must read as zero. Do not expose old freed contents.) Tj
+T* () Tj
+T* (**Rename / move:** remove the old hash-chain membership and insert the new) Tj
+T* (one under the new parent/bucket, update entry name and parent and associated) Tj
+T* (metadata; reject duplicate case-folded names and directory cycles, adjust) Tj
+T* (`DOS\\4` caches. Commit without orphaning reachable data after failures.) Tj
+T* () Tj
+T* (**Delete / unlink / rmdir:** enforce nonempty directory and link ownership) Tj
+T* (rules, remove hash pointers, update checksums, free only blocks genuinely) Tj
+T* (owned by that object, keep hard-linked data live, update bitmaps. Historical) Tj
+T* (unlink often leaves disk block contents in place-**bitmap allocation, not) Tj
+T* (physical erasure, defines free space**.) Tj
+T* () Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 24 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+54 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 55 0 R >>
+endobj
+55 0 obj
+<< /Length 1364 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (14. Required read, write and namespace behaviour \(continued\)) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(**Flush, remount, crash recovery:** coordinate data, metadata, bitmap-valid) Tj
+T* (flag and volume timestamps to avoid advertising blocks free while still) Tj
+T* (referenced. OFS has **no generic journal**: do not claim atomic multi-block) Tj
+T* (transactions or full power-loss recovery without demonstrated mechanism.) Tj
+T* (Recovery must detect and report contradictory bitmap references, invalid) Tj
+T* (checksums and unreachable/orphaned blocks.) Tj
+T* () Tj
+T* (**[POLICY]** Linux execution or OFS-root boot is an adapter qualification,) Tj
+T* (**not a structural format field**. The driver must correctly expose ELF) Tj
+T* (bytes through Linux's page cache, faults and mmap before removing execution) Tj
+T* (restrictions. UEFI must read the same OFS files through its own ABI. Neither) Tj
+T* (a successful format nor compiling `ofs.ko` proves the complete boot path.) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 25 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+56 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 57 0 R >>
+endobj
+57 0 obj
+<< /Length 2046 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (15. Format-level errors, limits and interoperability) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(**Reject or report at least:** incorrect DOSType, unsupported geometry,) Tj
+T* (truncated boot area, impossible root key, invalid block type or secondary) Tj
+T* (type, checksum mismatch, invalid name/comment length, wrong hash bucket,) Tj
+T* (broken parent/self pointers, repeated/cyclic keys, duplicated block) Tj
+T* (allocation, bitmap extension cycles, out-of-bounds bitmap tail, inconsistent) Tj
+T* (two representations of OFS file data, undersized final block, cache record) Tj
+T* (overrun, and arithmetic overflow.) Tj
+T* () Tj
+T* (A valid reader **may** support less than the complete format, but MUST) Tj
+T* (disclose the exact subset: DOS variants, 512..32768-byte geometries, link) Tj
+T* (capabilities, write permission, cache support, root execution and address) Tj
+T* (bounds. A successful parser test using its own generator is only a) Tj
+T* (**self-consistency** test. For format conformance, compare at least one) Tj
+T* (independent historical-compatible creator/parser at each geometry it) Tj
+T* (supports and retain known-good / known-bad golden files.) Tj
+T* () Tj
+T* (**Performance is not a format requirement:** prefetch, batched I/O, BIO,) Tj
+T* (DMA, page cache, EFI retries and read progress UI belong to adapters. Never) Tj
+T* (weaken checksum, bounds, cycle or allocation invariants to gain speed. A) Tj
+T* (kernel block size constrained by `PAGE_SIZE` is a **driver** limitation, not) Tj
+T* (permission to delete documented OFS format sizes. A 512-entry directory cap) Tj
+T* (is an EFI **safety policy**, not a universal OFS directory limit.) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 26 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+58 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 59 0 R >>
+endobj
+59 0 obj
+<< /Length 3108 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (16. Acceptance tests for implementations claiming conformance) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(Each newly supported profile/geometry must pass the following) Tj
+T* (**independent** tests.) Tj
+T* () Tj
+T* (| Area | Golden and adversarial cases |) Tj
+T* (| --- | --- |) Tj
+T* (| Header/geometry | All seven `B` sizes; even/odd `N`; `R`-aware root) Tj
+T* (placement; authoritative offsets and BE endianness |) Tj
+T* (| Bootblock | Format selector, nonbootable boot area, boot checksum) Tj
+T* (end-around carry, distinct metadata checksum |) Tj
+T* (| Root | Root type/subtype/hash, all three timestamps, volume label bounds,) Tj
+T* (bitmap pointers/extensions |) Tj
+T* (| Hash/name | Empty/collision chains, mixed ASCII, international Latin-1) Tj
+T* (including `0xE4/0xC4` and `0xF7`, duplicate-folded names, name limits |) Tj
+T* (| Allocator | Reserved keys, root/bitmap/extensions in-use, free/used bit) Tj
+T* (direction, cross-bitmap allocation, tail bits, full disk, corrupted bitmap) Tj
+T* (and recovery |) Tj
+T* (| Files | Empty, 1 byte, `P-1`, `P`, `P+1`, `H*P` and `\(H+1\)*P`; check) Tj
+T* (reversed pointers and OFS `nextData` chain independently |) Tj
+T* (| Data integrity | Every data header owner/sequence/size/checksum; large) Tj
+T* (kernel/initramfs-sized files; random seek, read-after-write, remount |) Tj
+T* (| Metadata/namespace | Create, mkdir, collisions, rename across parents,) Tj
+T* (unlink, truncate, symlink/hardlink when claimed, valid protection and) Tj
+T* (timestamps |) Tj
+T* (| DOS variants | `DOS\\0`, `DOS\\2`, `DOS\\4` and `DOS\\6` \(NaC, comment blocks) Tj
+T* (and root accounting\); reject any identifiers not listed in [U+a7]2 |) Tj
+T* (| Large addressing | Boundary around `2^31` and `UINT32_MAX` on sparse) Tj
+T* (disposable media, without signed or byte-offset overflow; reject impossible) Tj
+T* (volume length |) Tj
+T* (| Errors/recovery | Invalid checksums, swapped BE fields, cycles, torn) Tj
+T* (metadata, simulated I/O failure and corruption on writable media |) Tj
+T* (| Independent implementations | Test real externally generated) Tj
+T* (Amiga-compatible images; preserve fixture provenance and hashes; independent) Tj
+T* (reader **and** writer checks where supported |) Tj
+T* (| Platform qualification | Linux mount/read/write/mmap/exec; UEFI) Tj
+T* (mount/lookup/read, DMA alignment and >4 GiB partition-relative offsets;) Tj
+T* (physical media last |) Tj
+T* () Tj
+T* (**No physical SD, NVMe, ESP or UEFI NVRAM modification is implied or) Tj
+T* (authorized by this specification.** Destructive partition formatting stays) Tj
+T* (separately guarded until formatter, Linux and EFI reader have passed the) Tj
+T* (identical qualified geometry. Preserve user recovery paths.) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 27 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+60 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 61 0 R >>
+endobj
+61 0 obj
+<< /Length 3174 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (17. Scope boundary, review discipline and tracked implementation gaps) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(This Markdown is the **canonical OFS target contract**. The existing) Tj
+T* (`DESIGN.md` defines source ownership and layering; `core/ofs_disk_layout.h`) Tj
+T* (and `core/ofs_primitives.*` implement format primitives;) Tj
+T* (`tools/ofs-image/main.c` is the formatter; `linux/` and `efi/` contain) Tj
+T* (adapters. **They are not normative replacements for the independently) Tj
+T* (sourced filesystem format.**) Tj
+T* () Tj
+T* (All changes to code or this document must cite the affected numbered) Tj
+T* (section, state which of `DOS\\0/2/4/6` and `B` values it implements, and add) Tj
+T* (a failing-before/passing-after golden test. Do not copy FFS behavior merely) Tj
+T* (because Linux's upstream `affs` source handles both. Track remaining) Tj
+T* (unsigned-capacity, large-block, root-boot and independent Amiga) Tj
+T* (qualification in [issue) Tj
+T* (#27]\(https://github.com/Infiltrator-Projects/Filesystems/issues/27\) and [the) Tj
+T* (separate implementation compliance) Tj
+T* (matrix]\(../../../docs/OFS_SPECIFICATION_COMPLIANCE.md\).) Tj
+T* () Tj
+T* (**Known intentional boundary:** This OFS profile does not pretend to) Tj
+T* (canonically specify muFS-specific owner semantics, alternative recovery) Tj
+T* (formats, third-party partition management or EFI/GRUB boot files. Those) Tj
+T* (require their own documented extension profiles. The OFS on-disk format is) Tj
+T* (not an EFI driver interface, Linux VFS ABI or bootloader API.) Tj
+T* () Tj
+T* (---) Tj
+T* () Tj
+T* (### External source index by section) Tj
+T* () Tj
+T* (- [ADFlib FAQ `4.1-4.2]\(https://adflib.github.io/FAQ/adf_info.html\): boot) Tj
+T* (area, root placement, offsets, hashes and block checksums.) Tj
+T* (- [ADFlib FAQ `4.3]\(https://adflib.github.io/FAQ/adf_info.html\): bitmap bit) Tj
+T* (polarity, extension chain and geometry.) Tj
+T* (- [ADFlib FAQ `4.4-4.6]\(https://adflib.github.io/FAQ/adf_info.html\): files,) Tj
+T* (reversed pointers, OFS data blocks, directories and links.) Tj
+T* (- [ADFlib FAQ `4.7, `5.3-5.4]\(https://adflib.github.io/FAQ/adf_info.html\):) Tj
+T* (directory caches, cache record shape and international case folding.) Tj
+T* (- [ADFlib FAQ `6]\(https://adflib.github.io/FAQ/adf_info.html\): RDB partition) Tj
+T* (separation and logical pointer relativity.) Tj
+T* (- [Linux AFFS) Tj
+T* (documentation]\(https://www.kernel.org/doc/html/v6.7/filesystems/affs.html\):) Tj
+T* (historical filesystem identities and driver limitations.) Tj
+T* (- [AmigaDOS technical) Tj
+T* (reference]\(https://developer.amigaos3.net/sites/default/files/downloads/2024) Tj
+T* (-10/Amiga_ROM_Kernel_Reference_Manual_DOS.pdf\): original AmigaDOS) Tj
+T* (interpretation and later variant caveats.) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 28 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+62 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 63 0 R >>
+endobj
+63 0 obj
+<< /Length 752 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (17. Scope boundary, review discipline and tracked implementation gaps \(conti) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+() Tj
+T* (- [Olaf Barthel, official DCFS/LNFS structure) Tj
+T* (specification]\(https://wiki.amigaos.net/wiki/DCFS_and_LNFS_Low_Level_Data_St) Tj
+T* (ructures\): authentic DOS6 NaC fields, comment blocks, root used-block count) Tj
+T* (and type echo.) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 29 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+64 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 65 0 R >>
+endobj
+65 0 obj
+<< /Length 3532 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (Historical format evolution, compatibility and provider boundaries) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(### Origins and release chronology) Tj
+T* () Tj
+T* (Commodore International's original AmigaDOS disk filesystem shipped in 1985) Tj
+T* (with AmigaOS 1.0; the designation OFS \(Old or Original File System\) was) Tj
+T* (applied retrospectively. It was designed around floppy disks. FFS \(Fast File) Tj
+T* (System, also called AFFS in Linux\) was introduced with AmigaOS 1.3 in 1988,) Tj
+T* (handler v34. FFS removes the 24-byte per-data-block OFS header, permitting) Tj
+T* (direct transfer of whole payload blocks and increasing capacity and) Tj
+T* (sequential throughput on hard disks. OFS retains type, owner, sequence,) Tj
+T* (length, next-block and checksum fields; FFS raw payload blocks do not. This) Tj
+T* (affects salvage as well as performance.) Tj
+T* () Tj
+T* (AmigaOS 1.0-1.2: original DOS0. AmigaOS 1.3 \(1988, v34\): DOS1 and) Tj
+T* (compatibility with DOS0. AmigaOS 2.0 \(1990, v37; international profiles) Tj
+T* (documented for 2.04\): DOS2/DOS3, ROM-integrated FFS. AmigaOS 3.0 \(1992,) Tj
+T* (v39\): DOS4/DOS5. AmigaOS 3.1 \(1993, v40/v40.1\): last Commodore FFS) Tj
+T* (generation. Later third-party v44 TD64 patches and licensed v45 NSD handler) Tj
+T* (releases \(AmigaOS 3.5/3.9, Haage & Partner\) extended device addressing.) Tj
+T* () Tj
+T* (In the early 2000s, Olaf Barthel's FFS2 evolved the handler for MorphOS) Tj
+T* (\(v46\) and AmigaOS 4 \(v50\), including DOS6/DOS7 long-name modes. These are) Tj
+T* (OFS and FFS format variants, not a new unrelated on-disk filesystem.) Tj
+T* (Hyperion's AmigaOS 3.1.4 \(September 2018\) shipped v46 with multiple) Tj
+T* (large-device interfaces; 3.1.4.1 \(July 2019\) updated the disk components.) Tj
+T* (AmigaOS 3.2 \(May 2021\) shipped the v47 generation with further refinements.) Tj
+T* (Version numbers are handler lineage, not the fourth DOSType byte; versions) Tj
+T* (from distinct branches are not a single monotonically ordered release train.) Tj
+T* () Tj
+T* (### DOSTypes and namespace compatibility) Tj
+T* () Tj
+T* (DOSType is the binary sequence 44 4F 53 xx, not ASCII 'DOS0'. DOS0: original) Tj
+T* (OFS; DOS1: original FFS; DOS2: OFS International; DOS3: FFS International;) Tj
+T* (DOS4: OFS Directory Cache; DOS5: FFS Directory Cache; DOS6: OFS Long Name) Tj
+T* (File System \(LNFS\); DOS7: FFS LNFS. Even types own OFS header-bearing) Tj
+T* (payload; odd types own FFS raw payload. DOS2/3 use international Latin-1) Tj
+T* (case folding; DOS4/5 inherit it and add DCFS; DOS6/7 inherit international) Tj
+T* (folding but do not use directory cache. Classic names are limited to 30) Tj
+T* (on-disk bytes; some sources count 31 including length/terminator. LNFS has a) Tj
+T* (107-character API envelope; Hyperion recommends a 106-character) Tj
+T* (interoperable writer limit. Volume labels remain 30 bytes. The 112-byte NaC) Tj
+T* (field stores length-prefixed name and comment; overflow comments use type-64) Tj
+T* (blocks. International case folding is not Unicode folding.) Tj
+T* () Tj
+T* (International mode changes equivalence/hashing for accented Latin-1 letters,) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 30 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+66 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 67 0 R >>
+endobj
+67 0 obj
+<< /Length 3546 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (Historical format evolution, compatibility and provider boundaries \(continue) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(not the raw character encoding; pre-international handlers could already) Tj
+T* (store high-byte characters but did not consistently fold them. DOS2/3 are) Tj
+T* (not backward-compatible with purely original handlers. DOS4/5 need) Tj
+T* (directory-cache-capable handlers, and DOS6/7 cannot be mounted by older) Tj
+T* (handlers that lack LNFS layout knowledge. Historical compatibility refers to) Tj
+T* (the handler, ROM, and boot path, not just software version. A later handler) Tj
+T* (can read earlier supported types, but the reverse is not guaranteed. DOS0) Tj
+T* (remained common on commercial floppy games and magazine disks for pre-2.x) Tj
+T* (compatibility; trackloaders may bypass the filesystem entirely.) Tj
+T* () Tj
+T* (### Boot, RDB and device integration) Tj
+T* () Tj
+T* (Hard disks can carry a Rigid Disk Block \(RDB\) with partition records \(PART\),) Tj
+T* (filesystem headers \(FSHD\) and load segments \(LSEG\). The partition) Tj
+T* (environment supplies DOSType, block geometry and boot priority; a suitable) Tj
+T* (controller/driver can load a filesystem handler from the RDB before mounting) Tj
+T* (it. Kickstart 1.3 added autoboot support for hard disks and reset-resident) Tj
+T* (RAD: RAM disks. Workbench 1.3 supplied the disk-based FFS handler for RDB) Tj
+T* (installation. Kickstart 1.2 could boot 1.3 from floppy but lacked native FFS) Tj
+T* (hard-disk autoboot. Kickstart 2.x incorporated FFS in ROM; RDB handler) Tj
+T* (loading remained available for replacements and third-party formats.) Tj
+T* () Tj
+T* (Unpartitioned trackdisk floppies have no RDB and rely on a ROM-supported) Tj
+T* (DOSType for normal boot. FFS-formatted floppies generally require Kickstart) Tj
+T* (2.0 for native boot; pre-2.x access could be arranged through installed) Tj
+T* (handlers or unsupported mount workarounds. Directory-cache variants require) Tj
+T* (the AmigaOS 3.0-era handler. DOS types can also be selected via) Tj
+T* (mountlists/DOSDrivers. Application compatibility normally follows AmigaDOS) Tj
+T* (calls; raw trackloaders are outside filesystem semantics.) Tj
+T* () Tj
+T* (The project's Common V2 host delivers a bounded, partition-relative volume.) Tj
+T* (RDB partition selection and executable Amiga handler loading are outside) Tj
+T* (that filesystem ABI; a historical bootable disk is not proof of) Tj
+T* (InfiltratorOS BOOT compatibility. GPT/MBR, RDB and floppy/hardfile geometry) Tj
+T* (must not be conflated. Never execute an untrusted handler from media. Native) Tj
+T* (host read/write offsets are checked wide byte offsets.) Tj
+T* () Tj
+T* (### Allocation, validation and repair history) Tj
+T* () Tj
+T* (OFS and FFS use one or more bitmap blocks, with extension blocks for larger) Tj
+T* (volumes; the root carries a bitmap-valid flag. Historical descriptions of a) Tj
+T* (single-sector bitmap apply only to small media, not the general format.) Tj
+T* (Before mutation the handler marks allocation state invalid; after consistent) Tj
+T* (writes it updates the bitmap and marks it valid. Interruption may leave a) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 31 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+68 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 69 0 R >>
+endobj
+69 0 obj
+<< /Length 3503 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (Historical format evolution, compatibility and provider boundaries \(continue) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(dirty bitmap, so validation walks reachable directory/header/extension/data) Tj
+T* (ownership and reconstructs allocation. This is not an atomic journal and) Tj
+T* (cannot guarantee that only the most recently modified data is lost.) Tj
+T* () Tj
+T* (Historic disk-validator operation can make volumes read-only while) Tj
+T* (validation runs; scans and access slowdowns grew severe on larger disks and) Tj
+T* (could last hours. If the validator fails, recovery may require a salvage) Tj
+T* (tool or copying recoverable files to another volume. Earlier boot disks) Tj
+T* (supplied a disk-resident validator; malware such as the historically named) Tj
+T* (Saddam Hussein virus exploited replaceable validator code. ROM integration) Tj
+T* (in Kickstart 2.x reduced that replacement vector. These historical details) Tj
+T* (are context, not a guarantee against all malware.) Tj
+T* () Tj
+T* (Commodore supplied DiskDoctor in earlier releases and later removed it from) Tj
+T* (the standard disks; DiskSalv was a prominent third-party repair, undelete) Tj
+T* (and quick-format recovery utility. Defragmentation and conversion require) Tj
+T* (exclusive ownership or a locked volume; normal access is restricted while a) Tj
+T* (maintenance tool relocates blocks. Tools with legacy device interfaces can) Tj
+T* (misaddress storage beyond their safe boundary and cause damage. Do not) Tj
+T* (equate a successful bitmap rebuild with file undelete, unformat, or repair) Tj
+T* (of contradictory metadata.) Tj
+T* () Tj
+T* (### Addressing limits and large media) Tj
+T* () Tj
+T* (Classic trackdisk CMD_READ/CMD_WRITE use 32-bit byte offsets, creating a 4) Tj
+T* (GiB \(2^32 bytes\) device-address boundary. Some old handlers, tools and) Tj
+T* (signed arithmetic imposed a 2 GiB boundary; traditional AmigaDOS APIs also) Tj
+T* (exposed a roughly 2 GiB signed file-size limit. The historically reported) Tj
+T* (127 GB partition ceiling depended on handler, DOS library, geometry and) Tj
+T* (tooling, and is not a universal property of every DOS type. Old code may) Tj
+T* (wrap byte addresses and overwrite earlier storage rather than fail. Never) Tj
+T* (treat a legacy 4 GB figure as the canonical on-disk volume limit.) Tj
+T* () Tj
+T* (TrackDisk64 \(TD64\) third-party extensions used 64-bit device offsets, often) Tj
+T* (with v44 handler patches and Phase5/controller packages. New Style Device) Tj
+T* (\(NSD\) provided a distinct 64-bit command convention in the v45 licensed) Tj
+T* (AmigaOS 3.5/3.9 FFS line. The schemes were not automatically) Tj
+T* (interchangeable; a driver, filesystem and repair tool must agree on the) Tj
+T* (interface or have a suitable translation layer. Hyperion v46 supports TD64,) Tj
+T* (NSD and classic commands \(and direct SCSI where appropriate\); large-media) Tj
+T* (operation still requires a compatible controller and correct RDB geometry.) Tj
+T* (Later handlers can support partitions beyond 2 GiB and media beyond 4 GiB;) Tj
+T* (do not infer that every old utility can.) Tj
+T* () Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 32 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+70 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 71 0 R >>
+endobj
+71 0 obj
+<< /Length 3498 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (Historical format evolution, compatibility and provider boundaries \(continue) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(On disk, unsigned 32-bit block keys and 32-bit file lengths are separate) Tj
+T* (from host byte offsets. For B=512, 32-bit block addressing is just below 2) Tj
+T* (TiB; for B=32768 it is just below 128 TiB. These are arithmetic bounds, not) Tj
+T* (historical or tested volume limits. A UINT32_MAX byte-length field is not a) Tj
+T* (promise that a classic AmigaDOS application supports a 4 GiB file. Modern) Tj
+T* (providers must use overflow-checked partition-relative arithmetic, test) Tj
+T* (large offsets and distinguish format limits from provider and device limits.) Tj
+T* () Tj
+T* (### Directory caching, later formats and ecosystem) Tj
+T* () Tj
+T* (DCFS stores auxiliary directory-list records in addition to authoritative) Tj
+T* (hashed directory entries. It reduces scattered metadata reads and can speed) Tj
+T* (directory enumeration, not ordinary file payload reading. Create, delete,) Tj
+T* (rename and metadata updates must also update cache records, adding writes) Tj
+T* (and consistency obligations. Olaf Barthel's documented limitations include) Tj
+T* (lack of consolidation/garbage collection for partly filled cache blocks:) Tj
+T* (partially used pages may persist and waste space. Floppy directories may) Tj
+T* (benefit from lower seek cost but the cache also consumes scarce floppy) Tj
+T* (space; larger hard disks can see net degradation from cache maintenance. Do) Tj
+T* (not infer all implementations exhibit identical performance.) Tj
+T* () Tj
+T* (LNFS substitutes long-name/comment metadata and a root used-block) Tj
+T* (counter/type echo, not DCFS. It retains bitmap validation and does not add) Tj
+T* (transactional crash rollback. FFS2 does not remove the underlying validation) Tj
+T* (requirement. Both original formats have Amiga protection flags, timestamps) Tj
+T* (and file comments \(filenotes\); neither provides transparent compression or) Tj
+T* (encryption as an original format feature. AmigaOS, MorphOS and AmigaOS 4) Tj
+T* (have supported FFS; SFS and PFS emerged as alternatives in the mid-1990s,) Tj
+T* (with PFS3 and SFS2 having distinct on-media semantics. SFS has been used as) Tj
+T* (a default filesystem in AROS distributions; defaults can vary by) Tj
+T* (distribution/version.) Tj
+T* () Tj
+T* (Linux's AFFS driver is an independent implementation, not an authority for) Tj
+T* (our exported capabilities. Its supported DOSTypes and read/write limitations) Tj
+T* (vary by version; historical descriptions claiming universal DOS0-5) Tj
+T* (formatting or writable DCFS overstate what a kernel driver guarantees.) Tj
+T* (Formatting is normally a separate user-space tool. The Amiga xfs freeware) Tj
+T* (utility could access older OFS/FFS among other formats, but predates LNFS) Tj
+T* (and did not provide general formatting. ADFlib, amitools and independent) Tj
+T* (Amiga media are valuable interoperability references; third-party) Tj
+T* (compatibility must be demonstrated rather than assumed.) Tj
+T* () Tj
+T* (### Sources and interpretation) Tj
+T* () Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 33 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+72 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 73 0 R >>
+endobj
+73 0 obj
+<< /Length 3247 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (Historical format evolution, compatibility and provider boundaries \(continue) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(Historical comparison: Amiga Fast File System article \(user-supplied) Tj
+T* (2026-11-25\), https://en.wikipedia.org/wiki/Amiga_Fast_File_System . The) Tj
+T* (article is a secondary source; its unsourced characteristics and broad) Tj
+T* (compatibility statements are not normative. Consult original manuals and) Tj
+T* (handler-version documentation for device-specific details.) Tj
+T* () Tj
+T* (Original format: AmigaDOS ROM Kernel Reference Manual \(DOS\), ADFlib) Tj
+T* (disk-format FAQ https://adflib.github.io/FAQ/adf_info.html ; Olaf Barthel,) Tj
+T* (DCFS and LNFS Low Level Data Structures) Tj
+T* (https://wiki.amigaos.net/wiki/DCFS_and_LNFS_Low_Level_Data_Structures ;) Tj
+T* (Linux AFFS documentation) Tj
+T* (https://www.kernel.org/doc/html/v6.7/filesystems/affs.html .) Tj
+T* () Tj
+T* (Hyperion large-media FAQ) Tj
+T* (https://www.hyperion-entertainment.com/index.php/frequently-asked-questions/) Tj
+T* (55-amigaos-314/202-can-i-use-partitions-beyond-the-4gb-boundary ; Hyperion) Tj
+T* (3.1.4.1 release notice) Tj
+T* (https://www.hyperion-entertainment.com/index.php/news/1-latest-news/280-upda) Tj
+T* (te-to-amigaos-314-released ; AmigaOS 3.2 product documentation) Tj
+T* (https://www.hyperion-entertainment.com/index.php/where-to-buy/direct-downloa) Tj
+T* (ds/327-amigaos-32 . Historical chronology:) Tj
+T* (https://www.gregdonner.org/workbench/ ; Thomas Rapp, FAQ about the 4GB) Tj
+T* (problem, https://thomas-rapp.hier-im-netz.de/4gb.html .) Tj
+T* () Tj
+T* (These references describe the historical formats and Amiga handler) Tj
+T* (ecosystem, not certification of our provider. The current exported Common V2) Tj
+T* (operation masks, implementation and exact-revision tests are authoritative) Tj
+T* (for InfiltratorOS. The project's canonical filesystem implementations remain) Tj
+T* (independent.) Tj
+T* () Tj
+T* (### OFS provider capability boundary and acceptance) Tj
+T* () Tj
+T* (Current Common V2 source in native/filesystems/ofs/module/ofs_common.c) Tj
+T* (accepts formatter selectors DOS0, DOS2, DOS4 and DOS6; the core descriptor) Tj
+T* (declares probe, mount, stat, enumeration, read, write, create, remove,) Tj
+T* (rename and truncate, with volume query, label, sync, check and format.) Tj
+T* (Native OFS retains B-24 payload, checksummed data records and) Tj
+T* (format-specific directory/cache/LNFS semantics. Only exported operation) Tj
+T* (groups and masks are authoritative; a private native function or older) Tj
+T* (adapter is not an extra public capability.) Tj
+T* () Tj
+T* (The detailed OFS_SPECIFICATION.md and qualification matrices define exact) Tj
+T* (structures, bounds and independent tests. Historical claims in old Linux/EFI) Tj
+T* (adapter records are not the current production deployment contract. A) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 34 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+74 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 75 0 R >>
+endobj
+75 0 obj
+<< /Length 914 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (Historical format evolution, compatibility and provider boundaries \(continue) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(documented 107-byte LNFS reader fixture does not imply a 107-byte) Tj
+T* (interoperable writer; the writer limit is 106. Actual physical-media) Tj
+T* (durability, every failure sequence and every original handler combination) Tj
+T* (require separate qualification. A successful compilation does not prove) Tj
+T* (runtime or BOOT integration. Use only the Common V2 provider as the) Tj
+T* (filesystem authority.) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 35 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+76 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 77 0 R >>
+endobj
+77 0 obj
+<< /Length 1267 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (Worked OFS file and extension mapping) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(For a 512-byte filesystem block, H=72 header data pointers and P=488 payload) Tj
+T* (bytes. A 40000-byte file requires ceil\(40000/488\)=82 data blocks: 72) Tj
+T* (referenced in the header and ten in one extension block. Data pointer j in) Tj
+T* (either table is at B-204-4*j \(j starts at zero\); select header or extension) Tj
+T* (by quotient and remainder of logical payload block / H. Logical byte 35000) Tj
+T* (belongs to logical data block 71, offset 352, so read from byte 376 of the) Tj
+T* (referenced OFS block after its 24-byte header. Compare the header's reversed) Tj
+T* (pointer table with each data block's owner, sequence, payload size and next) Tj
+T* (pointer. The final data block holds 472 bytes. Validate the full-block) Tj
+T* (metadata checksum; do not treat an FFS raw block as OFS.) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 36 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+78 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 79 0 R >>
+endobj
+79 0 obj
+<< /Length 1223 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (Directory collision and allocation exercise) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(For a conventional 1760-block floppy, B=512 and reserved count 2, root is) Tj
+T* (block 880 and one bitmap covers the remaining 1758 blocks. The bitmap has) Tj
+T* (4064 usable bits after its checksum. Resolve two names hashing to one bucket) Tj
+T* (by traversing their hash chain, comparing native folded bytes and confirming) Tj
+T* (parent ownership. Locate data blocks through their own pointers, not the) Tj
+T* (directory chain. Reserve allocation and verify checksums before publishing a) Tj
+T* (new file. For DOS4 maintain cache coherence, for DOS6 maintain LNFS) Tj
+T* (name/comment and used-block accounting; those are separate formats.) Tj
+T* (Fault-inject each update boundary and compare against independently created) Tj
+T* (AmigaOS fixtures.) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 37 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+80 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 81 0 R >>
+endobj
+81 0 obj
+<< /Length 635 >>
+stream
+0.05 0.13 0.22 rg 0 749 595 93 re f
+0.01 0.52 0.56 rg 50 747 116 5 re f
+1 1 1 rg BT /F2 11 Tf 50 807 Td (INFILTRATOR / FILESYSTEM ENGINEERING REFERENCE) Tj ET
+BT /F2 21 Tf 50 775 Td (OFS - technical reference) Tj ET
+0.05 0.13 0.22 rg BT /F2 12 Tf 50 715 Td (Historical illustrated manual) Tj ET
+BT /F3 9 Tf 14 TL 50 685 Td
+(The earlier illustrated reference follows for provenance. The source) Tj
+T* (specification and worked exercises precede it; original external sources) Tj
+T* (remain authoritative.) Tj
+ET
+0.05 0.13 0.22 rg BT /F1 9 Tf 50 42 Td (Engineering chapter 38 | Original format and historical conformance guidance) Tj ET
+endstream
+endobj
+82 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 83 0 R >>
+endobj
+83 0 obj
 << /Length 2940 >>
 stream
 0.05 0.13 0.22 rg 0 749 595 93 re f
@@ -57,10 +1787,10 @@ BT /F1 10.5 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 184.0 Tm (5. Design trade-offs and h
 BT /F1 10.5 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 159.0 Tm (6. InfiltratorOS interpretation) Tj ET
 endstream
 endobj
-8 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 9 0 R >>
+84 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 85 0 R >>
 endobj
-9 0 obj
+85 0 obj
 << /Length 2096 >>
 stream
 0.05 0.13 0.22 rg 0 749 595 93 re f
@@ -84,10 +1814,10 @@ BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 512.0 Tm (historical format decision
 BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 495.0 Tm (every Amiga disk.) Tj ET
 endstream
 endobj
-10 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 11 0 R >>
+86 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 87 0 R >>
 endobj
-11 0 obj
+87 0 obj
 << /Length 2127 >>
 stream
 0.05 0.13 0.22 rg 0 749 595 93 re f
@@ -111,10 +1841,10 @@ BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 512.0 Tm (equal to the number of all
 BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 495.0 Tm (headers consume space.) Tj ET
 endstream
 endobj
-12 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 13 0 R >>
+88 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 89 0 R >>
 endobj
-13 0 obj
+89 0 obj
 << /Length 1993 >>
 stream
 0.05 0.13 0.22 rg 0 749 595 93 re f
@@ -137,10 +1867,10 @@ BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 529.0 Tm (must map those semantics w
 BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 512.0 Tm (provide. Special care is needed when links form cycles.) Tj ET
 endstream
 endobj
-14 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 15 0 R >>
+90 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 91 0 R >>
 endobj
-15 0 obj
+91 0 obj
 << /Length 1986 >>
 stream
 0.05 0.13 0.22 rg 0 749 595 93 re f
@@ -163,10 +1893,10 @@ BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 529.0 Tm (metadata changes can leave
 BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 512.0 Tm (inventing a missing parent risks permanent damage.) Tj ET
 endstream
 endobj
-16 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 17 0 R >>
+92 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 93 0 R >>
 endobj
-17 0 obj
+93 0 obj
 << /Length 1872 >>
 stream
 0.05 0.13 0.22 rg 0 749 595 93 re f
@@ -188,10 +1918,10 @@ BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 546.0 Tm (Rigid assumptions about 51
 BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 529.0 Tm (by the format.) Tj ET
 endstream
 endobj
-18 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 19 0 R >>
+94 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 95 0 R >>
 endobj
-19 0 obj
+95 0 obj
 << /Length 1707 >>
 stream
 0.05 0.13 0.22 rg 0 749 595 93 re f
@@ -212,10 +1942,10 @@ BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 563.0 Tm (checksums, name rules, has
 BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 546.0 Tm (with Amiga Fast File System or use FFS file payload assumptions.) Tj ET
 endstream
 endobj
-20 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 21 0 R >>
+96 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 97 0 R >>
 endobj
-21 0 obj
+97 0 obj
 << /Length 2297 >>
 stream
 0.05 0.13 0.22 rg 0 749 595 93 re f
@@ -241,10 +1971,10 @@ BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 406.0 Tm (documented above; claims a
 BT /F1 10.2 Tf 0.09 0.16 0.24 rg 1 0 0 1 51 389.0 Tm (and release evidence.) Tj ET
 endstream
 endobj
-22 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 23 0 R >>
+98 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 99 0 R >>
 endobj
-23 0 obj
+99 0 obj
 << /Length 1913 >>
 stream
 0.05 0.13 0.22 rg 0 749 595 93 re f
@@ -268,10 +1998,10 @@ BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 420.0 Tm (7. Bitmap blocks: per-block 
 BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 390.0 Tm (8. Bitmap-valid protocol: distinguishes clean allocation bookkeeping.) Tj ET
 endstream
 endobj
-24 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 25 0 R >>
+100 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 101 0 R >>
 endobj
-25 0 obj
+101 0 obj
 << /Length 1705 >>
 stream
 0.05 0.13 0.22 rg 0 749 595 93 re f
@@ -293,10 +2023,10 @@ BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 480.0 Tm (changes to the original on-d
 BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 462.0 Tm (assuming current software support defines historic media.) Tj ET
 endstream
 endobj
-26 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 27 0 R >>
+102 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 103 0 R >>
 endobj
-27 0 obj
+103 0 obj
 << /Length 1896 >>
 stream
 0.05 0.13 0.22 rg 0 749 595 93 re f
@@ -320,10 +2050,10 @@ BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 432.0 Tm (report conflicting evidence 
 BT /F1 10 Tf 0.08 0.16 0.24 rg 1 0 0 1 57 414.0 Tm (state.) Tj ET
 endstream
 endobj
-28 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 29 0 R >>
+104 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 105 0 R >>
 endobj
-29 0 obj
+105 0 obj
 << /Length 2918 >>
 stream
 0.05 0.13 0.22 rg 0 749 595 93 re f
@@ -354,10 +2084,10 @@ BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 344 Tm (8. Verify bitmap references an
 BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 327.5 Tm (set bit cannot prove that a block belongs to the claimed file.) Tj ET
 endstream
 endobj
-30 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 31 0 R >>
+106 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 107 0 R >>
 endobj
-31 0 obj
+107 0 obj
 << /Length 2795 >>
 stream
 0.05 0.13 0.22 rg 0 749 595 93 re f
@@ -387,10 +2117,10 @@ BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 360.5 Tm (8. The original AmigaDOS for
 BT /F1 10 Tf 0.09 0.16 0.24 rg 1 0 0 1 55 344 Tm (support must be verified independently by tests.) Tj ET
 endstream
 endobj
-32 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 33 0 R >>
+108 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 109 0 R >>
 endobj
-33 0 obj
+109 0 obj
 << /Length 3222 >>
 stream
 0.05 0.13 0.22 rg 0 749 595 93 re f
@@ -425,10 +2155,10 @@ BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 338 Tm (partition-relative host I/O.
 BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 323 Tm (establish that every format variant or host profile is qualified.) Tj ET
 endstream
 endobj
-34 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 35 0 R >>
+110 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 111 0 R >>
 endobj
-35 0 obj
+111 0 obj
 << /Length 3999 >>
 stream
 0.05 0.13 0.22 rg 0 749 595 93 re f
@@ -470,10 +2200,10 @@ BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 233 Tm (production BOOT/kernel integ
 BT /F1 10.2 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 218 Tm (qualification.) Tj ET
 endstream
 endobj
-36 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 37 0 R >>
+112 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 113 0 R >>
 endobj
-37 0 obj
+113 0 obj
 << /Length 3558 >>
 stream
 0.05 0.13 0.22 rg 0 749 595 93 re f
@@ -509,10 +2239,10 @@ BT /F1 10 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 332 Tm (lineage, not the fourth DOSTyp
 BT /F1 10 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 318 Tm (single monotonically ordered release train.) Tj ET
 endstream
 endobj
-38 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 39 0 R >>
+114 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 115 0 R >>
 endobj
-39 0 obj
+115 0 obj
 << /Length 3440 >>
 stream
 0.05 0.13 0.22 rg 0 749 595 93 re f
@@ -547,10 +2277,10 @@ BT /F1 10 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 358 Tm (commercial floppy games and ma
 BT /F1 10 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 344 Tm (trackloaders may bypass the filesystem entirely.) Tj ET
 endstream
 endobj
-40 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 41 0 R >>
+116 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 117 0 R >>
 endobj
-41 0 obj
+117 0 obj
 << /Length 3421 >>
 stream
 0.05 0.13 0.22 rg 0 749 595 93 re f
@@ -585,10 +2315,10 @@ BT /F1 10 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 346 Tm (Never execute an untrusted han
 BT /F1 10 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 332 Tm (are checked wide byte offsets.) Tj ET
 endstream
 endobj
-42 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 43 0 R >>
+118 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 119 0 R >>
 endobj
-43 0 obj
+119 0 obj
 << /Length 3663 >>
 stream
 0.05 0.13 0.22 rg 0 749 595 93 re f
@@ -625,10 +2355,10 @@ BT /F1 10 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 318 Tm (bitmap rebuild with file undel
 BT /F1 10 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 304 Tm (metadata.) Tj ET
 endstream
 endobj
-44 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 45 0 R >>
+120 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 121 0 R >>
 endobj
-45 0 obj
+121 0 obj
 << /Length 3816 >>
 stream
 0.05 0.13 0.22 rg 0 749 595 93 re f
@@ -666,10 +2396,10 @@ BT /F1 10 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 304 Tm (overflow-checked partition-rel
 BT /F1 10 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 290 Tm (distinguish format limits from provider and device limits.) Tj ET
 endstream
 endobj
-46 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 47 0 R >>
+122 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 123 0 R >>
 endobj
-47 0 obj
+123 0 obj
 << /Length 4233 >>
 stream
 0.05 0.13 0.22 rg 0 749 595 93 re f
@@ -710,10 +2440,10 @@ BT /F1 10 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 262 Tm (interoperability references; t
 BT /F1 10 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 248 Tm (rather than assumed.) Tj ET
 endstream
 endobj
-48 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 49 0 R >>
+124 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 125 0 R >>
 endobj
-49 0 obj
+125 0 obj
 << /Length 3587 >>
 stream
 0.05 0.13 0.22 rg 0 749 595 93 re f
@@ -751,10 +2481,10 @@ BT /F1 10 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 292 Tm (InfiltratorOS. The project's c
 BT /F1 10 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 278 Tm (independent.) Tj ET
 endstream
 endobj
-50 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 51 0 R >>
+126 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 127 0 R >>
 endobj
-51 0 obj
+127 0 obj
 << /Length 2581 >>
 stream
 0.05 0.13 0.22 rg 0 749 595 93 re f
@@ -783,61 +2513,137 @@ BT /F1 10 Tf 0.07 0.16 0.23 rg 1 0 0 1 50 442 Tm (Common V2 provider as the file
 endstream
 endobj
 xref
-0 52
+0 128
 0000000000 65535 f 
-0000000015 00000 n 
-0000000064 00000 n 
-0000000275 00000 n 
-0000000345 00000 n 
-0000000420 00000 n 
-0000000488 00000 n 
-0000000634 00000 n 
-0000003625 00000 n 
-0000003771 00000 n 
-0000005918 00000 n 
-0000006066 00000 n 
-0000008245 00000 n 
-0000008393 00000 n 
-0000010438 00000 n 
-0000010586 00000 n 
-0000012624 00000 n 
-0000012772 00000 n 
-0000014696 00000 n 
-0000014844 00000 n 
-0000016603 00000 n 
-0000016751 00000 n 
-0000019100 00000 n 
-0000019248 00000 n 
-0000021213 00000 n 
-0000021361 00000 n 
-0000023118 00000 n 
-0000023266 00000 n 
-0000025214 00000 n 
-0000025362 00000 n 
-0000028332 00000 n 
-0000028480 00000 n 
-0000031327 00000 n 
-0000031475 00000 n 
-0000034749 00000 n 
-0000034897 00000 n 
-0000038948 00000 n 
-0000039096 00000 n 
-0000042706 00000 n 
-0000042854 00000 n 
-0000046346 00000 n 
-0000046494 00000 n 
-0000049967 00000 n 
-0000050115 00000 n 
-0000053830 00000 n 
-0000053978 00000 n 
-0000057846 00000 n 
-0000057994 00000 n 
-0000062279 00000 n 
-0000062427 00000 n 
-0000066066 00000 n 
-0000066214 00000 n 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000549 00000 n 
+0000000619 00000 n 
+0000000694 00000 n 
+0000000762 00000 n 
+0000000908 00000 n 
+0000001793 00000 n 
+0000001939 00000 n 
+0000003429 00000 n 
+0000003577 00000 n 
+0000005999 00000 n 
+0000006147 00000 n 
+0000009249 00000 n 
+0000009397 00000 n 
+0000011751 00000 n 
+0000011899 00000 n 
+0000015223 00000 n 
+0000015371 00000 n 
+0000016305 00000 n 
+0000016453 00000 n 
+0000018965 00000 n 
+0000019113 00000 n 
+0000021185 00000 n 
+0000021333 00000 n 
+0000023974 00000 n 
+0000024122 00000 n 
+0000027052 00000 n 
+0000027200 00000 n 
+0000028136 00000 n 
+0000028284 00000 n 
+0000031324 00000 n 
+0000031472 00000 n 
+0000033811 00000 n 
+0000033959 00000 n 
+0000036662 00000 n 
+0000036810 00000 n 
+0000039239 00000 n 
+0000039387 00000 n 
+0000041966 00000 n 
+0000042114 00000 n 
+0000044563 00000 n 
+0000044711 00000 n 
+0000047473 00000 n 
+0000047621 00000 n 
+0000049643 00000 n 
+0000049791 00000 n 
+0000053049 00000 n 
+0000053197 00000 n 
+0000056066 00000 n 
+0000056214 00000 n 
+0000058056 00000 n 
+0000058204 00000 n 
+0000061549 00000 n 
+0000061697 00000 n 
+0000063113 00000 n 
+0000063261 00000 n 
+0000065359 00000 n 
+0000065507 00000 n 
+0000068667 00000 n 
+0000068815 00000 n 
+0000072041 00000 n 
+0000072189 00000 n 
+0000072992 00000 n 
+0000073140 00000 n 
+0000076724 00000 n 
+0000076872 00000 n 
+0000080470 00000 n 
+0000080618 00000 n 
+0000084173 00000 n 
+0000084321 00000 n 
+0000087871 00000 n 
+0000088019 00000 n 
+0000091318 00000 n 
+0000091466 00000 n 
+0000092431 00000 n 
+0000092579 00000 n 
+0000093898 00000 n 
+0000094046 00000 n 
+0000095321 00000 n 
+0000095469 00000 n 
+0000096155 00000 n 
+0000096303 00000 n 
+0000099295 00000 n 
+0000099443 00000 n 
+0000101591 00000 n 
+0000101739 00000 n 
+0000103918 00000 n 
+0000104066 00000 n 
+0000106111 00000 n 
+0000106259 00000 n 
+0000108297 00000 n 
+0000108445 00000 n 
+0000110369 00000 n 
+0000110517 00000 n 
+0000112276 00000 n 
+0000112424 00000 n 
+0000114773 00000 n 
+0000114921 00000 n 
+0000116886 00000 n 
+0000117036 00000 n 
+0000118794 00000 n 
+0000118944 00000 n 
+0000120893 00000 n 
+0000121043 00000 n 
+0000124014 00000 n 
+0000124164 00000 n 
+0000127012 00000 n 
+0000127162 00000 n 
+0000130437 00000 n 
+0000130587 00000 n 
+0000134639 00000 n 
+0000134789 00000 n 
+0000138400 00000 n 
+0000138550 00000 n 
+0000142043 00000 n 
+0000142193 00000 n 
+0000145667 00000 n 
+0000145817 00000 n 
+0000149533 00000 n 
+0000149683 00000 n 
+0000153552 00000 n 
+0000153702 00000 n 
+0000157988 00000 n 
+0000158138 00000 n 
+0000161778 00000 n 
+0000161928 00000 n 
 trailer
-<< /Size 52 /Root 1 0 R >>
+<< /Size 128 /Root 1 0 R >>
 startxref
-68847
+164562
 %%EOF

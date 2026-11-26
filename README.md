@@ -29,7 +29,7 @@ The target installation is `/System/Filesystems/OFS.so` and `/System/Resources/D
 - [Provider implementation](native/filesystems/ofs/module/ofs_common.c)
 - [Native design or source provenance](native/filesystems/ofs/OFS_SPECIFICATION.md)
 - [Migration and source history](MIGRATION-PROVENANCE.md)
-- [Plain-text PDF drawing source (not Apple Pages)](docs/OFS-manual.pages) and [PDF](docs/OFS.pdf)
+- [Plain-text PDF drawing source (not Apple Pages)](docs/OFS.pdfstreams) and [PDF](docs/OFS.pdf)
 - [Project philosophy](docs/PHILOSOPHY.md)
 - [Common ABI](https://github.com/Infiltrator-Projects/Libraries)
 - [Native completion matrix](docs/OFS_DOS0_COMPLETION_MATRIX.md)
@@ -38,3 +38,5 @@ The target installation is `/System/Filesystems/OFS.so` and `/System/Resources/D
 The original-format reference and historical migration notes describe different evidence from the current production provider. When descriptions disagree, the current exported descriptor, implementation, executable tests and exact-revision release evidence take precedence.
 
 The canonical specification and installed manual include the historical release chronology, DOS0-DOS7 distinctions, RDB/Kickstart boot history, validation and repair tools, TD64/NSD and large-media boundaries, directory-cache limitations, LNFS and independent source references. Historical handler support is not a claim of current provider parity.
+
+The [engineering reference](docs/OFS-TECHNICAL-REFERENCE.md) incorporates the detailed format specification and worked exercises. The previous illustrated manual is preserved in the PDF.
