@@ -38,8 +38,8 @@ int main(int argc,char **argv) {
         dlclose(so);return 1;
     }
     const IfsFsDefragOpsV2 *map=(const void *)ifs_fs_group_v2(api,IFS_FS_GROUP_DEFRAG);
-    if(!map || map->header.capabilities!=IFS_FS_DEFRAG_MAP || !map->map ||
-       map->plan || map->execute || map->verify || map->recover) {dlclose(so);return 1;}
+    if(!map || map->header.capabilities!=IFS_FS_DEFRAG_ALL || !map->map ||
+       !map->plan || !map->execute || !map->verify || !map->recover || !map->release_plan) {dlclose(so);return 1;}
     puts("OFS-STRICT-COMMON-V2-CONTRACT-PASS");
     dlclose(so);return 0;
 }

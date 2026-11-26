@@ -38,6 +38,8 @@ test: $(OUT)/OFS.so $(OUT)/ofs-module-test $(OUT)/ofs-reader-test $(OUT)/ofs-cor
 	$(OUT)/ofs-module-test 4096
 	$(CC) $(CFLAGS) -Inative/include tests/ofs_common_abi_test.c -ldl -o $(OUT)/ofs-common-abi-test
 	$(OUT)/ofs-common-abi-test $(OUT)/OFS.so
+	$(CC) $(CFLAGS) -Inative/include tests/ofs_v2_relocation_test.c -ldl -o $(OUT)/ofs-v2-relocation-test
+	$(OUT)/ofs-v2-relocation-test $(OUT)/OFS.so
 	$(OUT)/ofs-reader-test
 	$(OUT)/ofs-core-test
 	$(OUT)/ofs-primitives-test

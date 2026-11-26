@@ -94,7 +94,7 @@ int main(int argc, char **argv)
     REQUIRE(ifs_fs_api_v2_valid(api, "ofs") && (api->runtime_profiles & IFS_FS_PROFILE_FIRMWARE));
     const IfsFsCoreOpsV2 *core = (const void *)ifs_fs_group_v2(api, IFS_FS_GROUP_CORE);
     const IfsFsDefragOpsV2 *map=(const void *)ifs_fs_group_v2(api,IFS_FS_GROUP_DEFRAG);
-    REQUIRE(map && map->map && map->header.capabilities==IFS_FS_DEFRAG_MAP);
+    REQUIRE(map && map->map && map->header.capabilities==IFS_FS_DEFRAG_ALL);
     Disk disk = {open(argv[2], O_RDONLY), (uint32_t)strtoul(argv[3], NULL, 10)};
     struct stat media;
     REQUIRE(disk.fd >= 0 && fstat(disk.fd, &media) == 0);
