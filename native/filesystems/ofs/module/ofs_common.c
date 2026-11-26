@@ -882,7 +882,7 @@ static int relocation_write_check(OfsFs *f,uint32_t block,const uint8_t *raw)
     uint8_t copy[512];
     if(f->io.read_at(f->io.context,(uint64_t)block*512u,copy,512u)!=0)
         return IFS_FS_IO_ERROR;
-    return memcmp(copy,raw,512u)?IFS_FS_IO_ERROR:IFS_FS_OK;
+    return ofs_equal(copy,raw,512u)?IFS_FS_OK:IFS_FS_IO_ERROR;
 }
 static void relocation_table(OfsFs *f,const OfsRelocationEntry *e,
                               uint8_t *table,uint32_t page)
