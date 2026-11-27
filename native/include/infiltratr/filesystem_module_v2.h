@@ -72,7 +72,8 @@ static inline int ifs_fs_format_id_equal(const char *a, const char *b)
 #define IFS_FS_GROUP_SNAPSHOTS  6u
 #define IFS_FS_GROUP_CORE       7u
 #define IFS_FS_GROUP_ALLOCATION 8u
-#define IFS_FS_GROUP_MAX        8u
+#define IFS_FS_GROUP_FORMAT_PROFILE 9u
+#define IFS_FS_GROUP_MAX        9u
 #define IFS_FS_GROUP_BIT(id) (UINT64_C(1) << ((id) - 1u))
 #define IFS_FS_GROUP_ALL ((UINT64_C(1) << IFS_FS_GROUP_MAX) - 1u)
 
@@ -464,6 +465,51 @@ typedef struct {
                   const char *label, uint32_t flags);
 } IfsFsVolumeOpsV2;
 
+/* Read-only format defaults and native layout constraints. A consumer may
+ * use these to choose disposable geometry and generic allocation workloads;
+ * it must independently verify the actual probe, mounted geometry, file
+ * payloads and allocation maps. This group performs no storage I/O and
+ * grants no authority to format a device. Zero maximum/block means no
+ * declared upper bound/exact block size, respectively. All sizes are bytes.
+ * The recommended geometry is a supported disposable volume, not a promise
+ * that arbitrary user data or every operation fits on that volume.
+ */
+#define IFS_FS_FORMAT_PROFILE_DEFAULT (UINT64_C(1) << 0)
+#define IFS_FS_FORMAT_PROFILE_ALL IFS_FS_FORMAT_PROFILE_DEFAULT
+#define IFS_FS_FORMAT_ACCEPTS_LABEL  (UINT32_C(1) << 0)
+#define IFS_FS_FORMAT_REQUIRE_CHECK  (UINT32_C(1) << 1)
+#define IFS_FS_FORMAT_PROFILE_FLAGS  ((UINT32_C(1) << 2) - 1u)
+#define IFS_FS_LAYOUT_NO_NAMESPACE      0u
+#define IFS_FS_LAYOUT_MULTI_EXTENT      1u
+#define IFS_FS_LAYOUT_CONTIGUOUS_FILE   2u
+#define IFS_FS_LAYOUT_BLOCKED_GROWTH    3u
+typedef struct {
+    uint32_t structure_bytes, flags;
+    uint32_t format_variant, probe_variant;
+    uint32_t exact_block_bytes, layout;
+    uint64_t minimum_bytes, recommended_bytes, maximum_bytes;
+    uint64_t reserved;
+} IfsFsFormatProfileV2;
+typedef struct {
+    IfsFsGroupHeaderV2 header;
+    int (*get_default)(IfsFsFormatProfileV2 *profile);
+} IfsFsFormatProfileOpsV2;
+
+static inline int ifs_fs_format_profile_v2_valid(const IfsFsFormatProfileV2 *p)
+{
+    return p && p->structure_bytes>=sizeof(*p) && !p->reserved &&
+        !(p->flags & ~IFS_FS_FORMAT_PROFILE_FLAGS) &&
+        p->layout<=IFS_FS_LAYOUT_BLOCKED_GROWTH &&
+        p->minimum_bytes>=512u && !(p->minimum_bytes%512u) &&
+        p->recommended_bytes>=p->minimum_bytes && !(p->recommended_bytes%512u) &&
+        (!p->maximum_bytes || (p->maximum_bytes>=p->recommended_bytes &&
+                               !(p->maximum_bytes%512u))) &&
+        (!p->exact_block_bytes ||
+         (p->exact_block_bytes>=512u &&
+          !(p->exact_block_bytes & (p->exact_block_bytes-1u)) &&
+          !(p->recommended_bytes%p->exact_block_bytes)));
+}
+
 /* The filesystem owns extent mapping/relocation and durable recovery.
  * Defragmenter supplies intent and policy; it must NOT move raw clusters. */
 #define IFS_FS_DEFRAG_MAP      (UINT64_C(1) << 0)
@@ -644,6 +690,8 @@ static inline const IfsFsGroupHeaderV2 *ifs_fs_group_v2(
         capabilities=IFS_FS_CORE_ALL; break;
     case IFS_FS_GROUP_ALLOCATION: bytes=sizeof(IfsFsAllocationOpsV2);
         capabilities=IFS_FS_ALLOCATION_ALL; break;
+    case IFS_FS_GROUP_FORMAT_PROFILE: bytes=sizeof(IfsFsFormatProfileOpsV2);
+        capabilities=IFS_FS_FORMAT_PROFILE_ALL; break;
     default: return NULL;
     }
     g = module->query_group(id, IFS_FS_GROUP_ABI_V2, IFS_FS_GROUP_ABI_V2);
@@ -751,6 +799,10 @@ static inline int ifs_fs_group_v2_callbacks_valid(
         const IfsFsAllocationOpsV2 *p=(const IfsFsAllocationOpsV2 *)g;
         return IFS_MATCH(IFS_FS_ALLOCATION_MAP,p->map);
     }
+    case IFS_FS_GROUP_FORMAT_PROFILE: {
+        const IfsFsFormatProfileOpsV2 *p=(const IfsFsFormatProfileOpsV2 *)g;
+        return IFS_MATCH(IFS_FS_FORMAT_PROFILE_DEFAULT,p->get_default);
+    }
     default: return 0;
     }
 #undef IFS_MATCH
@@ -777,6 +829,14 @@ static inline int ifs_fs_api_v2_valid(
             !ifs_fs_group_v2_callbacks_valid(ifs_fs_group_v2(api,id)))
             return 0;
 
+    /* A format profile must describe a real advertised formatter, never
+     * replace one. No provider callback is invoked to validate its values
+     * until the caller explicitly requests a profile from trusted code. */
+    if (api->group_mask & IFS_FS_GROUP_BIT(IFS_FS_GROUP_FORMAT_PROFILE)) {
+        const IfsFsVolumeOpsV2 *v=(const IfsFsVolumeOpsV2 *)
+            ifs_fs_group_v2(api,IFS_FS_GROUP_VOLUME);
+        if (!v || !(v->header.capabilities & IFS_FS_VOLUME_FORMAT)) return 0;
+    }
     /* All mounted-volume groups require the CORE lifecycle. VOLUME_FORMAT
      * alone operates on an exclusive host and needs no mounted namespace. */
     if (api->group_mask &

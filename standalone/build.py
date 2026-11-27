@@ -147,11 +147,11 @@ def build_manual(destination, version):
 
 def install_deps():
     # Resolve only build-time tools; installed .so and PDF have no Python dependency.
-    packages = ("build-essential", "binutils", "python3", "dpkg-dev")
+    packages = ("build-essential", "binutils", "python3", "dpkg-dev", "cmake")
     missing = [p for p in packages if subprocess.run(
         ["dpkg-query", "-W", "-f=$" + "{Status}", p],
         capture_output=True, text=True).stdout.strip() != "install ok installed"]
-    tools = ("cc", "readelf", "dpkg-deb", "dpkg-query")
+    tools = ("cc", "readelf", "dpkg-deb", "dpkg-query", "cmake", "objcopy")
     if missing or any(__import__("shutil").which(cmd) is None for cmd in tools):
         prefix = [] if os.geteuid() == 0 else ["sudo"]
         apt = [*prefix, "apt-get", "-o", "DPkg::Lock::Timeout=-1"]

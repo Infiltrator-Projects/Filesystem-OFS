@@ -53,6 +53,8 @@ def build_deb(profile, dest):
         info_dir.mkdir(parents=True)
         manual = info_dir / (REPO + ".pdf")
         fsbuild.build_manual(manual, VERSION)
+        # Build firmware separately; the installed V2 carrier stays one file.
+        run(["bash", ROOT / "standalone/embed-firmware.sh", module])
         digest = hashlib.sha256(module.read_bytes()).hexdigest()
         pdf_digest = hashlib.sha256(manual.read_bytes()).hexdigest()
         revision = source_revision()
