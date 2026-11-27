@@ -966,8 +966,8 @@
 0.08 0.12 0.17 rg BT /F3 10 Tf 43 299 Td (provider as the filesystem authority.) Tj ET
 0.08 0.12 0.17 rg BT /F3 10 Tf 43 281 Td (Current availability must be checked against the exported Common V2 descriptor,) Tj ET
 0.08 0.12 0.17 rg BT /F3 10 Tf 43 268 Td (operation masks and exact-revision qualification evidence. See the Common V2 ABI) Tj ET
-0.08 0.12 0.17 rg BT /F3 10 Tf 43 255 Td (\(https://github.com/Infiltrator-Projects/Common\) and provider repository) Tj ET
-0.08 0.12 0.17 rg BT /F3 10 Tf 43 242 Td (\(https://github.com/Infiltrator-Projects/Filesystem-OFS\).) Tj ET
+0.08 0.12 0.17 rg BT /F3 10 Tf 43 255 Td (https://github.com/Infiltrator-Projects/Libraries/blob/main/docs/) Tj ET
+0.08 0.12 0.17 rg BT /F3 10 Tf 43 242 Td (FILESYSTEM_COMMON_ABI_V2.md; provider repository: Filesystem-OFS.) Tj ET
 0.08 0.12 0.17 rg BT /F2 13 Tf 43 216 Td (18. Source index and historical references) Tj ET
 0.08 0.12 0.17 rg BT /F2 11 Tf 43 179 Td (Original structure references) Tj ET
 0.08 0.12 0.17 rg BT /F3 10 Tf 43 153 Td (- ADFlib FAQ 4.1-4.2 \(https://adflib.github.io/FAQ/adf_info.html\): boot area, root) Tj ET

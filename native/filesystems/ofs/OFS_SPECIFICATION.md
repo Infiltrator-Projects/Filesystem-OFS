@@ -6,6 +6,16 @@
 **Profiles:** original OFS `DOS\0`; international OFS `DOS\2`; directory-cache OFS `DOS\4`; and long-name OFS `DOS\6` (LNFS). **All four are OFS**, not FFS. LNFS uses distinct on-disk entry and root metadata defined in §13A.  
 **Certification status:** The format is externally documented; **the project implementation is not yet fully certified against this specification**. Track implementation status elsewhere.
 
+The numbered sections below consolidate the format contract and historical material into one specification. Superseded editions remain in Git history. The matching installed engineering reference is [the manual](../../../docs/OFS-TECHNICAL-REFERENCE.md); historical implementation snapshots do not establish current qualification.
+
+## 0. Origins and release chronology
+
+Commodore International's original AmigaDOS disk filesystem shipped in 1985 with AmigaOS 1.0; the designation OFS (Old or Original File System) was applied retrospectively. It was designed around floppy disks. FFS (Fast File System, also called AFFS in Linux) was introduced with AmigaOS 1.3 in 1988, handler v34. FFS removes the 24-byte per-data-block OFS header, permitting direct transfer of whole payload blocks and increasing capacity and sequential throughput on hard disks. OFS retains type, owner, sequence, length, next-block and checksum fields; FFS raw payload blocks do not. This affects salvage as well as performance.
+
+AmigaOS 1.0–1.2: original DOS0. AmigaOS 1.3 (1988, v34): DOS1 and compatibility with DOS0. AmigaOS 2.0 (1990, v37; international profiles documented for 2.04): DOS2/DOS3, ROM-integrated FFS. AmigaOS 3.0 (1992, v39): DOS4/DOS5. AmigaOS 3.1 (1993, v40/v40.1): last Commodore FFS generation. Later third-party v44 TD64 patches and licensed v45 NSD handler releases (AmigaOS 3.5/3.9, Haage & Partner) extended device addressing.
+
+In the early 2000s, Olaf Barthel's FFS2 evolved the handler for MorphOS (v46) and AmigaOS 4 (v50), including DOS6/DOS7 long-name modes. These are OFS and FFS format variants, not a new unrelated on-disk filesystem. Hyperion's AmigaOS 3.1.4 (September 2018) shipped v46 with multiple large-device interfaces; 3.1.4.1 (July 2019) updated the disk components. AmigaOS 3.2 (May 2021) shipped the v47 generation with further refinements. Version numbers are handler lineage, not the fourth DOSType byte; versions from distinct branches are not a single monotonically ordered release train.
+
 ## 1. Source authority and interpretation
 
 Original format descriptions and cross-checks:
@@ -47,6 +57,10 @@ All **four** are bona fide OFS on-disk profiles. No FFS identifiers belong in th
 
 Selecting dos4 **or dos6** must **never** be implemented by changing the four-byte identifier alone. Creation must fail closed if required cache metadata cannot be created and verified. A reader/verifier must discover and validate the actual stored variant, not silently assume the formatter's default. A tool must reject unknown variants, avoid converting existing volumes implicitly, and preserve all physical-target confirmation, geometry and capacity safety gates. Variant selection alone must not waive an unqualified physical disk or boot configuration limit.
 
+### Handler and name compatibility
+
+International mode changes equivalence/hashing for accented Latin-1 letters, not the raw character encoding; pre-international handlers could already store high-byte characters but did not consistently fold them. DOS2/3 are not backward-compatible with purely original handlers. DOS4/5 need directory-cache-capable handlers, and DOS6/7 cannot be mounted by older handlers that lack LNFS layout knowledge. Historical compatibility refers to the handler, ROM, and boot path, not just software version. A later handler can read earlier supported types, but the reverse is not guaranteed. DOS0 remained common on commercial floppy games and magazine disks for pre-2.x compatibility; trackloaders may bypass the filesystem entirely.
+
 ## 3. Terminology, encoding, units and geometry
 
 | Symbol | Definition |
@@ -70,6 +84,12 @@ Selecting dos4 **or dos6** must **never** be implemented by changing the four-by
 
 **[LIMIT]** A 32-bit key and 32-bit file-length field imply *arithmetic* limits: fewer than `2^32` addressed logical blocks (subject to reserved keys) and a maximal individual file length of `2^32-1` bytes. `(2^32-1)*B` is an addressing bound (just below **2 TiB at B=512**, just below **128 TiB at B=32768**), **not** a verified filesystem capacity, firmware transfer limit, classical device-driver guarantee or Linux boot qualification. No universal signed 31-bit limitation follows from the on-disk key type. A 32-bit file size does **not** turn into 128 TiB just because `B` grows.
 
+### Historical device addressing
+
+Classic trackdisk CMD_READ/CMD_WRITE use 32-bit byte offsets, creating a 4 GiB (2^32 bytes) device-address boundary. Some old handlers, tools and signed arithmetic imposed a 2 GiB boundary; traditional AmigaDOS APIs also exposed a roughly 2 GiB signed file-size limit. The historically reported 127 GB partition ceiling depended on handler, DOS library, geometry and tooling, and is not a universal property of every DOS type. Old code may wrap byte addresses and overwrite earlier storage rather than fail. Never treat a legacy 4 GB figure as the canonical on-disk volume limit.
+
+TrackDisk64 (TD64) third-party extensions used 64-bit device offsets, often with v44 handler patches and Phase5/controller packages. New Style Device (NSD) provided a distinct 64-bit command convention in the v45 licensed AmigaOS 3.5/3.9 FFS line. The schemes were not automatically interchangeable; a driver, filesystem and repair tool must agree on the interface or have a suitable translation layer. Hyperion v46 supports TD64, NSD and classic commands (and direct SCSI where appropriate); large-media operation still requires a compatible controller and correct RDB geometry. Later handlers can support partitions beyond 2 GiB and media beyond 4 GiB; do not infer that every old utility can.
+
 ## 4. Boot area and root placement
 
 The first `R` reserved logical blocks comprise the classic boot area; normally `R=2`. The default classic 512-byte boot area is therefore **1024 bytes**, not one generic "boot sector".
@@ -90,6 +110,14 @@ The canonical root block key is:
 Examples: `N=1760 -> 880`, `N=2048 -> 1024`, and **`N=2049 -> 1025`**. `floor(N/2)` is therefore **wrong for an odd count** with `R=2`. Compute this using an intermediate wider than 32 bits and check all bounds. Alternative Amiga DOS environment fields and custom reserved geometry must be interpreted explicitly, rather than inferred from a random first-sector number.
 
 **[POLICY]** A strict writer puts the root at this canonical position. A recovery reader MAY expose a bounded diagnostic search for nonconforming misplaced root blocks; it must not silently treat such output as a standards-conforming formatted volume.
+
+### RDB, ROM and handler integration
+
+Hard disks can carry a Rigid Disk Block (RDB) with partition records (PART), filesystem headers (FSHD) and load segments (LSEG). The partition environment supplies DOSType, block geometry and boot priority; a suitable controller/driver can load a filesystem handler from the RDB before mounting it. Kickstart 1.3 added autoboot support for hard disks and reset-resident RAD: RAM disks. Workbench 1.3 supplied the disk-based FFS handler for RDB installation. Kickstart 1.2 could boot 1.3 from floppy but lacked native FFS hard-disk autoboot. Kickstart 2.x incorporated FFS in ROM; RDB handler loading remained available for replacements and third-party formats.
+
+Unpartitioned trackdisk floppies have no RDB and rely on a ROM-supported DOSType for normal boot. FFS-formatted floppies generally require Kickstart 2.0 for native boot; pre-2.x access could be arranged through installed handlers or unsupported mount workarounds. Directory-cache variants require the AmigaOS 3.0-era handler. DOS types can also be selected via mountlists/DOSDrivers. Application compatibility normally follows AmigaDOS calls; raw trackloaders are outside filesystem semantics.
+
+The project's Common V2 host delivers a bounded, partition-relative volume. RDB partition selection and executable Amiga handler loading are outside that filesystem ABI; a historical bootable disk is not proof of InfiltratorOS BOOT compatibility. GPT/MBR, RDB and floppy/hardfile geometry must not be conflated. Never execute an untrusted handler from media. Native host read/write offsets are checked wide byte offsets.
 
 ## 5. Common metadata, checksums and time values
 
@@ -167,6 +195,12 @@ The bitmap extension is **not an ordinary metadata header**, and its words are *
 
 A valid bitmap checksum means its bit contents are internally checksum-consistent, **not** necessarily in agreement with real allocated metadata or data; whole-volume verification has to perform that separate cross-check. The bitmap-valid root flag and its update protocol matter for crash recovery; a full writer must manage it and durable writes coherently rather than treating the flag as an aesthetic field.
 
+### Validator and recovery history
+
+Historic disk-validator operation can make volumes read-only while validation runs; scans and access slowdowns grew severe on larger disks and could last hours. If the validator fails, recovery may require a salvage tool or copying recoverable files to another volume. Earlier boot disks supplied a disk-resident validator; malware such as the historically named Saddam Hussein virus exploited replaceable validator code. ROM integration in Kickstart 2.x reduced that replacement vector. These historical details are context, not a guarantee against all malware.
+
+Commodore supplied DiskDoctor in earlier releases and later removed it from the standard disks; DiskSalv was a prominent third-party repair, undelete and quick-format recovery utility. Defragmentation and conversion require exclusive ownership or a locked volume; normal access is restricted while a maintenance tool relocates blocks. Tools with legacy device interfaces can misaddress storage beyond their safe boundary and cause damage. Do not equate a successful bitmap rebuild with file undelete, unformat, or repair of contradictory metadata.
+
 ## 8. Directory header, hash tables, name rules and lookup
 
 The tail positions and 30-byte name field in this section apply to **DOS0/2/4** only. DOS6 uses the replacement nonroot NaC layout in §13A.
@@ -211,6 +245,10 @@ Directory hash:
 **International `DOS\2` and `DOS\4` folding:** ASCII `a..z` additionally Latin-1 lowercase `0xE0..0xFE` is mapped by subtracting `0x20` **except `0xF7`** (division sign). Do not use locale-dependent C `toupper()` on host Unicode input or set `DOS\4` to ASCII-only merely because its ID's international bit is not set.
 
 **[POLICY]** Directory enumeration must cap work for a damaged hash chain without globally inventing a limit on **valid** directory size: apply bounded traversal/visited-key cycle detection and a controlled error. A 512-entry limit is a particular EFI-reader policy, **not** an OFS filesystem format limit. Search and readdir must agree on the same bucket representation and hash case rules.
+
+### Worked directory collision and allocation
+
+For a conventional 1760-block floppy, B=512 and reserved count 2, root is block 880 and one bitmap covers the remaining 1758 blocks. The bitmap has 4064 usable bits after its checksum. Resolve two names hashing to one bucket by traversing their hash chain, comparing native folded bytes and confirming parent ownership. Locate data blocks through their own pointers, not the directory chain. Reserve allocation and verify checksums before publishing a new file. For DOS4 maintain cache coherence, for DOS6 maintain LNFS name/comment and used-block accounting; those are separate formats. Fault-inject each update boundary and compare against independently created AmigaOS fixtures.
 
 ## 9. Regular file header and extension blocks
 
@@ -290,6 +328,10 @@ For a 512-byte OFS block `P=488`. A 17,029,512-byte file requires `ceil(17029512
 
 **[POLICY]** Invalid media must not cause unchecked unsigned multiplication/subtraction, buffer overread, nonterminating traversal, or speculative block reads beyond partition bounds. Per-file upper length is still `UINT32_MAX` bytes.
 
+### Worked file and extension mapping
+
+For a 512-byte filesystem block, H=72 header data pointers and P=488 payload bytes. A 40000-byte file requires ceil(40000/488)=82 data blocks: 72 referenced in the header and ten in one extension block. Data pointer j in either table is at B-204-4*j (j starts at zero); select header or extension by quotient and remainder of logical payload block / H. Logical byte 35000 belongs to logical data block 71, offset 352, so read from byte 376 of the referenced OFS block after its 24-byte header. Compare the header's reversed pointer table with each data block's owner, sequence, payload size and next pointer. The final data block holds 472 bytes. Validate the full-block metadata checksum; do not treat an FFS raw block as OFS.
+
 ## 11. Hard links and symbolic links (version-sensitive)
 
 **[VARIANT]** Historically link support and interoperability differed among filesystem-handler/AmigaDOS revisions and had known compatibility issues. Do not claim that every original DOS\0 floppy handler can write or follow all link types. An implementation that declares **link support** uses the established AmigaDOS metadata records, independently tests them and handles cycles.
@@ -334,6 +376,10 @@ Each record begins at an even-aligned offset:
 | after record | 0 or 1 | Alignment padding to even byte boundary |
 
 A directory-cache reader must validate every record's length, alignment, ownership, checksum, cache chain and referenced entry key. **[POLICY]** A read-only driver may ignore caches and enumerate through the authoritative hash tables after validating that the volume is truly OFS; this avoids trusting inconsistent caches. A writer for `DOS\4` **must** maintain cache records whenever it creates, removes, renames or updates directory entries, or else decline writable mounting. Do not write `DOS\4` as though it were `DOS\0` and leave stale caches.
+
+### Cache performance and limitations
+
+DCFS stores auxiliary directory-list records in addition to authoritative hashed directory entries. It reduces scattered metadata reads and can speed directory enumeration, not ordinary file payload reading. Create, delete, rename and metadata updates must also update cache records, adding writes and consistency obligations. Olaf Barthel's documented limitations include lack of consolidation/garbage collection for partly filled cache blocks: partially used pages may persist and waste space. Floppy directories may benefit from lower seek cost but the cache also consumes scarce floppy space; larger hard disks can see net degradation from cache maintenance. Do not infer all implementations exhibit identical performance.
 
 ## 13. Names, attributes, ownership and timestamps
 
@@ -399,6 +445,9 @@ The DOS6 root uses the classic root layout **except** these two extra fields:
 
 These requirements are drawn from the original low-level LNFS author documentation, not guessed from FFS behavior. They must be independently validated on real Amiga-created LNFS media before a product claims full interoperability.
 
+### Compatibility with later Amiga formats
+
+LNFS substitutes long-name/comment metadata and a root used-block counter/type echo, not DCFS. It retains bitmap validation and does not add transactional crash rollback. FFS2 does not remove the underlying validation requirement. Both original formats have Amiga protection flags, timestamps and file comments (filenotes); neither provides transparent compression or encryption as an original format feature. AmigaOS, MorphOS and AmigaOS 4 have supported FFS; SFS and PFS emerged as alternatives in the mid-1990s, with PFS3 and SFS2 having distinct on-media semantics. SFS has been used as a default filesystem in AROS distributions; defaults can vary by distribution/version.
 
 ## 14. Required read, write and namespace behaviour
 
@@ -452,17 +501,29 @@ Each newly supported profile/geometry must pass the following **independent** te
 
 **No physical SD, NVMe, ESP or UEFI NVRAM modification is implied or authorized by this specification.** Destructive partition formatting stays separately guarded until formatter, Linux and EFI reader have passed the identical qualified geometry. Preserve user recovery paths.
 
+### Independent implementations
+
+Linux's AFFS driver is an independent implementation, not an authority for our exported capabilities. Its supported DOSTypes and read/write limitations vary by version; historical descriptions claiming universal DOS0–5 formatting or writable DCFS overstate what a kernel driver guarantees. Formatting is normally a separate user-space tool. The Amiga xfs freeware utility could access older OFS/FFS among other formats, but predates LNFS and did not provide general formatting. ADFlib, amitools and independent Amiga media are valuable interoperability references; third-party compatibility must be demonstrated rather than assumed.
+
 ## 17. Scope boundary, review discipline and tracked implementation gaps
 
-This Markdown is the **canonical OFS target contract**. The existing `DESIGN.md` defines source ownership and layering; `core/ofs_disk_layout.h` and `core/ofs_primitives.*` implement format primitives; `tools/ofs-image/main.c` is the formatter; `linux/` and `efi/` contain adapters. **They are not normative replacements for the independently sourced filesystem format.**
+The independently sourced OFS format contract governs the format primitives. The existing `DESIGN.md` defines source ownership and layering; `core/ofs_disk_layout.h` and `core/ofs_primitives.*` implement format primitives; `tools/ofs-image/main.c` is the formatter; `linux/` and `efi/` contain adapters. **They are not normative replacements for the independently sourced filesystem format.**
 
-All changes to code or this document must cite the affected numbered section, state which of `DOS\0/2/4/6` and `B` values it implements, and add a failing-before/passing-after golden test. Do not copy FFS behavior merely because Linux's upstream `affs` source handles both. Track remaining unsigned-capacity, large-block, root-boot and independent Amiga qualification in [issue #27](https://github.com/Infiltrator-Projects/Filesystems/issues/27) and [the separate implementation compliance matrix](../../../docs/OFS_SPECIFICATION_COMPLIANCE.md).
+All changes to code or this document must cite the affected numbered section, state which of `DOS\0/2/4/6` and `B` values it implements, and add a failing-before/passing-after golden test. Do not copy FFS behavior merely because Linux's upstream `affs` source handles both. Track remaining unsigned-capacity, large-block, root-boot and independent Amiga qualification in [issue #27](https://github.com/Infiltrator-Projects/Filesystems/issues/27) and the separate implementation compliance matrix. The original source specification is a conformance target for the formatter, Linux and Windows adapters, the UEFI reader and test fixtures; production provider authority remains Common V2.
 
 **Known intentional boundary:** This OFS profile does not pretend to canonically specify muFS-specific owner semantics, alternative recovery formats, third-party partition management or EFI/GRUB boot files. Those require their own documented extension profiles. The OFS on-disk format is not an EFI driver interface, Linux VFS ABI or bootloader API.
 
----
+### Provider capability and qualification
 
-### External source index by section
+The documented source baseline (530e8284a6cc) of Common V2 in native/filesystems/ofs/module/ofs_common.c accepts formatter selectors DOS0, DOS2, DOS4 and DOS6; the core descriptor declares probe, mount, stat, enumeration, read, write, create, remove, rename and truncate, with volume query, label, sync, check and format. Native OFS retains B-24 payload, checksummed data records and format-specific directory/cache/LNFS semantics. Only exported operation groups and masks are authoritative; a private native function or older adapter is not an extra public capability.
+
+The detailed OFS_SPECIFICATION.md and qualification matrices define exact structures, bounds and independent tests. Historical claims in old Linux/EFI adapter records are not the current production deployment contract. A documented 107-byte LNFS reader fixture does not imply a 107-byte interoperable writer; the writer limit is 106. Actual physical-media durability, every failure sequence and every original handler combination require separate qualification. A successful compilation does not prove runtime or BOOT integration. Use only the Common V2 provider as the filesystem authority.
+
+Current availability must be checked against the exported Common V2 descriptor, operation masks and exact-revision qualification evidence. See the [Common V2 ABI](https://github.com/Infiltrator-Projects/Libraries/blob/main/docs/FILESYSTEM_COMMON_ABI_V2.md) and [provider repository](https://github.com/Infiltrator-Projects/Filesystem-OFS).
+
+## 18. Source index and historical references
+
+### Original structure references
 
 - [ADFlib FAQ `4.1–4.2](https://adflib.github.io/FAQ/adf_info.html): boot area, root placement, offsets, hashes and block checksums.
 - [ADFlib FAQ `4.3](https://adflib.github.io/FAQ/adf_info.html): bitmap bit polarity, extension chain and geometry.
@@ -474,66 +535,6 @@ All changes to code or this document must cite the affected numbered section, st
 
 - [Olaf Barthel, official DCFS/LNFS structure specification](https://wiki.amigaos.net/wiki/DCFS_and_LNFS_Low_Level_Data_Structures): authentic DOS6 NaC fields, comment blocks, root used-block count and type echo.
 
-## Historical format evolution, compatibility and provider boundaries
-
-### Origins and release chronology
-
-Commodore International's original AmigaDOS disk filesystem shipped in 1985 with AmigaOS 1.0; the designation OFS (Old or Original File System) was applied retrospectively. It was designed around floppy disks. FFS (Fast File System, also called AFFS in Linux) was introduced with AmigaOS 1.3 in 1988, handler v34. FFS removes the 24-byte per-data-block OFS header, permitting direct transfer of whole payload blocks and increasing capacity and sequential throughput on hard disks. OFS retains type, owner, sequence, length, next-block and checksum fields; FFS raw payload blocks do not. This affects salvage as well as performance.
-
-AmigaOS 1.0–1.2: original DOS0. AmigaOS 1.3 (1988, v34): DOS1 and compatibility with DOS0. AmigaOS 2.0 (1990, v37; international profiles documented for 2.04): DOS2/DOS3, ROM-integrated FFS. AmigaOS 3.0 (1992, v39): DOS4/DOS5. AmigaOS 3.1 (1993, v40/v40.1): last Commodore FFS generation. Later third-party v44 TD64 patches and licensed v45 NSD handler releases (AmigaOS 3.5/3.9, Haage & Partner) extended device addressing.
-
-In the early 2000s, Olaf Barthel's FFS2 evolved the handler for MorphOS (v46) and AmigaOS 4 (v50), including DOS6/DOS7 long-name modes. These are OFS and FFS format variants, not a new unrelated on-disk filesystem. Hyperion's AmigaOS 3.1.4 (September 2018) shipped v46 with multiple large-device interfaces; 3.1.4.1 (July 2019) updated the disk components. AmigaOS 3.2 (May 2021) shipped the v47 generation with further refinements. Version numbers are handler lineage, not the fourth DOSType byte; versions from distinct branches are not a single monotonically ordered release train.
-
-### DOSTypes and namespace compatibility
-
-DOSType is the binary sequence 44 4F 53 xx, not ASCII 'DOS0'. DOS0: original OFS; DOS1: original FFS; DOS2: OFS International; DOS3: FFS International; DOS4: OFS Directory Cache; DOS5: FFS Directory Cache; DOS6: OFS Long Name File System (LNFS); DOS7: FFS LNFS. Even types own OFS header-bearing payload; odd types own FFS raw payload. DOS2/3 use international Latin-1 case folding; DOS4/5 inherit it and add DCFS; DOS6/7 inherit international folding but do not use directory cache. Classic names are limited to 30 on-disk bytes; some sources count 31 including length/terminator. LNFS has a 107-character API envelope; Hyperion recommends a 106-character interoperable writer limit. Volume labels remain 30 bytes. The 112-byte NaC field stores length-prefixed name and comment; overflow comments use type-64 blocks. International case folding is not Unicode folding.
-
-International mode changes equivalence/hashing for accented Latin-1 letters, not the raw character encoding; pre-international handlers could already store high-byte characters but did not consistently fold them. DOS2/3 are not backward-compatible with purely original handlers. DOS4/5 need directory-cache-capable handlers, and DOS6/7 cannot be mounted by older handlers that lack LNFS layout knowledge. Historical compatibility refers to the handler, ROM, and boot path, not just software version. A later handler can read earlier supported types, but the reverse is not guaranteed. DOS0 remained common on commercial floppy games and magazine disks for pre-2.x compatibility; trackloaders may bypass the filesystem entirely.
-
-### Boot, RDB and device integration
-
-Hard disks can carry a Rigid Disk Block (RDB) with partition records (PART), filesystem headers (FSHD) and load segments (LSEG). The partition environment supplies DOSType, block geometry and boot priority; a suitable controller/driver can load a filesystem handler from the RDB before mounting it. Kickstart 1.3 added autoboot support for hard disks and reset-resident RAD: RAM disks. Workbench 1.3 supplied the disk-based FFS handler for RDB installation. Kickstart 1.2 could boot 1.3 from floppy but lacked native FFS hard-disk autoboot. Kickstart 2.x incorporated FFS in ROM; RDB handler loading remained available for replacements and third-party formats.
-
-Unpartitioned trackdisk floppies have no RDB and rely on a ROM-supported DOSType for normal boot. FFS-formatted floppies generally require Kickstart 2.0 for native boot; pre-2.x access could be arranged through installed handlers or unsupported mount workarounds. Directory-cache variants require the AmigaOS 3.0-era handler. DOS types can also be selected via mountlists/DOSDrivers. Application compatibility normally follows AmigaDOS calls; raw trackloaders are outside filesystem semantics.
-
-The project's Common V2 host delivers a bounded, partition-relative volume. RDB partition selection and executable Amiga handler loading are outside that filesystem ABI; a historical bootable disk is not proof of InfiltratorOS BOOT compatibility. GPT/MBR, RDB and floppy/hardfile geometry must not be conflated. Never execute an untrusted handler from media. Native host read/write offsets are checked wide byte offsets.
-
-### Allocation, validation and repair history
-
-OFS and FFS use one or more bitmap blocks, with extension blocks for larger volumes; the root carries a bitmap-valid flag. Historical descriptions of a single-sector bitmap apply only to small media, not the general format. Before mutation the handler marks allocation state invalid; after consistent writes it updates the bitmap and marks it valid. Interruption may leave a dirty bitmap, so validation walks reachable directory/header/extension/data ownership and reconstructs allocation. This is not an atomic journal and cannot guarantee that only the most recently modified data is lost.
-
-Historic disk-validator operation can make volumes read-only while validation runs; scans and access slowdowns grew severe on larger disks and could last hours. If the validator fails, recovery may require a salvage tool or copying recoverable files to another volume. Earlier boot disks supplied a disk-resident validator; malware such as the historically named Saddam Hussein virus exploited replaceable validator code. ROM integration in Kickstart 2.x reduced that replacement vector. These historical details are context, not a guarantee against all malware.
-
-Commodore supplied DiskDoctor in earlier releases and later removed it from the standard disks; DiskSalv was a prominent third-party repair, undelete and quick-format recovery utility. Defragmentation and conversion require exclusive ownership or a locked volume; normal access is restricted while a maintenance tool relocates blocks. Tools with legacy device interfaces can misaddress storage beyond their safe boundary and cause damage. Do not equate a successful bitmap rebuild with file undelete, unformat, or repair of contradictory metadata.
-
-### Addressing limits and large media
-
-Classic trackdisk CMD_READ/CMD_WRITE use 32-bit byte offsets, creating a 4 GiB (2^32 bytes) device-address boundary. Some old handlers, tools and signed arithmetic imposed a 2 GiB boundary; traditional AmigaDOS APIs also exposed a roughly 2 GiB signed file-size limit. The historically reported 127 GB partition ceiling depended on handler, DOS library, geometry and tooling, and is not a universal property of every DOS type. Old code may wrap byte addresses and overwrite earlier storage rather than fail. Never treat a legacy 4 GB figure as the canonical on-disk volume limit.
-
-TrackDisk64 (TD64) third-party extensions used 64-bit device offsets, often with v44 handler patches and Phase5/controller packages. New Style Device (NSD) provided a distinct 64-bit command convention in the v45 licensed AmigaOS 3.5/3.9 FFS line. The schemes were not automatically interchangeable; a driver, filesystem and repair tool must agree on the interface or have a suitable translation layer. Hyperion v46 supports TD64, NSD and classic commands (and direct SCSI where appropriate); large-media operation still requires a compatible controller and correct RDB geometry. Later handlers can support partitions beyond 2 GiB and media beyond 4 GiB; do not infer that every old utility can.
-
-On disk, unsigned 32-bit block keys and 32-bit file lengths are separate from host byte offsets. For B=512, 32-bit block addressing is just below 2 TiB; for B=32768 it is just below 128 TiB. These are arithmetic bounds, not historical or tested volume limits. A UINT32_MAX byte-length field is not a promise that a classic AmigaDOS application supports a 4 GiB file. Modern providers must use overflow-checked partition-relative arithmetic, test large offsets and distinguish format limits from provider and device limits.
-
-### Directory caching, later formats and ecosystem
-
-DCFS stores auxiliary directory-list records in addition to authoritative hashed directory entries. It reduces scattered metadata reads and can speed directory enumeration, not ordinary file payload reading. Create, delete, rename and metadata updates must also update cache records, adding writes and consistency obligations. Olaf Barthel's documented limitations include lack of consolidation/garbage collection for partly filled cache blocks: partially used pages may persist and waste space. Floppy directories may benefit from lower seek cost but the cache also consumes scarce floppy space; larger hard disks can see net degradation from cache maintenance. Do not infer all implementations exhibit identical performance.
-
-LNFS substitutes long-name/comment metadata and a root used-block counter/type echo, not DCFS. It retains bitmap validation and does not add transactional crash rollback. FFS2 does not remove the underlying validation requirement. Both original formats have Amiga protection flags, timestamps and file comments (filenotes); neither provides transparent compression or encryption as an original format feature. AmigaOS, MorphOS and AmigaOS 4 have supported FFS; SFS and PFS emerged as alternatives in the mid-1990s, with PFS3 and SFS2 having distinct on-media semantics. SFS has been used as a default filesystem in AROS distributions; defaults can vary by distribution/version.
-
-Linux's AFFS driver is an independent implementation, not an authority for our exported capabilities. Its supported DOSTypes and read/write limitations vary by version; historical descriptions claiming universal DOS0–5 formatting or writable DCFS overstate what a kernel driver guarantees. Formatting is normally a separate user-space tool. The Amiga xfs freeware utility could access older OFS/FFS among other formats, but predates LNFS and did not provide general formatting. ADFlib, amitools and independent Amiga media are valuable interoperability references; third-party compatibility must be demonstrated rather than assumed.
-
-### Sources and interpretation
-
 Historical comparison: Amiga Fast File System article (user-supplied 2026-11-25), https://en.wikipedia.org/wiki/Amiga_Fast_File_System . The article is a secondary source; its unsourced characteristics and broad compatibility statements are not normative. Consult original manuals and handler-version documentation for device-specific details.
 
-Original format: AmigaDOS ROM Kernel Reference Manual (DOS), ADFlib disk-format FAQ https://adflib.github.io/FAQ/adf_info.html ; Olaf Barthel, DCFS and LNFS Low Level Data Structures https://wiki.amigaos.net/wiki/DCFS_and_LNFS_Low_Level_Data_Structures ; Linux AFFS documentation https://www.kernel.org/doc/html/v6.7/filesystems/affs.html .
-
 Hyperion large-media FAQ https://www.hyperion-entertainment.com/index.php/frequently-asked-questions/55-amigaos-314/202-can-i-use-partitions-beyond-the-4gb-boundary ; Hyperion 3.1.4.1 release notice https://www.hyperion-entertainment.com/index.php/news/1-latest-news/280-update-to-amigaos-314-released ; AmigaOS 3.2 product documentation https://www.hyperion-entertainment.com/index.php/where-to-buy/direct-downloads/327-amigaos-32 . Historical chronology: https://www.gregdonner.org/workbench/ ; Thomas Rapp, FAQ about the 4GB problem, https://thomas-rapp.hier-im-netz.de/4gb.html .
-
-These references describe the historical formats and Amiga handler ecosystem, not certification of our provider. The current exported Common V2 operation masks, implementation and exact-revision tests are authoritative for InfiltratorOS. The project's canonical filesystem implementations remain independent.
-
-### OFS provider capability boundary and acceptance
-
-Current Common V2 source in native/filesystems/ofs/module/ofs_common.c accepts formatter selectors DOS0, DOS2, DOS4 and DOS6; the core descriptor declares probe, mount, stat, enumeration, read, write, create, remove, rename and truncate, with volume query, label, sync, check and format. Native OFS retains B-24 payload, checksummed data records and format-specific directory/cache/LNFS semantics. Only exported operation groups and masks are authoritative; a private native function or older adapter is not an extra public capability.
-
-The detailed OFS_SPECIFICATION.md and qualification matrices define exact structures, bounds and independent tests. Historical claims in old Linux/EFI adapter records are not the current production deployment contract. A documented 107-byte LNFS reader fixture does not imply a 107-byte interoperable writer; the writer limit is 106. Actual physical-media durability, every failure sequence and every original handler combination require separate qualification. A successful compilation does not prove runtime or BOOT integration. Use only the Common V2 provider as the filesystem authority.

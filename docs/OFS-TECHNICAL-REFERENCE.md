@@ -513,7 +513,7 @@ The documented source baseline (530e8284a6cc) of Common V2 in native/filesystems
 
 The detailed OFS_SPECIFICATION.md and qualification matrices define exact structures, bounds and independent tests. Historical claims in old Linux/EFI adapter records are not the current production deployment contract. A documented 107-byte LNFS reader fixture does not imply a 107-byte interoperable writer; the writer limit is 106. Actual physical-media durability, every failure sequence and every original handler combination require separate qualification. A successful compilation does not prove runtime or BOOT integration. Use only the Common V2 provider as the filesystem authority.
 
-Current availability must be checked against the exported Common V2 descriptor, operation masks and exact-revision qualification evidence. See the [Common V2 ABI](https://github.com/Infiltrator-Projects/Common) and [provider repository](https://github.com/Infiltrator-Projects/Filesystem-OFS).
+Current availability must be checked against the exported Common V2 descriptor, operation masks and exact-revision qualification evidence. See the [Common V2 ABI](https://github.com/Infiltrator-Projects/Libraries/blob/main/docs/FILESYSTEM_COMMON_ABI_V2.md) and [provider repository](https://github.com/Infiltrator-Projects/Filesystem-OFS).
 
 ## 18. Source index and historical references
 

@@ -1081,7 +1081,7 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 45 0 R >>
 endobj
 45 0 obj
-<< /Length 5745 >>
+<< /Length 5742 >>
 stream
 0.07 0.13 0.20 rg 0 785 595 57 re f
 1 1 1 rg BT /F2 15 Tf 43 810 Td (OFS | TECHNICAL REFERENCE) Tj ET
@@ -1121,8 +1121,8 @@ stream
 0.08 0.12 0.17 rg BT /F3 10 Tf 43 299 Td (provider as the filesystem authority.) Tj ET
 0.08 0.12 0.17 rg BT /F3 10 Tf 43 281 Td (Current availability must be checked against the exported Common V2 descriptor,) Tj ET
 0.08 0.12 0.17 rg BT /F3 10 Tf 43 268 Td (operation masks and exact-revision qualification evidence. See the Common V2 ABI) Tj ET
-0.08 0.12 0.17 rg BT /F3 10 Tf 43 255 Td (\(https://github.com/Infiltrator-Projects/Common\) and provider repository) Tj ET
-0.08 0.12 0.17 rg BT /F3 10 Tf 43 242 Td (\(https://github.com/Infiltrator-Projects/Filesystem-OFS\).) Tj ET
+0.08 0.12 0.17 rg BT /F3 10 Tf 43 255 Td (https://github.com/Infiltrator-Projects/Libraries/blob/main/docs/) Tj ET
+0.08 0.12 0.17 rg BT /F3 10 Tf 43 242 Td (FILESYSTEM_COMMON_ABI_V2.md; provider repository: Filesystem-OFS.) Tj ET
 0.08 0.12 0.17 rg BT /F2 13 Tf 43 216 Td (18. Source index and historical references) Tj ET
 0.08 0.12 0.17 rg BT /F2 11 Tf 43 179 Td (Original structure references) Tj ET
 0.08 0.12 0.17 rg BT /F3 10 Tf 43 153 Td (- ADFlib FAQ 4.1-4.2 \(https://adflib.github.io/FAQ/adf_info.html\): boot area, root) Tj ET
@@ -1220,10 +1220,10 @@ xref
 0000104607 00000 n 
 0000110736 00000 n 
 0000110884 00000 n 
-0000116681 00000 n 
-0000116829 00000 n 
+0000116678 00000 n 
+0000116826 00000 n 
 trailer
 << /Size 48 /Root 1 0 R >>
 startxref
-119893
+119890
 %%EOF
