@@ -9,7 +9,7 @@ if(NOT EXISTS "${COMMON_INCLUDE_DIR}/infiltratr/filesystem_module_v2.h")
 endif()
 set(ROOT "${CMAKE_CURRENT_LIST_DIR}/../..")
 set(FS "${ROOT}/native/filesystems/ofs")
-add_library(firmware SHARED
+add_library(firmware MODULE
   "${FS}/module/ofs_common.c"
   "${FS}/module/ofs_memory.c"
   "${FS}/core/ofs_core.c"
@@ -22,7 +22,7 @@ add_library(firmware SHARED
   "${FS}/core/ofs_strings.c"
   "${FS}/core/ofs_cache.c"
 )
-set_target_properties(firmware PROPERTIES PREFIX "" OUTPUT_NAME "OFS" C_STANDARD 11 C_STANDARD_REQUIRED ON C_VISIBILITY_PRESET hidden)
+set_target_properties(firmware PROPERTIES PREFIX "" SUFFIX ".so" OUTPUT_NAME "OFS" C_STANDARD 11 C_STANDARD_REQUIRED ON C_VISIBILITY_PRESET hidden)
 target_include_directories(firmware PRIVATE "${COMMON_INCLUDE_DIR}" "${FS}/module" "${FS}/core" "${FS}/efi" "${ROOT}/native/include")
 
 target_compile_options(firmware PRIVATE -O2 -march=x86-64 -mtune=generic -mno-red-zone -mgeneral-regs-only -fcf-protection=none -ffreestanding -fno-builtin -fno-stack-protector -fno-tree-loop-distribute-patterns -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0)
