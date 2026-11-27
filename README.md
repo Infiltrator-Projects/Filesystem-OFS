@@ -27,7 +27,6 @@ The target installation is `/System/Filesystems/OFS.so` and `/System/Resources/D
 ## 7. Technical references and provenance
 
 - [Provider implementation](native/filesystems/ofs/module/ofs_common.c)
-- [Native design or source provenance](native/filesystems/ofs/OFS_SPECIFICATION.md)
 - [Migration and source history](MIGRATION-PROVENANCE.md)
 - [Plain-text PDF drawing source (not Apple Pages)](docs/OFS.pdfstreams) and [PDF](docs/OFS.pdf)
 - [Project philosophy](docs/PHILOSOPHY.md)
