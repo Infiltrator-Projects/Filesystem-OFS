@@ -28,7 +28,7 @@ with open('bad.hdf', 'r+b') as f, mmap.mmap(f.fileno(), 0) as disk:
     disk[pos + 487] ^= 1
 PY
 sha256sum clean.hdf bad.hdf > before
-cc -std=c11 -O2 -Wall -Wextra -Werror -I"$root/native/include" "$root/tests/ofs_v2_media_test.c" -ldl -o test
+cc -std=c11 -O2 -Wall -Wextra -Werror -I"$root/src/infiltratr-common/include" "$root/tests/ofs_v2_media_test.c" -ldl -o test
 for sector in 512 4096; do
     ./test "$module" clean.hdf "$sector" clean "$kernel" "$initrd"
     ./test "$module" bad.hdf "$sector" bad-data "$kernel" "$initrd"

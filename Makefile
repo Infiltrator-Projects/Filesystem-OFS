@@ -1,14 +1,15 @@
 CC ?= cc
 CFLAGS ?= -O2 -std=c11 -Wall -Wextra -Werror
 OFS := native/filesystems/ofs
+COMMON_HEADER := src/infiltratr-common/include/infiltratr/filesystem_module_v2.h
 CORE := $(OFS)/core/ofs_core.c $(OFS)/core/ofs_primitives.c
 ENGINE := $(addprefix $(OFS)/core/,ofs_volume.c ofs_nodes.c ofs_files.c ofs_namespace.c ofs_check.c ofs_strings.c ofs_cache.c) $(OFS)/defrag/ofs_relayout.c $(OFS)/defrag/ofs_defrag_module.c
 READER := $(OFS)/efi/reader.c
 MODULE := $(OFS)/module/ofs_common.c $(OFS)/module/ofs_memory.c
-INC := -I$(OFS)/core -I$(OFS)/efi -I$(OFS)/module -Inative/include
+INC := -I$(OFS)/core -I$(OFS)/efi -I$(OFS)/module -Isrc/infiltratr-common/include -Inative/include
 OUT ?= build
 PYTHON ?= python3
-HEADERS := $(wildcard $(OFS)/core/*.h $(OFS)/module/*.h $(OFS)/efi/*.h $(OFS)/defrag/*.h native/include/infiltratr/fs/*.h native/include/infiltratr/filesystem_module_v2.h)
+HEADERS := $(wildcard $(OFS)/core/*.h $(OFS)/module/*.h $(OFS)/efi/*.h $(OFS)/defrag/*.h native/include/infiltratr/fs/*.h) $(COMMON_HEADER)
 
 .PHONY: all test check release native clean
 all: $(OUT)/OFS.so
@@ -36,9 +37,9 @@ $(OUT)/ofs-orphan-test: tests/ofs_orphan_test.c $(filter-out $(OFS)/defrag/%,$(E
 test: $(OUT)/OFS.so $(OUT)/ofs-module-test $(OUT)/ofs-reader-test $(OUT)/ofs-core-test $(OUT)/ofs-primitives-test $(OUT)/ofs-orphan-test
 	$(OUT)/ofs-module-test
 	$(OUT)/ofs-module-test 4096
-	$(CC) $(CFLAGS) -Inative/include tests/ofs_common_abi_test.c -ldl -o $(OUT)/ofs-common-abi-test
+	$(CC) $(CFLAGS) -Isrc/infiltratr-common/include -Inative/include tests/ofs_common_abi_test.c -ldl -o $(OUT)/ofs-common-abi-test
 	$(OUT)/ofs-common-abi-test $(OUT)/OFS.so
-	$(CC) $(CFLAGS) -Inative/include tests/ofs_v2_relocation_test.c -ldl -o $(OUT)/ofs-v2-relocation-test
+	$(CC) $(CFLAGS) -Isrc/infiltratr-common/include -Inative/include tests/ofs_v2_relocation_test.c -ldl -o $(OUT)/ofs-v2-relocation-test
 	$(OUT)/ofs-v2-relocation-test $(OUT)/OFS.so
 	$(OUT)/ofs-reader-test
 	$(OUT)/ofs-core-test
@@ -72,3 +73,6 @@ endif
 
 clean:
 	rm -rf -- "$(OUT)"
+
+$(COMMON_HEADER): standalone/COMMON_REVISION standalone/prepare-common.sh
+	bash standalone/prepare-common.sh

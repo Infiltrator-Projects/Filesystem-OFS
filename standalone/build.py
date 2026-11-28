@@ -15,7 +15,7 @@ SOURCES=[BASE/'module'/n for n in ('ofs_common.c','ofs_memory.c')]+[
 # The retired private defragmenter entry point is NOT a Common V2 group.
 # Leave its native source for future GROUP_DEFRAG migration and source-owned
 # unit tests, but do not link a second production ABI into OFS.so.
-INCLUDES=[BASE/'module',BASE/'core',BASE/'efi',ROOT/'native/include']
+INCLUDES=[BASE/'module',BASE/'core',BASE/'efi',ROOT/'src/infiltratr-common/include',ROOT/'native/include']
 EXPORTS=('infiltrator_filesystem_api_v2',)
 
 def run(args,**kwargs):subprocess.run([str(x) for x in args],check=True,**kwargs)
@@ -61,16 +61,17 @@ def test(module,full=False):
     # Exercise the installed ABI and canonical engine against disposable fixtures.
     exe=module.parent/'ofs-module-test'
     run([os.environ.get('CC','cc'),'-std=c11','-O2','-Wall','-Wextra','-Werror',
-         '-I',ROOT/'native/include',ROOT/'tests/ofs_dropin_module_test.c',module,
+         '-I',ROOT/'src/infiltratr-common/include',ROOT/'tests/ofs_dropin_module_test.c',module,
          '-Wl,-rpath,$ORIGIN','-o',exe]);run([exe])
     testexe=module.parent/'ofs-common-abi-test'
     run([os.environ.get('CC','cc'),'-std=c11','-O2','-Wall','-Wextra','-Werror',
-         '-I',ROOT/'native/include',ROOT/'tests/ofs_common_abi_test.c',
+         '-I',ROOT/'src/infiltratr-common/include',ROOT/'tests/ofs_common_abi_test.c',
          '-ldl','-o',testexe])
     run([testexe,module])
     testexe.unlink()
 
 def build(profile,module):
+    run(["bash",ROOT/"standalone/prepare-common.sh"])
     module=module.resolve();module.parent.mkdir(parents=True,exist_ok=True)
     flags=['-std=c11','-Wall','-Wextra','-Werror','-fPIC','-mno-red-zone','-fno-stack-protector',
         '-fno-builtin','-fno-tree-loop-distribute-patterns','-ffreestanding','-fvisibility=hidden']
@@ -163,7 +164,7 @@ def dependencies(module):
     return "libc6"
 
 def prepare_release_source():
-    pass
+    run(["bash", ROOT / "standalone/prepare-common.sh"])
 
 def embedded_source_files():
     return []
@@ -184,7 +185,6 @@ def release_source_files():
             q.startswith(("native/filesystems/ofs/core/", "native/filesystems/ofs/module/",
                           "native/filesystems/ofs/defrag/", "standalone/", "docs/")) or
             q in ("native/filesystems/ofs/efi/reader.c", "native/filesystems/ofs/efi/reader.h",
-                  "native/include/infiltratr/filesystem_module_v2.h",
                   "native/include/infiltratr/fs/defrag_module.h",
                   "tests/fetch-oracle.py", "tests/test-ofs-media.sh", "tests/boot-file-fixtures.sh",
                   "tests/check-package.py",

@@ -5,7 +5,8 @@ set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd)
 module=$(realpath "${1:?hosted module required}")
 [[ $(basename "$module") == OFS.so && -f "$module" && ! -L "$module" ]]
-common="$root/native/include"
+bash "$root/standalone/prepare-common.sh"
+common="$root/src/infiltratr-common/include"
 test "$(git hash-object "$common/infiltratr/filesystem_module_v2.h")" = 90730b68a53ecf6a6e304c789501f29c17c728c7
 work=$(mktemp -d "$(dirname "$module")/.firmware-XXXXXX")
 trap 'rm -rf -- "$work"' EXIT

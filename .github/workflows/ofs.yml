@@ -18,6 +18,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential binutils python3 dpkg-dev cmake libssl-dev busybox-static cpio
       - name: Qualify Common V2 filesystem API and native reader
         run: make check
+      - name: Build the source archive with upstream Common
+        run: bash tests/common-source.sh
       - name: Build portable package and source-first native installer
         run: |
           make release

@@ -39,3 +39,5 @@ The original-format reference and historical migration notes describe different 
 The canonical specification and installed manual include the historical release chronology, DOS0-DOS7 distinctions, RDB/Kickstart boot history, validation and repair tools, TD64/NSD and large-media boundaries, directory-cache limitations, LNFS and independent source references. Historical handler support is not a claim of current provider parity.
 
 The [engineering reference](docs/OFS-TECHNICAL-REFERENCE.md) incorporates the detailed format specification and worked exercises. The PDF and Markdown are one integrated reference; superseded editions remain in Git history.
+
+Hosted, firmware and external test builds use the upstream Common V2 header. The source archive and native installer resolve the same immutable Libraries revision as the Git checkout.
